@@ -4,7 +4,7 @@ from backend.App.database import db
 class Admin(User):
     __tablename__ = 'admin'
     
-    admin_id = db.Column(db.Integer, primary_key=True)
+    adminID = db.Column(db.Integer, primary_key=True)
     
     __mapper_args__ = {
         'polymorphic_identity': 'admin'
