@@ -1,5 +1,5 @@
-from backend.App.models import Event
-from backend.App.models import db
+from App.models import Event
+from App.models import db
 
 def get_json(eventID):
     event = db.session.get(Event, eventID)

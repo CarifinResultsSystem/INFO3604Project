@@ -2,9 +2,9 @@ import os
 
 def load_config(app, overrides):
     if os.path.exists(os.path.join('./backend/App', 'custom_config.py')):
-        app.config.from_object('backend.App.custom_config')
+        app.config.from_object('App.custom_config')
     else:
-        app.config.from_object('backend.App.default_config')
+        app.config.from_object('App.default_config')
     app.config.from_prefixed_env()
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['TEMPLATES_AUTO_RELOAD'] = True
