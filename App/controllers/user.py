@@ -1,6 +1,6 @@
 from sqlite3 import IntegrityError
-from backend.App.models import User
-from backend.App.database import db
+from App.models import User
+from App.database import db
 
 #Create User
 def create_user(username, role, email, password):
