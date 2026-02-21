@@ -1,4 +1,4 @@
-from backend.App.database import db
+from App.database import db
 from .user import create_user
 
 def initialize():

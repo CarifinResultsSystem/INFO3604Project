@@ -1,5 +1,5 @@
-from backend.App.models import User, Event
-from backend.App.database import db
+from App.models import User, Event
+from App.database import db
 
 def assignRole(userID, role):
     user = db.session.get(User, userID)

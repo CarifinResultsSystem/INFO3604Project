@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, render_template, request, send_from_directory, jsonify
-from backend.App.controllers import create_user, initialize
+from App.controllers import create_user, initialize
 
 index_views = Blueprint('index_views', __name__)
 
