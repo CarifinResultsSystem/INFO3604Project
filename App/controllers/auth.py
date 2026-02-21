@@ -1,7 +1,7 @@
 from flask_jwt_extended import create_access_token, jwt_required, JWTManager, get_jwt_identity, verify_jwt_in_request
 
-from backend.App.models import User
-from backend.App.database import db
+from App.models import User
+from App.database import db
 
 def login(username, password):
     result = db.session.execute(db.select(User).filter_by(username=username))

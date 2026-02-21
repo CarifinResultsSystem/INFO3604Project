@@ -1,4 +1,4 @@
-from backend.App.database import db
+from App.database import db
 
 class Event(db.Model):
     eventID = db.Column(db.Integer, primary_key=True)
