@@ -3,3 +3,4 @@ from .user import *
 from .admin import *
 from .event import *
 from .scoretaker import *
+from .scoreDocument import *
