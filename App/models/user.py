@@ -13,7 +13,7 @@ class User(db.Model):
     password = db.Column(db.String(256), nullable=False)
     
     #user roles that are allowed to be set, public is not a role as they dont log in
-    ALLOWED_ROLES = {"admin", "judge", "hr", "scorekeeper", "user"}
+    ALLOWED_ROLES = {"admin", "judge", "hr", "scoretaker", "user"}
 
     def __init__(self, username, role, email, password):
         self.username = username

@@ -101,7 +101,6 @@ def update_user_role(userID, role):
     if not user:
         return False
 
-    # will raise ValueError if invalid
     user.set_role(role)
 
     db.session.commit()
