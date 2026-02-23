@@ -5,4 +5,4 @@ from .auth import *
 from .admin import *
 from .scoretaker import *
 from .institution import *
-
+from .season import *
