@@ -21,7 +21,6 @@ class ScoreDocument(db.Model):
 
     uploadedOn = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # owner
     scoretakerID = db.Column(
         db.Integer,
         db.ForeignKey("scoretakers.userID"),
