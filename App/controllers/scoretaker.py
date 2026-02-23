@@ -1,149 +1,66 @@
 import os
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
-from flask_jwt_extended import jwt_required, current_user  # type: ignore
-
 from App.database import db
-from App.models.scoretaker import Scoretaker, ScoreDocument
-
-scoretaker_bp = Blueprint("scoretaker_bp", __name__)
+from App.models import Scoretaker, ScoreDocument
 
 
-def _require_scoretaker_role() -> bool:
+# Create / Get Scoretaker Profile
+def get_scoretaker(userID: int):
+    return db.session.get(Scoretaker, userID)
+
+def get_or_create_scoretaker(userID: int):
+    st = Scoretaker.get_or_create_for_user(userID)
+    db.session.commit()
+    return st
+
+# Upload Score Document
+def upload_score_document(userID: int, file_storage, upload_folder: str):
     """
-    Enforce role == 'scoretaker'
-    Assumes current_user has .role and .userID (like your UML/User model).
+    userID: the current logged-in user's id (must be a scoretaker)
+    file_storage: Werkzeug FileStorage (request.files["file"])
+    upload_folder: where files will be saved
     """
-    role = (getattr(current_user, "role", "") or "").lower().strip()
-    return role == "scoretaker"
+    st = Scoretaker.get_or_create_for_user(userID)
 
+    doc = st.upload_score_document(file_storage=file_storage, upload_folder=upload_folder)
 
-def _upload_folder() -> str:
+    db.session.commit()
+    return doc
+
+# Read Score Documents
+def get_score_document(documentID: int):
+    return db.session.get(ScoreDocument, documentID)
+
+def get_my_score_documents(userID: int):
+    st = get_scoretaker(userID)
+    if not st:
+        return []
+    return st.score_documents
+
+def get_my_score_documents_json(userID: int):
+    docs = get_my_score_documents(userID)
+    if not docs:
+        return []
+    return [d.get_json() for d in docs]
+
+# Delete Score Document
+def delete_score_document(userID: int, documentID: int):
     """
-    Configurable upload folder:
-      app.config["SCOREDOC_UPLOAD_FOLDER"] = "/abs/path/or/relative"
-    Default:
-      <app_root>/uploads/score_documents
+    Deletes a score document if it belongs to this user.
+    Removes file from disk too (best effort).
     """
-    folder = current_app.config.get("SCOREDOC_UPLOAD_FOLDER")
-    if folder:
-        # allow relative folder path too
-        if not os.path.isabs(folder):
-            return os.path.join(current_app.root_path, folder)
-        return folder
+    doc = get_score_document(documentID)
+    if not doc:
+        return False
 
-    return os.path.join(current_app.root_path, "uploads", "score_documents")
-
-
-@scoretaker_bp.route("/scoretaker/score-documents", methods=["POST"])
-@jwt_required()
-def upload_score_document():
-    """
-    POST /scoretaker/score-documents
-    Form-data:
-      file=<uploaded file>
-    """
-    if not _require_scoretaker_role():
-        return jsonify({"error": "Forbidden (scoretaker role required)."}), 403
-
-    if "file" not in request.files:
-        return jsonify({"error": "Missing file field named 'file'."}), 400
-
-    file_storage = request.files["file"]
+    if doc.scoretakerID != userID:
+        raise ValueError("Forbidden: you do not own this document")
 
     try:
-        # Ensure scoretaker profile exists
-        st = Scoretaker.get_or_create_for_user(current_user.userID)
+        if doc.storedPath and os.path.exists(doc.storedPath):
+            os.remove(doc.storedPath)
+    except Exception:
+        pass
 
-        # Save file + create ScoreDocument row
-        doc = st.upload_score_document(
-            file_storage=file_storage,
-            upload_folder=_upload_folder(),
-        )
-
-        db.session.commit()
-        return jsonify({"message": "Uploaded", "document": doc.get_json()}), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 400
-
-
-@scoretaker_bp.route("/scoretaker/score-documents", methods=["GET"])
-@jwt_required()
-def list_my_score_documents():
-    """
-    GET /scoretaker/score-documents
-    Lists documents uploaded by the logged-in scoretaker.
-    """
-    if not _require_scoretaker_role():
-        return jsonify({"error": "Forbidden (scoretaker role required)."}), 403
-
-    st = db.session.get(Scoretaker, current_user.userID)
-    if st is None:
-        return jsonify({"documents": []}), 200
-
-    docs = [d.get_json() for d in st.score_documents]
-    return jsonify({"documents": docs}), 200
-
-
-@scoretaker_bp.route("/scoretaker/score-documents/<int:document_id>", methods=["DELETE"])
-@jwt_required()
-def delete_score_document(document_id: int):
-    """
-    DELETE /scoretaker/score-documents/<document_id>
-    Deletes the DB record and tries to delete the file from disk.
-    """
-    if not _require_scoretaker_role():
-        return jsonify({"error": "Forbidden (scoretaker role required)."}), 403
-
-    doc = db.session.get(ScoreDocument, document_id)
-    if doc is None:
-        return jsonify({"error": "Not found"}), 404
-
-    if doc.scoretakerID != current_user.userID:
-        return jsonify({"error": "Forbidden"}), 403
-
-    try:
-        # attempt file delete (best-effort)
-        try:
-            if doc.storedPath and os.path.exists(doc.storedPath):
-                os.remove(doc.storedPath)
-        except Exception:
-            # don't fail the request if filesystem delete fails
-            pass
-
-        db.session.delete(doc)
-        db.session.commit()
-        return jsonify({"message": "Deleted"}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 400
-
-
-@scoretaker_bp.route("/scoretaker/score-documents/<int:document_id>/download", methods=["GET"])
-@jwt_required()
-def download_score_document(document_id: int):
-    """
-    GET /scoretaker/score-documents/<document_id>/download
-    Allows the owner to download their uploaded file.
-    """
-    if not _require_scoretaker_role():
-        return jsonify({"error": "Forbidden (scoretaker role required)."}), 403
-
-    doc = db.session.get(ScoreDocument, document_id)
-    if doc is None:
-        return jsonify({"error": "Not found"}), 404
-
-    if doc.scoretakerID != current_user.userID:
-        return jsonify({"error": "Forbidden"}), 403
-
-    directory = os.path.dirname(doc.storedPath)
-    filename = os.path.basename(doc.storedPath)
-
-    return send_from_directory(
-        directory,
-        filename,
-        as_attachment=True,
-        download_name=doc.originalFilename,
-    )
+    db.session.delete(doc)
+    db.session.commit()
+    return True
