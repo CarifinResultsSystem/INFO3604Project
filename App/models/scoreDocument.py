@@ -9,7 +9,7 @@ class ScoreDocument(db.Model):
     """
     Mirrors UML ScoreDocument:
     - documentID
-    - file (we store metadata + path)
+    - file 
     """
     __tablename__ = "score_documents"
 
