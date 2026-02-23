@@ -1,102 +1,82 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, current_user  # type: ignore
-
+from sqlite3 import IntegrityError
+from App.models import Season
 from App.database import db
-from App.models.season import Season
-
-season_bp = Blueprint("season_bp", __name__)
 
 
-def _require_admin():
-    role = (getattr(current_user, "role", "") or "").lower().strip()
-    return role == "admin"
-
-
-# -------------------------
 # Create Season
-# -------------------------
-@season_bp.route("/seasons", methods=["POST"])
-@jwt_required()
-def create_season():
-    if not _require_admin():
-        return jsonify({"error": "Admin access required"}), 403
+def create_season(year):
+    if year is None:
+        raise ValueError("Year is required")
 
-    data = request.get_json()
-    year = data.get("year")
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        raise ValueError("Year must be an integer")
 
-    if not year:
-        return jsonify({"error": "Year is required"}), 400
+    newSeason = Season(year=year)
 
-    if Season.get_by_year(year):
-        return jsonify({"error": "Season already exists"}), 400
-
-    season = Season(year=year)
-    db.session.add(season)
-    db.session.commit()
-
-    return jsonify({"message": "Season created", "season": season.get_json()}), 201
+    try:
+        db.session.add(newSeason)
+        db.session.commit()
+        return newSeason
+    except IntegrityError:
+        db.session.rollback()
+        raise ValueError("Season year already exists")
 
 
-# -------------------------
-# Get All Seasons
-# -------------------------
-@season_bp.route("/seasons", methods=["GET"])
+# Read Seasons
+def get_season(seasonID):
+    return db.session.get(Season, seasonID)
+
+def get_season_by_year(year):
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        return None
+
+    result = db.session.execute(db.select(Season).filter_by(year=year))
+    return result.scalar_one_or_none()
+
 def get_all_seasons():
-    seasons = Season.get_all()
-    return jsonify([s.get_json() for s in seasons]), 200
+    return db.session.scalars(db.select(Season)).all()
+
+def get_all_seasons_json():
+    seasons = get_all_seasons()
+    if not seasons:
+        return []
+    return [s.get_json() for s in seasons]
 
 
-# -------------------------
-# Get Season by ID
-# -------------------------
-@season_bp.route("/seasons/<int:season_id>", methods=["GET"])
-def get_season(season_id):
-    season = Season.get_by_id(season_id)
 
-    if not season:
-        return jsonify({"error": "Season not found"}), 404
-
-    return jsonify(season.get_json()), 200
-
-
-# -------------------------
 # Update Season
-# -------------------------
-@season_bp.route("/seasons/<int:season_id>", methods=["PUT"])
-@jwt_required()
-def update_season(season_id):
-    if not _require_admin():
-        return jsonify({"error": "Admin access required"}), 403
-
-    season = Season.get_by_id(season_id)
+def update_season_year(seasonID, newYear):
+    season = get_season(seasonID)
     if not season:
-        return jsonify({"error": "Season not found"}), 404
+        return False
 
-    data = request.get_json()
-    new_year = data.get("year")
+    if newYear is None:
+        raise ValueError("Year is required")
 
-    if new_year:
-        season.year = new_year
+    try:
+        newYear = int(newYear)
+    except (TypeError, ValueError):
+        raise ValueError("Year must be an integer")
 
-    db.session.commit()
+    season.year = newYear
 
-    return jsonify({"message": "Season updated", "season": season.get_json()}), 200
+    try:
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        raise ValueError("Season year already exists")
 
 
-# -------------------------
 # Delete Season
-# -------------------------
-@season_bp.route("/seasons/<int:season_id>", methods=["DELETE"])
-@jwt_required()
-def delete_season(season_id):
-    if not _require_admin():
-        return jsonify({"error": "Admin access required"}), 403
-
-    season = Season.get_by_id(season_id)
-    if not season:
-        return jsonify({"error": "Season not found"}), 404
-
-    db.session.delete(season)
-    db.session.commit()
-
-    return jsonify({"message": "Season deleted"}), 200
+def delete_season(seasonID):
+    season = get_season(seasonID)
+    if season:
+        db.session.delete(season)
+        db.session.commit()
+        return True
+    return False

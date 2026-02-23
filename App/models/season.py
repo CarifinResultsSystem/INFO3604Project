@@ -7,14 +7,6 @@ class Season(db.Model):
     seasonID = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False, unique=True)
 
-    # Relationship to Leaderboard (if your leaderboard model exists)
-    leaderboards = db.relationship(
-        "Leaderboard",
-        backref="season",
-        lazy=True,
-        cascade="all, delete-orphan"
-    )
-
     def __init__(self, year: int):
         self.year = year
 
@@ -24,6 +16,7 @@ class Season(db.Model):
             "year": self.year
         }
 
+    # --- simple helpers ---
     @staticmethod
     def get_by_id(season_id: int):
         return db.session.get(Season, season_id)
