@@ -1,3 +1,9 @@
+import os
+import uuid
+from datetime import datetime
+from werkzeug.utils import secure_filename  # type: ignore
+
+from App.database import db 
 
 class ScoreDocument(db.Model):
     """
