@@ -15,9 +15,7 @@ def get_or_create_scoretaker(userID: int):
 # Upload Score Document
 def upload_score_document(userID: int, file_storage, upload_folder: str):
     """
-    userID: the current logged-in user's id (must be a scoretaker)
-    file_storage: Werkzeug FileStorage (request.files["file"])
-    upload_folder: where files will be saved
+    userID: the current logged in user id
     """
     st = Scoretaker.get_or_create_for_user(userID)
 
@@ -45,8 +43,7 @@ def get_my_score_documents_json(userID: int):
 # Delete Score Document
 def delete_score_document(userID: int, documentID: int):
     """
-    Deletes a score document if it belongs to this user.
-    Removes file from disk too (best effort).
+    Deletes a score document if it belongs to this user
     """
     doc = get_score_document(documentID)
     if not doc:
