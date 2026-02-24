@@ -4,7 +4,11 @@ from App.database import db
 class Admin(User):
     __tablename__ = 'admin'
     
-    adminID = db.Column(db.Integer, primary_key=True)
+    userID = db.Column(
+        db.Integer,
+        db.ForeignKey("users.userID"),
+        primary_key=True
+    )
     
     __mapper_args__ = {
         'polymorphic_identity': 'admin'

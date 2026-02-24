@@ -4,4 +4,4 @@ from .user import create_user
 def initialize():
     db.drop_all()
     db.create_all()
-    create_user('bob', 'bobpass')
+    create_user('bob', 'admin', 'bob@email.com', 'password')

@@ -5,11 +5,9 @@ class User(db.Model):
     __tablename__ = "users"
     
     userID = db.Column(db.Integer, primary_key=True)
-    
     username =  db.Column(db.String(20), nullable=False, unique=True)
     role = db.Column(db.String(20), nullable=False, default='user')
     email = db.Column(db.String(120), nullable=False, unique=True, index=True)
-    
     password = db.Column(db.String(256), nullable=False)
     
     #user roles that are allowed to be set, public is not a role as they dont log in

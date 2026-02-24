@@ -8,3 +8,6 @@ from .season import *
 from .scoreDocument import *
 from .leaderboard import *
 from .pointsRules import *
+from .automatedResult import *
+from .participant import *
+from .judge import *
