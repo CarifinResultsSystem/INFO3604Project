@@ -5,6 +5,7 @@ class Institution(db.Model):
     institutionID = db.Column(db.Integer, primary_key=True)
     insName = db.Column(db.String(256), nullable=False)
     insTotalPoints = db.Column(db.Integer)
+    insRank = db.Column(db.Integer)
     
     def __init__(self, insName):
         self.insName = insName
