@@ -8,10 +8,6 @@ from App.models.scoreDocument import ScoreDocument
 
 
 class Scoretaker(db.Model):
-    """
-    Scoretaker profile table: 1-to-1 with User.
-    This approach avoids needing SQLAlchemy inheritance changes in User.
-    """
     __tablename__ = "scoretakers"
 
     userID = db.Column(db.Integer, db.ForeignKey("users.userID"), primary_key=True)
@@ -34,12 +30,6 @@ class Scoretaker(db.Model):
         return st
 
     def upload_score_document(self, file_storage, upload_folder: str) -> "ScoreDocument":
-        """
-        UML: uploadScoreDocument(ScoreDocument): ScoreDocument
-
-        file_storage: Werkzeug FileStorage, e.g. request.files["file"]
-        upload_folder: where files are stored on disk
-        """
         if file_storage is None or not getattr(file_storage, "filename", ""):
             raise ValueError("No file provided.")
 

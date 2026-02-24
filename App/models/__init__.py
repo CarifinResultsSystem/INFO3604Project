@@ -6,4 +6,5 @@ from .scoretaker import *
 from .institution import *
 from .season import *
 from .scoreDocument import *
+from .leaderboard import *
 from .pointsRules import *

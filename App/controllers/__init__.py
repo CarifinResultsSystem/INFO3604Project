@@ -4,6 +4,7 @@ from .user import *
 from .auth import *
 from .admin import *
 from .scoretaker import *
+from .leaderboard import *
 from .institution import *
 from .season import *
 from .pointsRules import *

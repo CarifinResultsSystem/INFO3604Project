@@ -6,11 +6,6 @@ from werkzeug.utils import secure_filename  # type: ignore
 from App.database import db 
 
 class ScoreDocument(db.Model):
-    """
-    Mirrors UML ScoreDocument:
-    - documentID
-    - file 
-    """
     __tablename__ = "score_documents"
 
     documentID = db.Column(db.Integer, primary_key=True)
