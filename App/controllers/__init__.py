@@ -6,3 +6,4 @@ from .admin import *
 from .scoretaker import *
 from .institution import *
 from .season import *
+from .pointsRules import *
