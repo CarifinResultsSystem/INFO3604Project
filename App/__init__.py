@@ -46,6 +46,19 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
+    # Get User by ID (flask get-user <user_id>)
+    @app.cli.command("get-user")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def get_user_command(user_id):
+        user = get_user(user_id)
+        if user:
+            click.echo(f"User found: {user.get_json()}")
+        else:
+            click.echo(f"No user found with ID {user_id}")
+
+    
+
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
