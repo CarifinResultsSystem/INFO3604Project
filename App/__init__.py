@@ -150,6 +150,17 @@ def create_app(overrides={}):
         else:
             click.echo(f"No user found with ID {user_id}")
 
+    # Authenticate User (flask authenticate-user <username> <password>)
+    @app.cli.command("authenticate-user")
+    @click.argument("username")
+    @click.argument("password")
+    @with_appcontext
+    def authenticate_user_command(username, password):
+        user = authenticate_user(username, password)
+        if user:
+            click.echo(f"Authentication successful: {user.get_json()}")
+        else:
+            click.echo(f"Authentication failed: invalid username or password.")
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
