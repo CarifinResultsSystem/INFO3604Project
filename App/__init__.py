@@ -4,11 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask.cli import with_appcontext
 import click
 
+from App.controllers.user import *
+from App.controllers.judge import *
+
 from .views import views, setup_admin
 from .config import load_config
 from .database import *
 from .controllers import setup_jwt
-from .controllers.user import *
+
 
 db = SQLAlchemy()
 
@@ -164,6 +167,18 @@ def create_app(overrides={}):
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
+    
+    # Get Judge Profile (flask get-judge <user_id>)
+    @app.cli.command("get-judge")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def get_judge_command(user_id):
+        judge = get_judge(user_id)
+        if judge:
+            click.echo(f"Judge found: {judge.get_json()}")
+        else:
+            click.echo(f"No judge found with userID {user_id}")
+
 #---------------------- SCORETAKER CLI TESTS ---------------------
 #------------------------ EVENT CLI TESTS ------------------------
 #------------------------ SEASON CLI TESTS -----------------------
