@@ -109,6 +109,23 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
+    # Update Password (flask update-password <user_id> <new_password>)
+    @app.cli.command("update-password")
+    @click.argument("user_id", type=int)
+    @click.argument("new_password")
+    @with_appcontext
+    def update_password_command(user_id, new_password):
+        try:
+            result = update_user_password(user_id, new_password)
+            if result:
+                click.echo(f"Password updated successfully.")
+            else:
+                click.echo(f"No user found with ID {user_id}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+
+
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
