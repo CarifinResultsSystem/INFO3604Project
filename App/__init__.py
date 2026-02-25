@@ -57,8 +57,16 @@ def create_app(overrides={}):
         else:
             click.echo(f"No user found with ID {user_id}")
 
-    
-
+    # Get User by Username (flask get-user-by-username <username>)
+    @app.cli.command("get-user-by-username")
+    @click.argument("username")
+    @with_appcontext
+    def get_user_by_username_command(username):
+        user = get_user_by_username(username)
+        if user:
+            click.echo(f"User found: {user.get_json()}")
+        else:
+            click.echo(f"No user found with username '{username}'")
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
