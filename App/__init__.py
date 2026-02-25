@@ -139,6 +139,17 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
+    # Delete User (flask delete-user <user_id>)
+    @app.cli.command("delete-user")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def delete_user_command(user_id):
+        result = delete_user(user_id)
+        if result:
+            click.echo(f"User {user_id} deleted successfully.")
+        else:
+            click.echo(f"No user found with ID {user_id}")
+
 
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
