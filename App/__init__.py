@@ -94,7 +94,22 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
-    
+    # Update Email (flask update-email <user_id> <new_email>)
+    @app.cli.command("update-email")
+    @click.argument("user_id", type=int)
+    @click.argument("new_email")
+    @with_appcontext
+    def update_email_command(user_id, new_email):
+        try:
+            result = update_user_email(user_id, new_email)
+            if result:
+                click.echo(f"Email updated successfully.")
+            else:
+                click.echo(f"No user found with ID {user_id}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
 #---------------------- SCORETAKER CLI TESTS ---------------------
