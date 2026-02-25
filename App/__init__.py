@@ -68,6 +68,18 @@ def create_app(overrides={}):
         else:
             click.echo(f"No user found with username '{username}'")
 
+    # Get All Users (returns list of user jsons)
+    @app.cli.command("get-all-users")
+    @with_appcontext
+    def get_all_users_command():
+        users = get_all_users()
+        if users:
+            for user in users:
+                click.echo(user.get_json())
+        else:
+            click.echo("No users found.")
+
+
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
 #---------------------- SCORETAKER CLI TESTS ---------------------
