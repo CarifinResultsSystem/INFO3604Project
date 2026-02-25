@@ -79,7 +79,22 @@ def create_app(overrides={}):
         else:
             click.echo("No users found.")
 
+    # Update Username (flask update-username <user_id> <new_username>)
+    @app.cli.command("update-username")
+    @click.argument("user_id", type=int)
+    @click.argument("new_username")
+    @with_appcontext
+    def update_username_command(user_id, new_username):
+        try:
+            result = update_user_username(user_id, new_username)
+            if result:
+                click.echo(f"Username updated successfully.")
+            else:
+                click.echo(f"No user found with ID {user_id}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
 
+    
 #------------------------ ADMIN CLI TESTS ------------------------
 #------------------------ JUDGE CLI TESTS ------------------------
 #---------------------- SCORETAKER CLI TESTS ---------------------
