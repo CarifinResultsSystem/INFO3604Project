@@ -124,7 +124,20 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
-
+    # Update Role (flask update-role <user_id> <new_role>)
+    @app.cli.command("update-role")
+    @click.argument("user_id", type=int)
+    @click.argument("new_role")
+    @with_appcontext
+    def update_role_command(user_id, new_role):
+        try:
+            result = update_user_role(user_id, new_role)
+            if result:
+                click.echo(f"Role updated successfully.")
+            else:
+                click.echo(f"No user found with ID {user_id}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
 
 
 #------------------------ ADMIN CLI TESTS ------------------------
