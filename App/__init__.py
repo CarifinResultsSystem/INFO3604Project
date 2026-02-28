@@ -12,6 +12,9 @@ from App.controllers.institution import *
 from App.controllers.leaderboard import *
 from App.controllers.scoretaker import *
 from App.controllers.season import *
+from App.controllers.participant import *
+from App.controllers.event import *
+from App.controllers.automatedResult import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -445,6 +448,92 @@ def create_app(overrides={}):
             click.echo("No institutions found.")
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
+
+    # Create Participant (flask create-participant <id> <firstName> <lastName> <gender> <dob> <location> <institutionID>)
+    @app.cli.command("create-participant")
+    @click.argument("participantID", type=int)
+    @click.argument("firstName")
+    @click.argument("lastName")
+    @click.argument("gender")
+    @click.argument("dateOfBirth")  # e.g., 'YYYY-MM-DD'
+    @click.argument("location")
+    @click.argument("institutionID", type=int)
+    @with_appcontext
+    def create_participant_command(participantID, firstName, lastName, gender, dateOfBirth, location, institutionID):
+        try:
+            participant = create_participant(participantID, firstName, lastName, gender, dateOfBirth, location, institutionID)
+            click.echo(f"Participant created successfully: {participant.get_json()}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+
+    # Get Participant by ID (flask get-participant <participantID>)
+    @app.cli.command("get-participant")
+    @click.argument("participantID", type=int)
+    @with_appcontext
+    def get_participant_command(participantID):
+        participant = get_participant(participantID)
+        if participant:
+            click.echo(f"Participant found: {participant.get_json()}")
+        else:
+            click.echo(f"No participant found with ID {participantID}")
+
+
+    # Get All Participants (flask get-all-participants)
+    @app.cli.command("get-all-participants")
+    @with_appcontext
+    def get_all_participants_command():
+        participants = get_all_participants()
+        if participants:
+            for p in participants:
+                click.echo(p.get_json())
+        else:
+            click.echo("No participants found.")
+
+
+    # Update Participant (flask update-participant <participantID> --firstName=... --lastName=... etc.)
+    @app.cli.command("update-participant")
+    @click.argument("participantID", type=int)
+    @click.option("--firstName", default=None)
+    @click.option("--lastName", default=None)
+    @click.option("--gender", default=None)
+    @click.option("--dateOfBirth", default=None)
+    @click.option("--location", default=None)
+    @click.option("--institutionID", type=int, default=None)
+    @with_appcontext
+    def update_participant_command(participantID, firstName, lastName, gender, dateOfBirth, location, institutionID):
+        kwargs = {
+            "firstName": firstName,
+            "lastName": lastName,
+            "gender": gender,
+            "dateOfBirth": dateOfBirth,
+            "location": location,
+            "institutionID": institutionID
+        }
+        # Remove None values
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        try:
+            updated = update_participant(participantID, **kwargs)
+            if updated:
+                click.echo(f"Participant {participantID} updated successfully.")
+            else:
+                click.echo(f"No participant found with ID {participantID}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+
+    # Delete Participant (flask delete-participant <participantID>)
+    @app.cli.command("delete-participant")
+    @click.argument("participantID", type=int)
+    @with_appcontext
+    def delete_participant_command(participantID):
+        deleted = delete_participant(participantID)
+        if deleted:
+            click.echo(f"Participant {participantID} deleted successfully.")
+        else:
+            click.echo(f"No participant found with ID {participantID}")
+
+
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 
     # Create Leaderboard (flask create-leaderboard <year>)
