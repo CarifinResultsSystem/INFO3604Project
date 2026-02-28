@@ -8,6 +8,7 @@ from App.controllers.user import *
 from App.controllers.judge import *
 from App.controllers.admin import *
 from App.controllers.institution import *
+from App.controllers.leaderboard import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -261,6 +262,18 @@ def create_app(overrides={}):
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
 #--------------------- LEADERBOARD CLI TESTS ---------------------
+
+    # Create Leaderboard (flask create-leaderboard <year>)
+    @app.cli.command("create-leaderboard")
+    @click.argument("year", type = int)
+    @with_appcontext
+    def create_leaderboard_command(year):
+        try:
+            leaderboard = create_leaderboard(year)
+            click.echo(f"Leaderboard created successfully: {leaderboard}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
 #--------------------- POINTS RULES CLI TESTS --------------------
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
