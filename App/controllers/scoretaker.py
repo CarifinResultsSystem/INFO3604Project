@@ -3,14 +3,9 @@ from App.database import db
 from App.models import Scoretaker, ScoreDocument
 
 
-# Create / Get Scoretaker Profile
+# Get Scoretaker Profile
 def get_scoretaker(userID: int):
     return db.session.get(Scoretaker, userID)
-
-def get_or_create_scoretaker(userID: int):
-    st = Scoretaker.get_or_create_for_user(userID)
-    db.session.commit()
-    return st
 
 # Upload Score Document
 def upload_score_document(userID: int, file_storage, upload_folder: str):
