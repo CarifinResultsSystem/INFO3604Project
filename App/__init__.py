@@ -365,7 +365,6 @@ def create_app(overrides={}):
     @click.command(name="season-list-json")
     @with_appcontext
     def season_list_json():
-        """List all seasons as json (uses get_all_seasons_json controller)"""
         seasons = get_all_seasons_json()
         if not seasons:
             print("No seasons found.")
@@ -379,7 +378,6 @@ def create_app(overrides={}):
     @click.argument("new_year")
     @with_appcontext
     def season_update_year(season_id, new_year):
-        """Update a season's year (uses update_season_year controller)"""
         try:
             ok = update_season_year(season_id, new_year)
             if ok:
@@ -388,7 +386,16 @@ def create_app(overrides={}):
                 print("Season not found.")
         except ValueError as e:
             print(f"Error: {e}")
-            
+    
+    # Delete Season (flask delete-season <season_id>) 
+    @click.command(name="season-delete")
+    @click.argument("season_id", type=int)
+    @with_appcontext
+    def season_delete(season_id):
+        ok = delete_season(season_id)
+        print("Season deleted." if ok else "Season not found.")
+    
+    
     
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
