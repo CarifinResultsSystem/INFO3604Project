@@ -1,4 +1,5 @@
-# 🏆 INFO3604 Project – CLI Testing Guide
+# 🏆 INFO3604 Project: Carifin Parallel Results System  
+## CLI Testing Guide
 
 This project provides CLI commands for testing controllers using Flask's built-in CLI system.
 
