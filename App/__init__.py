@@ -216,18 +216,27 @@ def create_app(overrides={}):
 #--------------------- INSTITUTION CLI TESTS ---------------------
 
     # Create Institution (flask create-institution <ins_name>)
-        @app.cli.command("create-institution")
-        @click.argument("ins_name")
-        @with_appcontext
-        def create_institution_command(ins_name):
-            try:
-                institution = create_institution(ins_name)
-                click.echo(f"Institution created successfully: {institution}")
-            except ValueError as e:
-                click.echo(f"Error: {e}")
+    @app.cli.command("create-institution")
+    @click.argument("ins_name", type = str)
+    @with_appcontext
+    def get_institution_command(ins_name):
+        try:
+            institution = create_institution(ins_name)
+            click.echo(f"Institution created successfully: {institution}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
 
+    # Get Institution by ID (flask get-institution <ins_id>)
+    @app.cli.command("get-institution")
+    @click.argument("ins_id", type=int)
+    @with_appcontext
+    def get_institution_id_command(ins_id):
+        institution = get_institution(ins_id)
+        if institution:
+            click.echo(f"Institution found: {institution.get_json()}")
+        else:
+            click.echo(f"No institution found with ID {ins_id}")
 
-            
 #--------------------- PARTICIPANT CLI TESTS ---------------------
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 #--------------------- POINTS RULES CLI TESTS --------------------
