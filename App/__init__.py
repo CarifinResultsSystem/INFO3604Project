@@ -12,6 +12,8 @@ from App.controllers.institution import *
 from App.controllers.leaderboard import *
 from App.controllers.scoretaker import *
 from App.controllers.season import *
+from App.controllers.pointsRules import *
+from App.controllers.automatedResult import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -427,6 +429,9 @@ def create_app(overrides={}):
             click.echo("No institutions found.")
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
+
+
+
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 
     # Create Leaderboard (flask create-leaderboard <year>)
