@@ -273,6 +273,17 @@ def create_app(overrides={}):
             click.echo(f"Leaderboard created successfully: {leaderboard}")
         except ValueError as e:
             click.echo(f"Error: {e}")
+            
+    # Get Leaderboard (flask get-leaderboard <year>)
+    @app.cli.command("get-leaderboard")
+    @click.argument("year", type=int)
+    @with_appcontext
+    def get_leaderboard_command(year):
+        leaderboard = get_leaderboard(year)
+        if leaderboard:
+            click.echo(f"Leaderboard found: {leaderboard.get_json()}")
+        else:
+            click.echo(f"No leaderboard found for the year {year}")
 
 #--------------------- POINTS RULES CLI TESTS --------------------
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
