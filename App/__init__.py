@@ -327,6 +327,17 @@ def create_app(overrides={}):
             print(s.get_json() if hasattr(s, "get_json") else s)
         except ValueError as e:
             print(f"Error: {e}")
+            
+    # Get Season by ID (flask get-season <season_id>)
+    @click.command(name="season-get")
+    @click.argument("season_id", type=int)
+    @with_appcontext
+    def season_get(season_id):
+        s = get_season(season_id)
+        if not s:
+            print("Season not found.")
+            return
+        print(s.get_json() if hasattr(s, "get_json") else s)
 
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
