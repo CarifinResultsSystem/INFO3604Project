@@ -282,6 +282,18 @@ def create_app(overrides={}):
             return
 
         print(doc.get_json() if hasattr(doc, "get_json") else doc)
+        
+    # Delete Score Document (flask scoretaker-delete-doc <user_id> <document_id>)
+    @click.command(name="score-doc-delete")
+    @click.argument("user_id", type=int)
+    @click.argument("document_id", type=int)
+    @with_appcontext
+    def score_doc_delete(user_id, document_id):
+        try:
+            ok = delete_score_document(user_id, document_id)
+            print("Deleted." if ok else "Document not found.")
+        except ValueError as e:
+            print(f"Error: {e}")
                     
 
 #------------------------ EVENT CLI TESTS ------------------------
