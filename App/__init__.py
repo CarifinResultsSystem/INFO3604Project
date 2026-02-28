@@ -315,27 +315,27 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
             
-    # Get Season by ID (flask get-season <season_id>)
-    @click.command(name="season-get")
+    # Get Season by ID (flask season-get <season_id>)
+    @app.cli.command("season-get")
     @click.argument("season_id", type=int)
     @with_appcontext
-    def season_get(season_id):
+    def season_get_command(season_id):
         s = get_season(season_id)
         if not s:
-            print("Season not found.")
+            click.echo("Season not found.")
             return
-        print(s.get_json() if hasattr(s, "get_json") else s)
+        click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
         
-    # Get Season by Year (flask get-season-year <year>)
-    @click.command(name="season-get-year")
+    # Get Season by Year (flask season-get-year <year>)
+    @app.cli.command("season-get-year")
     @click.argument("year")
     @with_appcontext
-    def season_get_year(year):
+    def season_get_year_command(year):
         s = get_season_by_year(year)
         if not s:
-            print("Season not found (or invalid year).")
+            click.echo("Season not found (or invalid year).")
             return
-        print(s.get_json() if hasattr(s, "get_json") else s)
+        click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
     
     # Get All Seasons (flask get-all-seasons)
     @click.command(name="season-list")
