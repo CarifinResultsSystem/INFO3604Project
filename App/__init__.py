@@ -472,6 +472,19 @@ def create_app(overrides={}):
             click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
         except ValueError as e:
             click.echo(f"Error: {e}")
+            
+    # Get Points Rule by ID (flask points-rule-get <pointsID>)
+    @app.cli.command("points-rule-get")
+    @click.argument("pointsID", type=int)
+    @with_appcontext
+    def points_rule_get_command(pointsID):
+        rule = get_points_rule(pointsID)
+        if not rule:
+            click.echo("Points rule not found.")
+            return
+        click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
+
+
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
