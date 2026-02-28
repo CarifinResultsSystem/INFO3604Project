@@ -204,7 +204,6 @@ def create_app(overrides={}):
     @click.argument("user_id", type=int)
     @with_appcontext
     def scoretaker_get(user_id):
-        """Get the scoretaker profile for a user"""
         st = get_scoretaker(user_id)
         if not st:
             print("No Scoretaker profile found.")
@@ -217,7 +216,6 @@ def create_app(overrides={}):
         @click.argument("user_id", type=int)
         @with_appcontext
         def list_score_docs(user_id):
-            """List all score documents for a user"""
             docs = get_score_document(user_id)
             if not docs:
                 print("No documents found.")
@@ -232,9 +230,6 @@ def create_app(overrides={}):
     @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
     @with_appcontext
     def score_doc_upload(user_id, file_path):
-        """Upload a score document for a user (uses upload_score_document controller)"""
-
-        # IMPORTANT: controller wants upload_folder explicitly
         upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
         os.makedirs(upload_folder, exist_ok=True)
 
@@ -250,7 +245,35 @@ def create_app(overrides={}):
         print(doc.get_json() if hasattr(doc, "get_json") else doc)
         
        
-    
+    #List Score Documents (Raw) (flask scoretaker-list-docs <user_id>) 
+    @click.command(name="score-docs-list")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list(user_id):
+        docs = get_my_score_documents(user_id)
+        if not docs:
+            print("No documents found.")
+            return
+
+        for d in docs:
+            print(d.get_json() if hasattr(d, "get_json") else d)
+        
+
+#------------------------ EVENT CLI TESTS ------------------------
+
+    # Create Event (flask create-event <event_name> <event_date> <event_time> <event_location>)
+    @app.cli.command("create-event")
+    @click.argument("event_name", type=str)
+    @click.argument("event_date", type=click.DateTime())
+    @click.argument("event_time", type=click.DateTime())
+    @click.argument("event_location", type=str)
+    @with_appcontext
+    def create_event_command(event_name, event_date, event_time, event_location):
+        try:
+            event = createEvent(event_name, event_date, event_time, event_location)
+            click.echo(f"Event created successfully: {event}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
         
 #------------------------ SEASON CLI TESTS -----------------------
 
