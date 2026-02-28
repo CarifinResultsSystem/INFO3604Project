@@ -236,6 +236,19 @@ def create_app(overrides={}):
             click.echo(f"Institution found: {institution.get_json()}")
         else:
             click.echo(f"No institution found with ID {ins_id}")
+            
+    # Get Institution by name (flask get-institution-name <ins_name>)
+    @app.cli.command("get-institution-name")
+    @click.argument("ins_name", type=str)
+    @with_appcontext
+    def get_institution_name_command(ins_name):
+        institution = get_institution_by_name(ins_name)
+        if institution:
+            click.echo(f"Institution found: {institution.get_json()}")
+        else:
+            click.echo(f"No institution found with name {ins_name}")
+            
+    
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
 #--------------------- LEADERBOARD CLI TESTS ---------------------
