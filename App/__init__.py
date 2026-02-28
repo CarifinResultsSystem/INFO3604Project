@@ -360,20 +360,17 @@ def create_app(overrides={}):
         for s in seasons:
             click.echo(s)
     
-    # Update Season Year (flask update-season-year <season_id> <new_year>)
-    @click.command(name="season-update-year")
+    #Update Season Year (flask season-update-year <season_id> <new_year>)
+    @app.cli.command("season-update-year")
     @click.argument("season_id", type=int)
     @click.argument("new_year")
     @with_appcontext
-    def season_update_year(season_id, new_year):
+    def season_update_year_command(season_id, new_year):
         try:
             ok = update_season_year(season_id, new_year)
-            if ok:
-                print("Season updated.")
-            else:
-                print("Season not found.")
+            click.echo("Season updated." if ok else "Season not found.")
         except ValueError as e:
-            print(f"Error: {e}")
+            click.echo(f"Error: {e}")
     
     # Delete Season (flask delete-season <season_id>) 
     @click.command(name="season-delete")
