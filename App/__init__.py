@@ -517,6 +517,33 @@ def create_app(overrides={}):
             return
         for r in rules:
             click.echo(r)
+    
+    # Update Points Rule
+    # (flask points-rule-update 3 --eventType "Track" --conditionType "place" --conditionValue 1 --upperLimit 10 --lowerLimit 1 --seasonID 2)
+    @app.cli.command("points-rule-update")
+    @click.argument("pointsID", type=int)
+    @click.option("--eventType", default=None)
+    @click.option("--conditionType", default=None)
+    @click.option("--conditionValue", default=None, type=int)
+    @click.option("--upperLimit", default=None, type=int)
+    @click.option("--lowerLimit", default=None, type=int)
+    @click.option("--seasonID", default=None, type=int)
+    @with_appcontext
+    def points_rule_update_command(pointsID, eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+        try:
+            ok = update_points_rule(
+                pointsID,
+                eventType=eventType.strip() if isinstance(eventType, str) else eventType,
+                conditionType=conditionType.strip() if isinstance(conditionType, str) else conditionType,
+                conditionValue=conditionValue,
+                upperLimit=upperLimit,
+                lowerLimit=lowerLimit,
+                seasonID=seasonID
+            )
+            click.echo("Points rule updated." if ok else "Points rule not found.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
