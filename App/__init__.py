@@ -338,6 +338,19 @@ def create_app(overrides={}):
             print("Season not found.")
             return
         print(s.get_json() if hasattr(s, "get_json") else s)
+        
+    # Get Season by Year (flask get-season-year <year>)
+    @click.command(name="season-get-year")
+    @click.argument("year")
+    @with_appcontext
+    def season_get_year(year):
+        s = get_season_by_year(year)
+        if not s:
+            print("Season not found (or invalid year).")
+            return
+        print(s.get_json() if hasattr(s, "get_json") else s)
+    
+    
 
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
