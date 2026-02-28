@@ -6,6 +6,7 @@ import click
 
 from App.controllers.user import *
 from App.controllers.judge import *
+from App.controllers.admin import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -166,6 +167,20 @@ def create_app(overrides={}):
             click.echo(f"Authentication failed: invalid username or password.")
 
 #------------------------ ADMIN CLI TESTS ------------------------
+
+    #Assign Role (flask assign-role <user_id> <role>)
+    @app.cli.command("assign-role")
+    @click.argument("user_id", type=int)
+    @click.argument("role", type=str)
+    @with_appcontext
+    def assign_role_command(user_id, role):
+        user = get_user(user_id)
+        role = assignRole(user_id, role)
+        if role:
+            click.echo(f"User {user} was assigned as {role} successfully")
+        else:
+            click.echo(f"User {user} assignment failed")
+            
 #------------------------ JUDGE CLI TESTS ------------------------
     
     # Get Judge Profile (flask get-judge <user_id>)
