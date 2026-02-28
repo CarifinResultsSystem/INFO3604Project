@@ -373,6 +373,22 @@ def create_app(overrides={}):
         for s in seasons:
             print(s)
     
+    # Update Season Year (flask update-season-year <season_id> <new_year>)
+    @click.command(name="season-update-year")
+    @click.argument("season_id", type=int)
+    @click.argument("new_year")
+    @with_appcontext
+    def season_update_year(season_id, new_year):
+        """Update a season's year (uses update_season_year controller)"""
+        try:
+            ok = update_season_year(season_id, new_year)
+            if ok:
+                print("Season updated.")
+            else:
+                print("Season not found.")
+        except ValueError as e:
+            print(f"Error: {e}")
+            
     
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
