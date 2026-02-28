@@ -11,6 +11,7 @@ from App.controllers.admin import *
 from App.controllers.institution import *
 from App.controllers.leaderboard import *
 from App.controllers.scoretaker import *
+from App.controllers.season import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -199,6 +200,7 @@ def create_app(overrides={}):
             click.echo(f"No judge found with userID {user_id}")
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
+
     #Get Scoretaker Profile ( flask scoretaker-get <user_id>)
     @click.command(name="scoretaker-get")
     @click.argument("user_id", type=int)
@@ -313,6 +315,18 @@ def create_app(overrides={}):
             click.echo(f"Error: {e}")
         
 #------------------------ SEASON CLI TESTS -----------------------
+
+    # Create Season (flask create-season <year>)
+    @click.command(name="season-create")
+    @click.argument("year")
+    @with_appcontext
+    def season_create(year):
+        try:
+            s = create_season(year)
+            print("Created season:")
+            print(s.get_json() if hasattr(s, "get_json") else s)
+        except ValueError as e:
+            print(f"Error: {e}")
 
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
