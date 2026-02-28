@@ -350,7 +350,16 @@ def create_app(overrides={}):
             return
         print(s.get_json() if hasattr(s, "get_json") else s)
     
-    
+    # Get All Seasons (flask get-all-seasons)
+    @click.command(name="season-list")
+    @with_appcontext
+    def season_list():
+        seasons = get_all_seasons()
+        if not seasons:
+            print("No seasons found.")
+            return
+        for s in seasons:
+            print(s.get_json() if hasattr(s, "get_json") else s)
 
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
