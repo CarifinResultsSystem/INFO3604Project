@@ -1,14 +1,16 @@
-from flask import Flask
+from flask import Flask, current_app
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask.cli import with_appcontext
 import click
+from werkzeug.datastructures import FileStorage
 
 from App.controllers.user import *
 from App.controllers.judge import *
 from App.controllers.admin import *
 from App.controllers.institution import *
 from App.controllers.leaderboard import *
+from App.controllers.scoretaker import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -197,6 +199,35 @@ def create_app(overrides={}):
             click.echo(f"No judge found with userID {user_id}")
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
+    #Get Scoretaker Profile ( flask scoretaker-get <user_id>)
+    @click.command(name="scoretaker-get")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def scoretaker_get(user_id):
+        """Get the scoretaker profile for a user"""
+        st = get_scoretaker(user_id)
+        if not st:
+            print("No Scoretaker profile found.")
+            return
+
+        if hasattr(st, "get_json"):
+            print(st.get_json())
+        else:
+            print(f"Scoretaker(id={getattr(st, 'id', None)})")@click.command(name="list-score-docs")
+        @click.argument("user_id", type=int)
+        @with_appcontext
+        def list_score_docs(user_id):
+            """List all score documents for a user"""
+            docs = get_score_document(user_id)
+            if not docs:
+                print("No documents found.")
+                return
+
+            for d in docs:
+                print(d)
+    
+    
+
 #------------------------ EVENT CLI TESTS ------------------------
 
     # Create Event (flask create-event <event_name> <event_date> <event_time> <event_location>)
@@ -214,6 +245,8 @@ def create_app(overrides={}):
             click.echo(f"Error: {e}")
         
 #------------------------ SEASON CLI TESTS -----------------------
+
+
 #--------------------- INSTITUTION CLI TESTS ---------------------
 
     # Create Institution (flask create-institution <ins_name>)
@@ -286,6 +319,8 @@ def create_app(overrides={}):
             click.echo(f"No leaderboard found for the year {year}")
 
 #--------------------- POINTS RULES CLI TESTS --------------------
+
+
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
     app.app_context().push()
