@@ -257,7 +257,20 @@ def create_app(overrides={}):
 
         for d in docs:
             print(d.get_json() if hasattr(d, "get_json") else d)
-        
+            
+    #List Score Documents (json) (flask scoretaker-list-docs-json <user_id>)   
+    @click.command(name="score-docs-list-json")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list_json(user_id):
+        docs = get_my_score_documents_json(user_id)
+        if not docs:
+            print("No documents found.")
+            return
+
+        for d in docs:
+            print(d)
+                    
 
 #------------------------ EVENT CLI TESTS ------------------------
 
