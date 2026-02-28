@@ -544,6 +544,13 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
 
+    # Delete Points Rule (flask points-rule-delete <pointsID>)
+    @app.cli.command("points-rule-delete")
+    @click.argument("pointsID", type=int)
+    @with_appcontext
+    def points_rule_delete_command(pointsID):
+        ok = delete_points_rule(pointsID)
+        click.echo("Points rule deleted." if ok else "Points rule not found.")
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
