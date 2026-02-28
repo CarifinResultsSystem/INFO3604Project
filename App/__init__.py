@@ -196,6 +196,21 @@ def create_app(overrides={}):
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
 #------------------------ EVENT CLI TESTS ------------------------
+
+    # Create Event (flask create-event <event_name> <event_date> <event_time> <event_location>)
+    @app.cli.command("create-event")
+    @click.argument("event_name", type=str)
+    @click.argument("event_date", type=click.DateTime)
+    @click.argument("event_time", type=click.DateTime)
+    @click.argument("event_location", type=str)
+    @with_appcontext
+    def create_event_command(event_name, event_date, event_time, event_location):
+        try:
+            event = createEvent(event_name, event_date, event_time, event_location)
+            click.echo(f"Event created successfully: {event}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+        
 #------------------------ SEASON CLI TESTS -----------------------
 #--------------------- INSTITUTION CLI TESTS ---------------------
 #--------------------- PARTICIPANT CLI TESTS ---------------------
