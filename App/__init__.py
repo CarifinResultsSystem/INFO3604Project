@@ -248,7 +248,16 @@ def create_app(overrides={}):
         else:
             click.echo(f"No institution found with name {ins_name}")
             
-    
+    # Get All Institutions (flask get-all-institutions)
+    @app.cli.command("get-all-institutions")
+    @with_appcontext
+    def get_all_institutions_command():
+        institutions = get_all_institutions
+        if institutions:
+            for institution in institutions:
+                click.echo(institution.get_json())
+        else:
+            click.echo("No institutions found.")
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
 #--------------------- LEADERBOARD CLI TESTS ---------------------
