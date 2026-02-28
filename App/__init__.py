@@ -303,17 +303,17 @@ def create_app(overrides={}):
         
 #------------------------ SEASON CLI TESTS -----------------------
 
-    # Create Season (flask create-season <year>)
-    @click.command(name="season-create")
+    # Create Season (flask season-create <year>)
+    @app.cli.command("season-create")
     @click.argument("year")
     @with_appcontext
-    def season_create(year):
+    def season_create_command(year):
         try:
             s = create_season(year)
-            print("Created season:")
-            print(s.get_json() if hasattr(s, "get_json") else s)
+            click.echo("Created season:")
+            click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
         except ValueError as e:
-            print(f"Error: {e}")
+            click.echo(f"Error: {e}")
             
     # Get Season by ID (flask get-season <season_id>)
     @click.command(name="season-get")
