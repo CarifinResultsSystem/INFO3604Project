@@ -7,6 +7,7 @@ import click
 from App.controllers.user import *
 from App.controllers.judge import *
 from App.controllers.admin import *
+from App.controllers.institution import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -213,6 +214,20 @@ def create_app(overrides={}):
         
 #------------------------ SEASON CLI TESTS -----------------------
 #--------------------- INSTITUTION CLI TESTS ---------------------
+
+    # Create Institution (flask create-institution <ins_name>)
+        @app.cli.command("create-institution")
+        @click.argument("ins_name")
+        @with_appcontext
+        def create_institution_command(ins_name):
+            try:
+                institution = create_institution(ins_name)
+                click.echo(f"Institution created successfully: {institution}")
+            except ValueError as e:
+                click.echo(f"Error: {e}")
+
+
+            
 #--------------------- PARTICIPANT CLI TESTS ---------------------
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 #--------------------- POINTS RULES CLI TESTS --------------------
