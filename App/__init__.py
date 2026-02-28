@@ -372,16 +372,13 @@ def create_app(overrides={}):
         except ValueError as e:
             click.echo(f"Error: {e}")
     
-    # Delete Season (flask delete-season <season_id>) 
-    @click.command(name="season-delete")
+    # Delete Season (flask season-delete <season_id>)
+    @app.cli.command("season-delete")
     @click.argument("season_id", type=int)
     @with_appcontext
-    def season_delete(season_id):
+    def season_delete_command(season_id):
         ok = delete_season(season_id)
-        print("Season deleted." if ok else "Season not found.")
-    
-    
-    
+        click.echo("Season deleted." if ok else "Season not found.")
 
 #--------------------- INSTITUTION CLI TESTS ---------------------
 
