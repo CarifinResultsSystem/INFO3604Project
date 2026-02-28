@@ -12,6 +12,8 @@ from App.controllers.institution import *
 from App.controllers.leaderboard import *
 from App.controllers.scoretaker import *
 from App.controllers.season import *
+from App.controllers.event import *
+from App.controllers.pointsRules import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -427,6 +429,7 @@ def create_app(overrides={}):
             click.echo("No institutions found.")
 
 #--------------------- PARTICIPANT CLI TESTS ---------------------
+
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 
     # Create Leaderboard (flask create-leaderboard <year>)
@@ -453,6 +456,22 @@ def create_app(overrides={}):
 
 #--------------------- POINTS RULES CLI TESTS --------------------
 
+    # Create Points Rule (flask points-rule-create <eventType> <conditionType> <conditionValue> <upperLimit> <lowerLimit> <seasonID>)
+    @app.cli.command("points-rule-create")
+    @click.argument("eventType")
+    @click.argument("conditionType")
+    @click.argument("conditionValue")
+    @click.argument("upperLimit")
+    @click.argument("lowerLimit")
+    @click.argument("seasonID")
+    @with_appcontext
+    def points_rule_create_command(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+        try:
+            rule = create_points_rule(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID)
+            click.echo("Created points rule:")
+            click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
+        except ValueError as e:
+            click.echo(f"Error: {e}")
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
