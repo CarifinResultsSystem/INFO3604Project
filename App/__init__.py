@@ -201,37 +201,50 @@ def create_app(overrides={}):
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
 
-    #Get Scoretaker Profile ( flask scoretaker-get <user_id>)
-    @click.command(name="scoretaker-get")
+    # Get Scoretaker Profile (flask scoretaker-get <user_id>)
+    @app.cli.command("scoretaker-get")
     @click.argument("user_id", type=int)
     @with_appcontext
-    def scoretaker_get(user_id):
+    def scoretaker_get_command(user_id):
         st = get_scoretaker(user_id)
         if not st:
-            print("No Scoretaker profile found.")
+            click.echo("No Scoretaker profile found.")
             return
+        click.echo(st.get_json() if hasattr(st, "get_json") else f"Scoretaker(id={getattr(st, 'id', None)})")
 
-        if hasattr(st, "get_json"):
-            print(st.get_json())
-        else:
-            print(f"Scoretaker(id={getattr(st, 'id', None)})")@click.command(name="list-score-docs")
-        @click.argument("user_id", type=int)
-        @with_appcontext
-        def list_score_docs(user_id):
-            docs = get_score_document(user_id)
-            if not docs:
-                print("No documents found.")
-                return
 
-            for d in docs:
-                print(d)
-    
-    # Upload Score Document (flask scoretaker-upload <user_id> <file_path>)
-    @click.command(name="score-doc-upload")
+    # List My Score Documents (flask score-docs-list <user_id>)
+    @app.cli.command("score-docs-list")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list_command(user_id):
+        docs = get_my_score_documents(user_id)
+        if not docs:
+            click.echo("No documents found.")
+            return
+        for d in docs:
+            click.echo(d.get_json() if hasattr(d, "get_json") else str(d))
+
+
+    # List My Score Documents JSON (flask score-docs-list-json <user_id>)
+    @app.cli.command("score-docs-list-json")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list_json_command(user_id):
+        docs = get_my_score_documents_json(user_id)
+        if not docs:
+            click.echo("No documents found.")
+            return
+        for d in docs:
+            click.echo(d)
+
+
+    # Upload Score Document (flask score-doc-upload <user_id> <file_path>)
+    @app.cli.command("score-doc-upload")
     @click.argument("user_id", type=int)
     @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
     @with_appcontext
-    def score_doc_upload(user_id, file_path):
+    def score_doc_upload_command(user_id, file_path):
         upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
         os.makedirs(upload_folder, exist_ok=True)
 
@@ -243,59 +256,33 @@ def create_app(overrides={}):
             )
             doc = upload_score_document(user_id, fs, upload_folder)
 
-        print("Uploaded document:")
-        print(doc.get_json() if hasattr(doc, "get_json") else doc)
-        
-       
-    #List Score Documents (Raw) (flask scoretaker-list-docs <user_id>) 
-    @click.command(name="score-docs-list")
-    @click.argument("user_id", type=int)
-    @with_appcontext
-    def score_docs_list(user_id):
-        docs = get_my_score_documents(user_id)
-        if not docs:
-            print("No documents found.")
-            return
+        click.echo("Uploaded document:")
+        click.echo(doc.get_json() if hasattr(doc, "get_json") else str(doc))
 
-        for d in docs:
-            print(d.get_json() if hasattr(d, "get_json") else d)
-            
-    #List Score Documents (json) (flask scoretaker-list-docs-json <user_id>)   
-    @click.command(name="score-docs-list-json")
-    @click.argument("user_id", type=int)
-    @with_appcontext
-    def score_docs_list_json(user_id):
-        docs = get_my_score_documents_json(user_id)
-        if not docs:
-            print("No documents found.")
-            return
 
-        for d in docs:
-            print(d)
-    
-    # Get Score Document By ID (flask scoretaker-get-doc <document_id>)
-    @click.command(name="score-doc-get")
+    # Get Score Document By ID (flask score-doc-get <document_id>)
+    @app.cli.command("score-doc-get")
     @click.argument("document_id", type=int)
     @with_appcontext
-    def score_doc_get(document_id):
+    def score_doc_get_command(document_id):
         doc = get_score_document(document_id)
         if not doc:
-            print("Document not found.")
+            click.echo("Document not found.")
             return
+        click.echo(doc.get_json() if hasattr(doc, "get_json") else str(doc))
 
-        print(doc.get_json() if hasattr(doc, "get_json") else doc)
-        
-    # Delete Score Document (flask scoretaker-delete-doc <user_id> <document_id>)
-    @click.command(name="score-doc-delete")
+
+    # Delete Score Document (flask score-doc-delete <user_id> <document_id>)
+    @app.cli.command("score-doc-delete")
     @click.argument("user_id", type=int)
     @click.argument("document_id", type=int)
     @with_appcontext
-    def score_doc_delete(user_id, document_id):
+    def score_doc_delete_command(user_id, document_id):
         try:
             ok = delete_score_document(user_id, document_id)
-            print("Deleted." if ok else "Document not found.")
+            click.echo("Deleted." if ok else "Document not found.")
         except ValueError as e:
-            print(f"Error: {e}")
+            click.echo(f"Error: {e}")
                     
 
 #------------------------ EVENT CLI TESTS ------------------------
