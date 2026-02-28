@@ -496,6 +496,16 @@ def create_app(overrides={}):
         for r in rules:
             click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
 
+    # List All Points Rules (objects) (flask points-rules-list)
+    @app.cli.command("points-rules-list")
+    @with_appcontext
+    def points_rules_list_command():
+        rules = get_all_points_rules()
+        if not rules:
+            click.echo("No points rules found.")
+            return
+        for r in rules:
+            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
     
