@@ -270,6 +270,18 @@ def create_app(overrides={}):
 
         for d in docs:
             print(d)
+    
+    # Get Score Document By ID (flask scoretaker-get-doc <document_id>)
+    @click.command(name="score-doc-get")
+    @click.argument("document_id", type=int)
+    @with_appcontext
+    def score_doc_get(document_id):
+        doc = get_score_document(document_id)
+        if not doc:
+            print("Document not found.")
+            return
+
+        print(doc.get_json() if hasattr(doc, "get_json") else doc)
                     
 
 #------------------------ EVENT CLI TESTS ------------------------
