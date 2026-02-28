@@ -484,6 +484,17 @@ def create_app(overrides={}):
             return
         click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
 
+    # List Points Rules by Season (flask points-rules-by-season <seasonID>)
+    @app.cli.command("points-rules-by-season")
+    @click.argument("seasonID", type=int)
+    @with_appcontext
+    def points_rules_by_season_command(seasonID):
+        rules = get_points_rules_by_season(seasonID)
+        if not rules:
+            click.echo("No points rules found for that season.")
+            return
+        for r in rules:
+            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
 
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
