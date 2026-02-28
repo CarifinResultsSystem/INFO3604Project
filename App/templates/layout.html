@@ -17,7 +17,7 @@
         min-height: 100vh;
       }
 
-      /* ===== DESKTOP SIDEBAR ===== */
+      /* DESKTOP SIDEBAR  */
       .sidenav-fixed {
         width: 260px;
         transition: width 0.25s ease;
@@ -73,14 +73,13 @@
         margin-left: 80px;
       }
 
-      /* Remove top nav on desktop */
       @media(min-width: 993px){
         .top-nav {
           display: none;
         }
       }
 
-      /* ===== MOBILE ===== */
+      /* MOBILE */
       @media(max-width: 992px){
         body {
           display: block;
@@ -100,20 +99,18 @@
         border-top: 1px solid rgba(255,255,255,0.3);
       }
 
-      /* Mobile sidenav flex layout */
       .mobile-flex {
         display: flex !important;
         flex-direction: column;
-        height: 100%;
+        height: 100% !important;
       }
 
-      .mobile-top {
-        padding-top: 10px;
+      .mobile-flex li {
+        list-style: none;
       }
 
-      .mobile-bottom {
-        margin-top: auto;
-        padding-bottom: 20px;
+      .mobile-spacer {
+        flex-grow: 1;
       }
     </style>
   </head>
@@ -124,15 +121,12 @@
   <nav class="purple top-nav">
     <div class="nav-wrapper">
 
-      <!-- Left: Menu -->
       <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
         <i class="material-icons">menu</i>
       </a>
 
-      <!-- Center: Logo -->
       <a href="#" class="brand-logo center">CariFin</a>
 
-      <!-- Right: Login / Logout -->
       {% if is_authenticated %}
         <ul class="right">
           <li>
@@ -162,7 +156,6 @@
       <!-- TOP MENU ITEMS -->
       <div class="menu-top">
 
-        <!-- Collapse -->
         <li>
           <a class="white-text" onclick="toggleMenu()">
             <i class="material-icons">chevron_left</i>
@@ -236,21 +229,20 @@
     <ul id="mobile-sidenav" class="sidenav purple lighten-1 white-text mobile-flex">
 
       <!-- TOP ITEMS -->
-      <div class="mobile-top">
-        <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
-        <li><a href="#"><i class="material-icons">leaderboard</i>Leaderboard</a></li>
-        <li><a href="#"><i class="material-icons">event</i>Schedule</a></li>
-        <li><a href="#"><i class="material-icons">groups</i>Participants</a></li>
-      </div>
+      <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
+      <li><a href="#"><i class="material-icons">leaderboard</i>Leaderboard</a></li>
+      <li><a href="#"><i class="material-icons">event</i>Schedule</a></li>
+      <li><a href="#"><i class="material-icons">groups</i>Participants</a></li>
+
+      <li class="mobile-spacer"></li>
 
       <!-- BOTTOM ITEMS -->
-      <div class="mobile-bottom">
-
-        <li>
-          <a href="#"><i class="material-icons">settings</i>Settings</a>
-        </li>
-
-      </div>
+      <li>
+        <a href="#">
+          <i class="material-icons">settings</i>
+          Settings
+        </a>
+      </li>
 
     </ul>
 
@@ -277,6 +269,20 @@
           ? "chevron_right" 
           : "chevron_left";
       }
+
+      document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.sidenav');
+      var instances = M.Sidenav.init(elems);
+
+      window.addEventListener('resize', function() {
+        instances.forEach(function(instance) {
+          if (window.innerWidth > 992 && instance.isOpen) {
+            instance.close();
+          }
+        });
+      });
+    });
+
     </script>
 
   </body>
