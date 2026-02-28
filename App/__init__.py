@@ -14,6 +14,7 @@ from App.controllers.scoretaker import *
 from App.controllers.season import *
 from App.controllers.pointsRules import *
 from App.controllers.automatedResult import *
+from App.controllers.participant import *
 
 from .views import views, setup_admin
 from .config import load_config
