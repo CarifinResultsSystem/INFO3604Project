@@ -1,0 +1,231 @@
+{% extends "layout.html" %}
+
+{% block title %}Schedule — CariFin{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='schedule.css') }}">
+
+<div class="dash-root">
+
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
+    <h1>Schedule</h1>
+    <span class="dash-subtitle">
+      <i class="material-icons">today</i>
+      2025 Season
+    </span>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="lb-controls">
+    <div class="lb-season-select">
+      <i class="material-icons">calendar_today</i>
+      <span>Season:</span>
+      <select id="seasonSelect" onchange="changeSeason(this.value)">
+        <option value="2025" selected>2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- STATUS FILTER TABS -->
+  <p class="section-label">Filter by Status</p>
+  <div class="event-tabs-wrap">
+    <div class="event-tabs">
+      <button class="event-tab active" onclick="filterStatus('all', this)">All Events</button>
+      <button class="event-tab" onclick="filterStatus('live', this)">Live</button>
+      <button class="event-tab" onclick="filterStatus('upcoming', this)">Upcoming</button>
+      <button class="event-tab" onclick="filterStatus('completed', this)">Completed</button>
+      <button class="event-tab" onclick="filterStatus('cancelled', this)">Cancelled</button>
+    </div>
+  </div>
+
+  <!-- SCHEDULE TABLE -->
+  <div class="lb-table-wrap">
+    <table class="lb-table" id="scheduleTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(this, 0)">Event</th>
+          <th onclick="sortTable(this, 1)">Date</th>
+          <th onclick="sortTable(this, 2)">Start Time</th>
+          <th onclick="sortTable(this, 3)">Status</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody">
+
+        <!-- LIVE -->
+        <tr data-status="live" data-datetime="2025-06-14T14:30:00">
+          <td>
+            <div class="event-name">200m Women's Final</div>
+            <div class="event-venue">Hasely Crawford Stadium</div>
+          </td>
+          <td>June 14, 2025</td>
+          <td>2:30 PM</td>
+          <td><span class="status-badge status-live"><span class="pulse-dot"></span>Live</span></td>
+          
+        </tr>
+
+        <!-- UPCOMING  -->
+        <tr data-status="upcoming" data-datetime="2025-06-14T15:00:00">
+          <td>
+            <div class="event-name">110m Hurdles — Men's Final</div>
+            <div class="event-venue">Track A</div>
+          </td>
+          <td>June 14, 2025</td>
+          <td>3:00 PM</td>
+          <td><span class="status-badge status-upcoming">Upcoming</span></td>
+          
+        </tr>
+
+        <tr data-status="upcoming" data-datetime="2025-06-14T15:45:00">
+          <td>
+            <div class="event-name">4×100m Relay — Mixed</div>
+            <div class="event-venue">Main Track</div>
+          </td>
+          <td>June 14, 2025</td>
+          <td>3:45 PM</td>
+          <td><span class="status-badge status-upcoming">Upcoming</span></td>
+          
+        </tr>
+
+        <tr data-status="upcoming" data-datetime="2025-06-15T09:00:00">
+          <td>
+            <div class="event-name">Long Jump — Women's Qualifying</div>
+            <div class="event-venue">Field Zone B</div>
+          </td>
+          <td>June 15, 2025</td>
+          <td>9:00 AM</td>
+          <td><span class="status-badge status-upcoming">Upcoming</span></td>
+          
+        </tr>
+
+        <tr data-status="upcoming" data-datetime="2025-06-15T11:30:00">
+          <td>
+            <div class="event-name">Shot Put — Men's Final</div>
+            <div class="event-venue">Field Zone A</div>
+          </td>
+          <td>June 15, 2025</td>
+          <td>11:30 AM</td>
+          <td><span class="status-badge status-upcoming">Upcoming</span></td>
+          
+        </tr>
+
+        <!-- COMPLETED -->
+        <tr data-status="completed" data-datetime="2025-06-13T10:00:00">
+          <td>
+            <div class="event-name">100m Sprint — Men's Final</div>
+            <div class="event-venue">Hasely Crawford Stadium</div>
+          </td>
+          <td>June 13, 2025</td>
+          <td>10:00 AM</td>
+          <td><span class="status-badge status-completed">Completed</span></td>
+          
+        </tr>
+
+        <tr data-status="completed" data-datetime="2025-06-13T13:00:00">
+          <td>
+            <div class="event-name">4×400m Relay — Women</div>
+            <div class="event-venue">Main Track</div>
+          </td>
+          <td>June 13, 2025</td>
+          <td>1:00 PM</td>
+          <td><span class="status-badge status-completed">Completed</span></td>
+          
+        </tr>
+
+        <tr data-status="completed" data-datetime="2025-06-12T09:30:00">
+          <td>
+            <div class="event-name">Triple Jump — Men's Qualifying</div>
+            <div class="event-venue">Field Zone B</div>
+          </td>
+          <td>June 12, 2025</td>
+          <td>9:30 AM</td>
+          <td><span class="status-badge status-completed">Completed</span></td>
+          
+        </tr>
+
+        <!-- CANCELLED -->
+        <tr data-status="cancelled" data-datetime="2025-06-14T08:00:00">
+          <td>
+            <div class="event-name">Javelin Throw — Mixed</div>
+            <div class="event-venue">Field Zone C</div>
+          </td>
+          <td>June 14, 2025</td>
+          <td>8:00 AM</td>
+          <td><span class="status-badge status-cancelled">Cancelled</span></td>
+          
+        </tr>
+
+      </tbody>
+    </table>
+
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <i class="material-icons">event_busy</i>
+      No events match this filter.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* STATUS FILTER */
+  let activeFilter = 'all';
+
+  function filterStatus(status, btn) {
+    activeFilter = status;
+    document.querySelectorAll('.event-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const rows = document.querySelectorAll('#scheduleBody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const match = activeFilter === 'all' || row.dataset.status === activeFilter;
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
+  }
+
+  /* TABLE SORTING */
+  function sortTable(th, colIndex) {
+    const table   = th.closest('table');
+    const tbody   = table.querySelector('tbody');
+    const rows    = Array.from(tbody.querySelectorAll('tr'));
+    const headers = Array.from(th.closest('tr').querySelectorAll('th'));
+    const isAsc   = th.classList.contains('sorted-asc');
+
+    headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+    th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+    rows.sort((a, b) => {
+      // Sort by datetime for Date & Time columns
+      if (colIndex === 1 || colIndex === 2) {
+        const aDate = new Date(a.dataset.datetime || 0).getTime();
+        const bDate = new Date(b.dataset.datetime || 0).getTime();
+        return isAsc ? bDate - aDate : aDate - bDate;
+      }
+      // Text sort for Event and Status
+      const aVal = a.cells[colIndex]?.textContent.trim() || '';
+      const bVal = b.cells[colIndex]?.textContent.trim() || '';
+      return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  /* SEASON CHANGE */
+  function changeSeason(year) {
+    document.querySelector('.dash-subtitle').innerHTML =
+      `<i class="material-icons">today</i> ${year} Season`;
+    // In production: fetch new schedule data for this year
+  }
+</script>
+
+{% endblock %}
