@@ -5,6 +5,7 @@ from flask.cli import with_appcontext
 import click
 from werkzeug.datastructures import FileStorage
 
+
 from App.controllers.user import *
 from App.controllers.judge import *
 from App.controllers.admin import *
@@ -201,6 +202,62 @@ def create_app(overrides={}):
             click.echo(f"Judge found: {judge.get_json()}")
         else:
             click.echo(f"No judge found with userID {user_id}")
+
+    # Edit Automated Result (flask edit-result <judge_id> <result_id> field=value ...)
+    @app.cli.command("edit-result")
+    @click.argument("judge_id", type=int)
+    @click.argument("result_id", type=int)
+    @click.argument("updates", nargs=-1)
+    @with_appcontext
+    def edit_result_command(judge_id, result_id, updates):
+        try:
+            update_dict = {}
+            for item in updates:
+                key, value = item.split("=")
+                update_dict[key] = value
+
+            result = edit_results(judge_id, result_id, **update_dict)
+            click.echo(f"Result updated successfully: {result.get_json()}")
+
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+        except Exception:
+            click.echo("Invalid update format. Use field=value")
+
+    # Confirm Score (flask confirm-score <judge_id> <result_id>)
+    @app.cli.command("confirm-score")
+    @click.argument("judge_id", type=int)
+    @click.argument("result_id", type=int)
+    @with_appcontext
+    def confirm_score_command(judge_id, result_id):
+        try:
+            confirm_score(judge_id, result_id)
+            click.echo("Score confirmed successfully.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+    # Get Automated Result by ID (flask get-result <result_id>)
+    @app.cli.command("get-result")
+    @click.argument("result_id", type=int)
+    @with_appcontext
+    def get_result_command(result_id):
+        result = get_automated_result(result_id)
+        if result:
+            click.echo(result.get_json())
+        else:
+            click.echo(f"No automated result found with ID {result_id}")
+
+    # Get All Automated Results (flask get-all-results)
+    @app.cli.command("get-all-results")
+    @with_appcontext
+    def get_all_results_command():
+        results = get_all_automated_results_json()
+        if results:
+            for r in results:
+                click.echo(r)
+        else:
+            click.echo("No automated results found.")
+
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
 
