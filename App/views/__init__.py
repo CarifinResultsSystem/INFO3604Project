@@ -5,7 +5,13 @@ from .admin import setup_admin
 from .auth import auth_views
 from .leaderboard import leaderboard_views
 from .schedule import schedule_views
+from .participant import participant_views
 
 
 #All imports must be listed in this list
-views = [index_views, user_views, auth_views, leaderboard_views, schedule_views]
+views = [index_views, 
+         user_views, 
+         auth_views, 
+         leaderboard_views, 
+         schedule_views, 
+         participant_views]

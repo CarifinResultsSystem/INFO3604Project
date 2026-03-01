@@ -1,0 +1,272 @@
+{% extends "layout.html" %}
+
+{% block title %}Participants — CariFin{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='participant.css') }}">
+
+<style>
+  .p-table-footer {
+    padding: 10px 18px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+    font-size: 0.82rem;
+    color: #aaa;
+    text-align: right;
+  }
+</style>
+
+<div class="dash-root">
+
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
+    <h1>Participants</h1>
+    <span class="dash-subtitle">
+      <i class="material-icons">update</i>
+      Last Updated: June 14, 2025 at 3:42 PM
+    </span>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="p-controls">
+
+    <!-- Season -->
+    <div class="p-select">
+      <i class="material-icons">calendar_today</i>
+      <span>Season:</span>
+      <select id="seasonSelect" onchange="changeSeason(this.value)">
+        <option value="2025" selected>2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+      </select>
+    </div>
+
+    <!-- Location filter -->
+    <div class="p-select">
+      <i class="material-icons">place</i>
+      <span>Location:</span>
+      <select id="locationFilter" onchange="applyFilters()">
+        <option value="all">All</option>
+        <option value="Trinidad">Trinidad</option>
+        <option value="Tobago">Tobago</option>
+        <option value="Barbados">Barbados</option>
+        <option value="Jamaica">Jamaica</option>
+        <option value="Guyana">Guyana</option>
+        <option value="St. Lucia">St. Lucia</option>
+      </select>
+    </div>
+
+    <!-- Event filter -->
+    <div class="p-select">
+      <i class="material-icons">emoji_events</i>
+      <span>Event:</span>
+      <select id="eventFilter" onchange="applyFilters()">
+        <option value="all">All Events</option>
+        <option value="100m Sprint">100m Sprint</option>
+        <option value="Long Jump">Long Jump</option>
+        <option value="4×400m Relay">4×400m Relay</option>
+        <option value="110m Hurdles">110m Hurdles</option>
+        <option value="Shot Put">Shot Put</option>
+      </select>
+    </div>
+
+    <!-- Search -->
+    <div class="p-search">
+      <i class="material-icons">search</i>
+      <input type="text" id="searchInput" placeholder="Search by name…" oninput="applyFilters()">
+    </div>
+
+    <span class="p-count" id="resultCount"></span>
+  </div>
+
+  <!-- PARTICIPANT TABLE -->
+  <p class="section-label">Registered Participants</p>
+  <div class="lb-table-wrap">
+    <table class="lb-table" id="participantTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(this, 0)">Name</th>
+          <th onclick="sortTable(this, 1)">Event</th>
+          <th onclick="sortTable(this, 2)">Location</th>
+          <th onclick="sortTable(this, 3)">Institution</th>
+        </tr>
+      </thead>
+      <tbody id="participantBody">
+
+        <tr data-name="Tobias Pemberton" data-event="100m Sprint" data-location="Trinidad" data-institution="UWI St. Augustine">
+          <td><div class="p-name-cell"><span class="p-avatar">TP</span><span class="participant-name">Tobias Pemberton</span></div></td>
+          <td><span class="event-tag">100m Sprint</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
+          <td><span class="institution-tag">UWI St. Augustine</span></td>
+        </tr>
+
+        <tr data-name="Marcus Baptiste" data-event="Long Jump" data-location="Barbados" data-institution="UTT">
+          <td><div class="p-name-cell"><span class="p-avatar">MB</span><span class="participant-name">Marcus Baptiste</span></div></td>
+          <td><span class="event-tag">Long Jump</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Barbados</span></td>
+          <td><span class="institution-tag">UTT</span></td>
+        </tr>
+
+        <tr data-name="Carla Alleyne" data-event="4×400m Relay" data-location="Barbados" data-institution="COSTAATT">
+          <td><div class="p-name-cell"><span class="p-avatar">CA</span><span class="participant-name">Carla Alleyne</span></div></td>
+          <td><span class="event-tag">4×400m Relay</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Barbados</span></td>
+          <td><span class="institution-tag">COSTAATT</span></td>
+        </tr>
+
+        <tr data-name="Janelle Williams" data-event="110m Hurdles" data-location="Jamaica" data-institution="NALIS Academy">
+          <td><div class="p-name-cell"><span class="p-avatar">JW</span><span class="participant-name">Janelle Williams</span></div></td>
+          <td><span class="event-tag">110m Hurdles</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Jamaica</span></td>
+          <td><span class="institution-tag">NALIS Academy</span></td>
+        </tr>
+
+        <tr data-name="Devon Charles" data-event="Shot Put" data-location="Trinidad" data-institution="TCC">
+          <td><div class="p-name-cell"><span class="p-avatar">DC</span><span class="participant-name">Devon Charles</span></div></td>
+          <td><span class="event-tag">Shot Put</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
+          <td><span class="institution-tag">TCC</span></td>
+        </tr>
+
+        <tr data-name="Aisha Mohammed" data-event="100m Sprint" data-location="Trinidad" data-institution="SBCS">
+          <td><div class="p-name-cell"><span class="p-avatar">AM</span><span class="participant-name">Aisha Mohammed</span></div></td>
+          <td><span class="event-tag">100m Sprint</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
+          <td><span class="institution-tag">SBCS</span></td>
+        </tr>
+
+        <tr data-name="Ryan Joseph" data-event="Long Jump" data-location="Guyana" data-institution="UTT">
+          <td><div class="p-name-cell"><span class="p-avatar">RJ</span><span class="participant-name">Ryan Joseph</span></div></td>
+          <td><span class="event-tag">Long Jump</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Guyana</span></td>
+          <td><span class="institution-tag">UTT</span></td>
+        </tr>
+
+        <tr data-name="Simone Clarke" data-event="4×400m Relay" data-location="Jamaica" data-institution="UWI St. Augustine">
+          <td><div class="p-name-cell"><span class="p-avatar">SC</span><span class="participant-name">Simone Clarke</span></div></td>
+          <td><span class="event-tag">4×400m Relay</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Jamaica</span></td>
+          <td><span class="institution-tag">UWI St. Augustine</span></td>
+        </tr>
+
+        <tr data-name="Nathan Boodoo" data-event="110m Hurdles" data-location="Trinidad" data-institution="COSTAATT">
+          <td><div class="p-name-cell"><span class="p-avatar">NB</span><span class="participant-name">Nathan Boodoo</span></div></td>
+          <td><span class="event-tag">110m Hurdles</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
+          <td><span class="institution-tag">COSTAATT</span></td>
+        </tr>
+
+        <tr data-name="Priya Rampersad" data-event="Shot Put" data-location="Trinidad" data-institution="UWI St. Augustine">
+          <td><div class="p-name-cell"><span class="p-avatar">PR</span><span class="participant-name">Priya Rampersad</span></div></td>
+          <td><span class="event-tag">Shot Put</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
+          <td><span class="institution-tag">UWI St. Augustine</span></td>
+        </tr>
+
+        <tr data-name="Leon Fontaine" data-event="100m Sprint" data-location="St. Lucia" data-institution="TCC">
+          <td><div class="p-name-cell"><span class="p-avatar">LF</span><span class="participant-name">Leon Fontaine</span></div></td>
+          <td><span class="event-tag">100m Sprint</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>St. Lucia</span></td>
+          <td><span class="institution-tag">TCC</span></td>
+        </tr>
+
+        <tr data-name="Kezia Holder" data-event="Long Jump" data-location="Tobago" data-institution="SBCS">
+          <td><div class="p-name-cell"><span class="p-avatar">KH</span><span class="participant-name">Kezia Holder</span></div></td>
+          <td><span class="event-tag">Long Jump</span></td>
+          <td><span class="location-pill"><i class="material-icons">place</i>Tobago</span></td>
+          <td><span class="institution-tag">SBCS</span></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <i class="material-icons">person_search</i>
+      No participants match your filters.
+    </div>
+
+    <div class="p-table-footer" id="tableFooter"></div>
+
+  </div>
+
+</div>
+
+<script>
+  /* FILTERS */
+  function normalize(str) {
+    return (str || '').trim().toLowerCase()
+      .replace(/\u00d7/g, 'x')  // × → x
+      .replace(/\s+/g, ' ');
+  }
+
+  function applyFilters() {
+    const search      = normalize(document.getElementById('searchInput').value);
+    const location    = document.getElementById('locationFilter').value.trim();
+    const eventFilter = normalize(document.getElementById('eventFilter').value);
+    const rows        = document.querySelectorAll('#participantBody tr');
+    let visible = 0;
+
+    rows.forEach(row => {
+      const name = normalize(row.dataset.name);
+      const loc  = (row.dataset.location || '').trim();
+      const evt  = normalize(row.dataset.event);
+
+      const matchSearch   = !search            || name.includes(search);
+      const matchLocation = location === 'all' || loc === location;
+      const matchEvent    = eventFilter === 'all' || evt === eventFilter;
+
+      const show = matchSearch && matchLocation && matchEvent;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
+    document.getElementById('resultCount').textContent =
+      visible === 1 ? '1 participant' : `${visible} participants`;
+    document.getElementById('tableFooter').textContent =
+      visible === 1 ? '1 participant' : `${visible} participants`;
+  }
+
+  /* TABLE SORTING */
+  function sortTable(th, colIndex) {
+    const tbody   = document.querySelector('#participantBody');
+    const rows    = Array.from(tbody.querySelectorAll('tr'));
+    const headers = Array.from(th.closest('tr').querySelectorAll('th'));
+    const isAsc   = th.classList.contains('sorted-asc');
+
+    headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+    th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+    // Map column index to data attribute for reliable sorting
+    const dataKeys = ['name', 'event', 'location', 'institution'];
+    const key = dataKeys[colIndex];
+
+    rows.sort((a, b) => {
+      const aVal = (a.dataset[key] || '').toLowerCase();
+      const bVal = (b.dataset[key] || '').toLowerCase();
+      return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  /* SEASON */
+  function changeSeason(year) {
+    document.querySelector('.dash-subtitle').innerHTML =
+      `<i class="material-icons">groups</i> ${year} Season`;
+    // In production: fetch participant data for this year
+  }
+
+  /* INIT COUNT */
+  document.addEventListener('DOMContentLoaded', () => {
+    const total = document.querySelectorAll('#participantBody tr').length;
+    const label = `${total} participants`;
+    document.getElementById('resultCount').textContent = label;
+    document.getElementById('tableFooter').textContent = label;
+  });
+</script>
+
+{% endblock %}

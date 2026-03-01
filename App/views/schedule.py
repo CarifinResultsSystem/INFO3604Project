@@ -19,5 +19,4 @@ API Routes
 
 @schedule_views.route('/api/schedule', methods=['GET'])
 def get_schedule_api():
-    # Placeholder — replace with schedule-specific controller calls
     return jsonify([])
