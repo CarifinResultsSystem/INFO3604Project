@@ -1,8 +1,9 @@
-from flask import Flask
+from flask import Flask, current_app
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask.cli import with_appcontext
 import click
+from werkzeug.datastructures import FileStorage
 
 
 from App.controllers.user import *
@@ -10,8 +11,11 @@ from App.controllers.judge import *
 from App.controllers.admin import *
 from App.controllers.institution import *
 from App.controllers.leaderboard import *
-from App.controllers.participant import *
+from App.controllers.scoretaker import *
+from App.controllers.season import *
+from App.controllers.pointsRules import *
 from App.controllers.automatedResult import *
+from App.controllers.participant import *
 
 from .views import views, setup_admin
 from .config import load_config
@@ -256,6 +260,91 @@ def create_app(overrides={}):
 
 
 #---------------------- SCORETAKER CLI TESTS ---------------------
+
+    # Get Scoretaker Profile (flask scoretaker-get <user_id>)
+    @app.cli.command("scoretaker-get")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def scoretaker_get_command(user_id):
+        st = get_scoretaker(user_id)
+        if not st:
+            click.echo("No Scoretaker profile found.")
+            return
+        click.echo(st.get_json() if hasattr(st, "get_json") else f"Scoretaker(id={getattr(st, 'id', None)})")
+
+
+    # List My Score Documents (flask score-docs-list <user_id>)
+    @app.cli.command("score-docs-list")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list_command(user_id):
+        docs = get_my_score_documents(user_id)
+        if not docs:
+            click.echo("No documents found.")
+            return
+        for d in docs:
+            click.echo(d.get_json() if hasattr(d, "get_json") else str(d))
+
+
+    # List My Score Documents JSON (flask score-docs-list-json <user_id>)
+    @app.cli.command("score-docs-list-json")
+    @click.argument("user_id", type=int)
+    @with_appcontext
+    def score_docs_list_json_command(user_id):
+        docs = get_my_score_documents_json(user_id)
+        if not docs:
+            click.echo("No documents found.")
+            return
+        for d in docs:
+            click.echo(d)
+
+
+    # Upload Score Document (flask score-doc-upload <user_id> <file_path>)
+    @app.cli.command("score-doc-upload")
+    @click.argument("user_id", type=int)
+    @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
+    @with_appcontext
+    def score_doc_upload_command(user_id, file_path):
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+
+        with open(file_path, "rb") as f:
+            fs = FileStorage(
+                stream=f,
+                filename=os.path.basename(file_path),
+                content_type="application/octet-stream"
+            )
+            doc = upload_score_document(user_id, fs, upload_folder)
+
+        click.echo("Uploaded document:")
+        click.echo(doc.get_json() if hasattr(doc, "get_json") else str(doc))
+
+
+    # Get Score Document By ID (flask score-doc-get <document_id>)
+    @app.cli.command("score-doc-get")
+    @click.argument("document_id", type=int)
+    @with_appcontext
+    def score_doc_get_command(document_id):
+        doc = get_score_document(document_id)
+        if not doc:
+            click.echo("Document not found.")
+            return
+        click.echo(doc.get_json() if hasattr(doc, "get_json") else str(doc))
+
+
+    # Delete Score Document (flask score-doc-delete <user_id> <document_id>)
+    @app.cli.command("score-doc-delete")
+    @click.argument("user_id", type=int)
+    @click.argument("document_id", type=int)
+    @with_appcontext
+    def score_doc_delete_command(user_id, document_id):
+        try:
+            ok = delete_score_document(user_id, document_id)
+            click.echo("Deleted." if ok else "Document not found.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+                    
+
 #------------------------ EVENT CLI TESTS ------------------------
 
     # Create Event (flask create-event <event_name> <event_date> <event_time> <event_location>)
@@ -273,6 +362,84 @@ def create_app(overrides={}):
             click.echo(f"Error: {e}")
         
 #------------------------ SEASON CLI TESTS -----------------------
+
+    # Create Season (flask season-create <year>)
+    @app.cli.command("season-create")
+    @click.argument("year")
+    @with_appcontext
+    def season_create_command(year):
+        try:
+            s = create_season(year)
+            click.echo("Created season:")
+            click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+            
+    # Get Season by ID (flask season-get <season_id>)
+    @app.cli.command("season-get")
+    @click.argument("season_id", type=int)
+    @with_appcontext
+    def season_get_command(season_id):
+        s = get_season(season_id)
+        if not s:
+            click.echo("Season not found.")
+            return
+        click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
+        
+    # Get Season by Year (flask season-get-year <year>)
+    @app.cli.command("season-get-year")
+    @click.argument("year")
+    @with_appcontext
+    def season_get_year_command(year):
+        s = get_season_by_year(year)
+        if not s:
+            click.echo("Season not found (or invalid year).")
+            return
+        click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
+    
+    # List all Seasons (flask season-list)
+    @app.cli.command("season-list")
+    @with_appcontext
+    def season_list_command():
+        seasons = get_all_seasons()
+        if not seasons:
+            click.echo("No seasons found.")
+            return
+        for s in seasons:
+            click.echo(s.get_json() if hasattr(s, "get_json") else str(s))
+
+    
+    # List all Seasons JSON (flask season-list-json)
+    @app.cli.command("season-list-json")
+    @with_appcontext
+    def season_list_json_command():
+        seasons = get_all_seasons_json()
+        if not seasons:
+            click.echo("No seasons found.")
+            return
+        for s in seasons:
+            click.echo(s)
+    
+    #Update Season Year (flask season-update-year <season_id> <new_year>)
+    @app.cli.command("season-update-year")
+    @click.argument("season_id", type=int)
+    @click.argument("new_year")
+    @with_appcontext
+    def season_update_year_command(season_id, new_year):
+        try:
+            ok = update_season_year(season_id, new_year)
+            click.echo("Season updated." if ok else "Season not found.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+    
+    # Delete Season (flask season-delete <season_id>)
+    @app.cli.command("season-delete")
+    @click.argument("season_id", type=int)
+    @with_appcontext
+    def season_delete_command(season_id):
+        ok = delete_season(season_id)
+        click.echo("Season deleted." if ok else "Season not found.")
+
 #--------------------- INSTITUTION CLI TESTS ---------------------
 
     # Create Institution (flask create-institution <ins_name>)
@@ -405,7 +572,6 @@ def create_app(overrides={}):
         else:
             click.echo(f"No participant found with ID {participantID}")
 
-
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 
     # Create Leaderboard (flask create-leaderboard <year>)
@@ -432,6 +598,101 @@ def create_app(overrides={}):
 
 #--------------------- POINTS RULES CLI TESTS --------------------
 
+    # Create Points Rule (flask points-rule-create <eventType> <conditionType> <conditionValue> <upperLimit> <lowerLimit> <seasonID>)
+    @app.cli.command("points-rule-create")
+    @click.argument("eventType")
+    @click.argument("conditionType")
+    @click.argument("conditionValue")
+    @click.argument("upperLimit")
+    @click.argument("lowerLimit")
+    @click.argument("seasonID")
+    @with_appcontext
+    def points_rule_create_command(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+        try:
+            rule = create_points_rule(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID)
+            click.echo("Created points rule:")
+            click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+            
+    # Get Points Rule by ID (flask points-rule-get <pointsID>)
+    @app.cli.command("points-rule-get")
+    @click.argument("pointsID", type=int)
+    @with_appcontext
+    def points_rule_get_command(pointsID):
+        rule = get_points_rule(pointsID)
+        if not rule:
+            click.echo("Points rule not found.")
+            return
+        click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
+
+    # List Points Rules by Season (flask points-rules-by-season <seasonID>)
+    @app.cli.command("points-rules-by-season")
+    @click.argument("seasonID", type=int)
+    @with_appcontext
+    def points_rules_by_season_command(seasonID):
+        rules = get_points_rules_by_season(seasonID)
+        if not rules:
+            click.echo("No points rules found for that season.")
+            return
+        for r in rules:
+            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
+
+    # List All Points Rules (objects) (flask points-rules-list)
+    @app.cli.command("points-rules-list")
+    @with_appcontext
+    def points_rules_list_command():
+        rules = get_all_points_rules()
+        if not rules:
+            click.echo("No points rules found.")
+            return
+        for r in rules:
+            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
+            
+    # List All Points Rules json format (flask points-rules-list-json)
+    @app.cli.command("points-rules-list-json")
+    @with_appcontext
+    def points_rules_list_json_command():
+        rules = get_all_points_rules_json()
+        if not rules:
+            click.echo("No points rules found.")
+            return
+        for r in rules:
+            click.echo(r)
+    
+    # Update Points Rule
+    # (flask points-rule-update 3 --eventType "Track" --conditionType "place" --conditionValue 1 --upperLimit 10 --lowerLimit 1 --seasonID 2)
+    @app.cli.command("points-rule-update")
+    @click.argument("pointsID", type=int)
+    @click.option("--eventType", default=None)
+    @click.option("--conditionType", default=None)
+    @click.option("--conditionValue", default=None, type=int)
+    @click.option("--upperLimit", default=None, type=int)
+    @click.option("--lowerLimit", default=None, type=int)
+    @click.option("--seasonID", default=None, type=int)
+    @with_appcontext
+    def points_rule_update_command(pointsID, eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+        try:
+            ok = update_points_rule(
+                pointsID,
+                eventType=eventType.strip() if isinstance(eventType, str) else eventType,
+                conditionType=conditionType.strip() if isinstance(conditionType, str) else conditionType,
+                conditionValue=conditionValue,
+                upperLimit=upperLimit,
+                lowerLimit=lowerLimit,
+                seasonID=seasonID
+            )
+            click.echo("Points rule updated." if ok else "Points rule not found.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+    # Delete Points Rule (flask points-rule-delete <pointsID>)
+    @app.cli.command("points-rule-delete")
+    @click.argument("pointsID", type=int)
+    @with_appcontext
+    def points_rule_delete_command(pointsID):
+        ok = delete_points_rule(pointsID)
+        click.echo("Points rule deleted." if ok else "Points rule not found.")
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
 
@@ -520,8 +781,7 @@ def create_app(overrides={}):
             click.echo(f"Automated result {result_id} deleted successfully.")
         else:
             click.echo(f"No automated result found with ID {result_id}")
-
-
+    
     
     app.app_context().push()
     return app
