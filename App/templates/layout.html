@@ -34,11 +34,11 @@
         <li>
           {% if is_authenticated %}
             <a href="/logout" class="white-text">
-              <i class="material-icons left">logout</i>Logout
+              <i class="material-icons left">logout</i>Log Out
             </a>
           {% else %}
             <a href="/login" class="white-text">
-              <i class="material-icons left">login</i>Login
+              <i class="material-icons left">login</i>Log In
             </a>
           {% endif %}
         </li>
@@ -76,7 +76,7 @@
           </a>
         </li>
         <li>
-          <a href="#">
+          <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}">
             <i class="material-icons">leaderboard</i>
             <span>Leaderboard</span>
           </a>
@@ -107,12 +107,12 @@
           {% if is_authenticated %}
             <a href="/logout">
               <i class="material-icons">logout</i>
-              <span>Logout</span>
+              <span>Log Out</span>
             </a>
           {% else %}
             <a href="/login">
               <i class="material-icons">login</i>
-              <span>Login</span>
+              <span>Log In</span>
             </a>
           {% endif %}
         </li>
@@ -135,8 +135,14 @@
       <li><div class="divider-custom" style="margin: 0 16px;"></div></li>
 
       <!-- Menu Links -->
-      <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
-      <li><a href="#"><i class="material-icons">leaderboard</i>Leaderboard</a></li>
+      <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">dashboard</i>Dashboard</a></li>
+      
+      <li>
+        <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}">
+          <i class="material-icons">leaderboard</i>Leaderboard
+        </a>
+      </li>
+
       <li><a href="#"><i class="material-icons">event</i>Schedule</a></li>
       <li><a href="#"><i class="material-icons">groups</i>Participants</a></li>
 

@@ -12,7 +12,7 @@
 <body>
 <div class="login-root">
 
-  <!-- ══ LEFT PANEL ══ -->
+  <!-- LEFT PANEL -->
   <div class="login-left">
     <div class="login-left-bg"></div>
     <div class="login-left-deco">1</div>
@@ -43,7 +43,7 @@
     </div>
   </div>
 
-  <!-- ══ RIGHT PANEL ══ -->
+  <!-- RIGHT PANEL -->
   <div class="login-right">
 
     <a href="{{ url_for('index_views.index_page') }}" class="login-mobile-brand">
@@ -68,7 +68,7 @@
       <button class="auth-tab" onclick="switchTab('signup', this)">Create Account</button>
     </div>
 
-    <!-- ── SIGN IN PANEL ── -->
+    <!-- SIGN IN PANEL -->
     <div id="panel-login" class="auth-panel active">
       <div class="panel-heading">
         <h1>Welcome Back</h1>
@@ -92,7 +92,7 @@
       </form>
     </div>
 
-    <!-- ── SIGN UP PANEL ── -->
+    <!-- SIGN UP PANEL -->
     <div id="panel-signup" class="auth-panel">
       <div class="panel-heading">
         <h1>Create Account</h1>
@@ -123,7 +123,7 @@
       </form>
     </div>
 
-    <!-- ── GUEST ── -->
+    <!-- GUEST -->
     <div class="login-guest">
       <p>Just browsing?</p>
       <a href="{{ url_for('index_views.index_page') }}" class="guest-btn">
