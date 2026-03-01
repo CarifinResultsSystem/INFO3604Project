@@ -3,9 +3,243 @@
 {% block title %}CariFin Results & Scoring System{% endblock %}
 
 {% block content %}
-  <div class="section center">
-    <h2>Dashboard</h2>
-    <p>This is the main page for unauthorized users.</p>
 
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+
+<div class="dash-root">
+
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
+    <h1>Dashboard</h1>
+    <span class="dash-subtitle">Welcome to CariFin</span>
   </div>
+
+  <!-- GALLERY -->
+  <div class="gallery-section">
+    <p class="section-label">Photo Gallery</p>
+    <div class="gallery-track-wrap" id="galleryWrap">
+      <div class="gallery-track" id="galleryTrack">
+
+        <div class="gallery-slide" data-img="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80">
+          <img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80" alt="Athletics track" loading="lazy">
+          <div class="gallery-slide-caption">Regional Athletics Championship — Finals Day</div>
+        </div>
+
+        <div class="gallery-slide" data-img="https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=1200&q=80">
+          <img src="https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=1200&q=80" alt="Swimming" loading="lazy">
+          <div class="gallery-slide-caption">Aquatics Invitational — 100m Freestyle Heat</div>
+        </div>
+
+        <div class="gallery-slide" data-img="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&q=80">
+          <img src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&q=80" alt="Football" loading="lazy">
+          <div class="gallery-slide-caption">Inter-Caribbean Football — Group Stage</div>
+        </div>
+
+        <div class="gallery-slide" data-img="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200&q=80">
+          <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200&q=80" alt="Cycling" loading="lazy">
+          <div class="gallery-slide-caption">Cycling Time Trial — Mountain Stage</div>
+        </div>
+
+        <div class="gallery-slide" data-img="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1200&q=80">
+          <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1200&q=80" alt="Triathlon" loading="lazy">
+          <div class="gallery-slide-caption">Caribbean Triathlon Series — Transition Zone</div>
+        </div>
+
+      </div>
+
+      <button class="gallery-arrow prev" id="galleryPrev" aria-label="Previous">
+        <i class="material-icons">chevron_left</i>
+      </button>
+      <button class="gallery-arrow next" id="galleryNext" aria-label="Next">
+        <i class="material-icons">chevron_right</i>
+      </button>
+    </div>
+
+    <div class="gallery-dots" id="galleryDots"></div>
+  </div>
+
+  <!-- CARDS-->
+  <div class="cards-section">
+    <p class="section-label">Overview</p>
+    <div class="cards-grid">
+
+      <!-- Top Three Standings -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-icon icon-standings">
+            <i class="material-icons">emoji_events</i>
+          </div>
+          <div class="dash-card-title">Top Three Standings</div>
+        </div>
+        <ul class="standings-list">
+          <li>
+            <span class="standing-rank gold">1</span>
+            <span class="standing-name">T. Pemberton</span>
+            <span class="standing-pts">482 pts</span>
+          </li>
+          <li>
+            <span class="standing-rank silver">2</span>
+            <span class="standing-name">M. Baptiste</span>
+            <span class="standing-pts">461 pts</span>
+          </li>
+          <li>
+            <span class="standing-rank bronze">3</span>
+            <span class="standing-name">C. Alleyne</span>
+            <span class="standing-pts">439 pts</span>
+          </li>
+        </ul>
+        <a href="#" class="dash-card-btn btn-purple">
+          <i class="material-icons" style="font-size:16px">leaderboard</i>
+          View Leaderboard
+        </a>
+      </div>
+
+      <!-- Latest Event Results -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-icon icon-results">
+            <i class="material-icons">assignment_turned_in</i>
+          </div>
+          <div class="dash-card-title">Latest Event Results</div>
+        </div>
+        <ul class="results-list">
+          <li>
+            <span class="result-event">100m Sprint</span>
+            <span class="result-winner">T. Pemberton — 9.94s</span>
+          </li>
+          <li>
+            <span class="result-event">Long Jump</span>
+            <span class="result-winner">M. Baptiste — 8.12m</span>
+          </li>
+          <li>
+            <span class="result-event">4×400m Relay</span>
+            <span class="result-winner">TTO — 3:01.4</span>
+          </li>
+        </ul>
+        <a href="#" class="dash-card-btn btn-blue">
+          <i class="material-icons" style="font-size:16px">leaderboard</i>
+          View Leaderboard
+        </a>
+      </div>
+
+      <!-- Happening Now -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-icon icon-now">
+            <i class="material-icons">sensors</i>
+          </div>
+          <div class="dash-card-title">Happening Now</div>
+        </div>
+        <div class="now-badge">
+          <span class="pulse-dot"></span>
+          Live
+        </div>
+        <div class="now-event">200m Women's Final</div>
+        <div class="now-meta">Hasely Crawford Stadium &nbsp;·&nbsp; Heat 3 of 3</div>
+        <a href="#" class="dash-card-btn btn-red">
+          <i class="material-icons" style="font-size:16px">event</i>
+          View Schedule
+        </a>
+      </div>
+
+      <!-- Up Next -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-icon icon-next">
+            <i class="material-icons">schedule</i>
+          </div>
+          <div class="dash-card-title">Up Next</div>
+        </div>
+        <ul class="upnext-list">
+          <li>
+            <span class="upnext-time">2:30</span>
+            <div class="upnext-info">
+              <div class="upnext-name">110m Hurdles — Men's Final</div>
+              <div class="upnext-loc">Track A</div>
+            </div>
+          </li>
+          <li>
+            <span class="upnext-time">3:00</span>
+            <div class="upnext-info">
+              <div class="upnext-name">Shot Put — Women's Final</div>
+              <div class="upnext-loc">Field Zone B</div>
+            </div>
+          </li>
+          <li>
+            <span class="upnext-time">3:45</span>
+            <div class="upnext-info">
+              <div class="upnext-name">4×100m Relay — Mixed</div>
+              <div class="upnext-loc">Main Track</div>
+            </div>
+          </li>
+        </ul>
+        <a href="#" class="dash-card-btn btn-green">
+          <i class="material-icons" style="font-size:16px">event</i>
+          View Schedule
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox">
+  <div class="lightbox-img-wrap">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+    <img id="lightboxImg" src="" alt="">
+  </div>
+</div>
+
+<script>
+  /* GALLERY */
+  const track  = document.getElementById('galleryTrack');
+  const slides = track.querySelectorAll('.gallery-slide');
+  const dotsWrap = document.getElementById('galleryDots');
+  let current = 0;
+  let autoTimer;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'gallery-dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+  });
+
+  function getDots() { return dotsWrap.querySelectorAll('.gallery-dot'); }
+
+  function goTo(n) {
+    current = (n + slides.length) % slides.length;
+    track.style.transform = `translateX(-${current * 100}%)`;
+    getDots().forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  function startAuto() {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => goTo(current + 1), 4000);
+  }
+
+  document.getElementById('galleryPrev').addEventListener('click', () => { goTo(current - 1); startAuto(); });
+  document.getElementById('galleryNext').addEventListener('click', () => { goTo(current + 1); startAuto(); });
+  startAuto();
+
+  /* LIGHTBOX */
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+
+  slides.forEach(slide => {
+    slide.addEventListener('click', () => {
+      lightboxImg.src = slide.dataset.img;
+      lightbox.classList.add('open');
+    });
+  });
+
+  function closeLightbox() { lightbox.classList.remove('open'); lightboxImg.src = ''; }
+  document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+
 {% endblock %}
