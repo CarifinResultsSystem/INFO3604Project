@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login — CariFin</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+</head>
+
+<body>
+<div class="login-root">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="login-left">
+    <div class="login-left-bg"></div>
+    <div class="login-left-deco">1</div>
+    <div class="login-left-content">
+
+      <a href="{{ url_for('index_views.index_page') }}" class="login-brand">CariFin</a>
+
+      <div class="login-left-tagline">
+        <h2>Results.<br>Scores.<br>Rankings.</h2>
+        <p>The official results and scoring platform for Caribbean financial &amp; sporting competitions.</p>
+      </div>
+
+      <div class="login-left-stats">
+        <div>
+          <div class="login-stat-num">24+</div>
+          <div class="login-stat-label">Events</div>
+        </div>
+        <div>
+          <div class="login-stat-num">300+</div>
+          <div class="login-stat-label">Participants</div>
+        </div>
+        <div>
+          <div class="login-stat-num">12</div>
+          <div class="login-stat-label">Nations</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="login-right">
+
+    <a href="{{ url_for('index_views.index_page') }}" class="login-mobile-brand">
+      <i class="material-icons">query_stats</i>
+      <span>CariFin</span>
+    </a>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup', this)">Create Account</button>
+    </div>
+
+    <!-- ── SIGN IN PANEL ── -->
+    <div id="panel-login" class="auth-panel active">
+      <div class="panel-heading">
+        <h1>Welcome Back</h1>
+        <p>Sign in with your username and password.</p>
+      </div>
+      <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-field">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username"
+                 placeholder="your_username" autocomplete="username" required>
+        </div>
+        <div class="form-field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password"
+                 placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <div class="form-row">
+          <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+        </div>
+        <button type="submit" class="auth-submit-btn">Sign In</button>
+      </form>
+    </div>
+
+    <!-- ── SIGN UP PANEL ── -->
+    <div id="panel-signup" class="auth-panel">
+      <div class="panel-heading">
+        <h1>Create Account</h1>
+        <p>Register with your username and email.</p>
+      </div>
+      <form method="POST" action="/register" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-field">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" name="username"
+                 placeholder="choose_a_username" autocomplete="username" required>
+        </div>
+        <div class="form-field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" name="email"
+                 placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="form-field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" name="password"
+                 placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+        <div class="form-field">
+          <label for="signup-confirm">Confirm Password</label>
+          <input type="password" id="signup-confirm" name="confirm_password"
+                 placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="auth-submit-btn">Create Account</button>
+      </form>
+    </div>
+
+    <!-- ── GUEST ── -->
+    <div class="login-guest">
+      <p>Just browsing?</p>
+      <a href="{{ url_for('index_views.index_page') }}" class="guest-btn">
+        <i class="material-icons">person_outline</i>
+        Continue as Guest
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function switchTab(name, btn) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+</script>
+</body>
+</html>

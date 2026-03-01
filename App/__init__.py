@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 
@@ -21,9 +21,11 @@ def create_app(overrides={}):
     init_db(app)
     jwt = setup_jwt(app)
     setup_admin(app)
+
     @jwt.invalid_token_loader
     @jwt.unauthorized_loader
-    def custom_unauthorized_responce(error):
-        return #render_template('401.html', error=error), 401 <= To be modified when templates are made
+    def custom_unauthorized_response(error):
+        return redirect(url_for('auth_views.login_page'))
+
     app.app_context().push()
     return app
