@@ -16,27 +16,35 @@
 
   <body>
     <!-- ---------------- MOBILE TOP NAV ---------------- -->
-    <nav class="purple top-nav">
-      <div class="nav-wrapper">
-        <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
-          <i class="material-icons">menu</i>
-        </a>
-        <a href="#" class="brand-logo center">CariFin</a>
-        <ul class="right">
-          <li>
-            {% if is_authenticated %}
-              <a href="/logout" class="white-text">
-                <i class="material-icons left">logout</i>Logout
-              </a>
-            {% else %}
-              <a href="/login" class="white-text">
-                <i class="material-icons left">login</i>Login
-              </a>
-            {% endif %}
-          </li>
-        </ul>
-      </div>
-    </nav>
+  <nav class="purple top-nav">
+    <div class="nav-wrapper">
+      <!-- Menu button -->
+      <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
+        <i class="material-icons">menu</i>
+      </a>
+
+      <!-- Brand icon + text next to menu -->
+      <a href="#" class="brand-logo mobile-brand">
+        <i class="material-icons left">query_stats</i>
+        CariFin
+      </a>
+
+      <!-- Login/Logout button -->
+      <ul class="right">
+        <li>
+          {% if is_authenticated %}
+            <a href="/logout" class="white-text">
+              <i class="material-icons left">logout</i>Logout
+            </a>
+          {% else %}
+            <a href="/login" class="white-text">
+              <i class="material-icons left">login</i>Login
+            </a>
+          {% endif %}
+        </li>
+      </ul>
+    </div>
+  </nav>
 
     <!-- ---------------- DESKTOP SIDEBAR ---------------- -->
     <ul id="desktop-sidenav" class="sidenav sidenav-fixed purple lighten-1">

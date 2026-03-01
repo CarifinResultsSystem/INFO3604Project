@@ -95,7 +95,28 @@ main.sidebar-collapsed {
   }
 }
 
+/* ---------------- MOBILE TOPNAV ---------------- */
+@media (max-width: 992px) {
+  .top-nav .brand-logo {
+    position: relative;
+    left: 12px;
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
+  .top-nav .sidenav-trigger {
+    margin-right: 50px;
+  }
+}
+
 /* ---------------- MOBILE SIDENAV ---------------- */
+#mobile-sidenav {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 0;
+}
+
 .mobile-flex {
   display: flex !important;
   flex-direction: column;
@@ -108,6 +129,7 @@ main.sidebar-collapsed {
 
 .mobile-spacer {
   flex-grow: 1;
+  min-height: 0;
 }
 
 /* ---------------- SIDENAV TEXT ---------------- */
@@ -143,7 +165,6 @@ main.sidebar-collapsed {
   transition: opacity var(--transition), width var(--transition);
 }
 
-/* Hide brand text when desktop sidebar is collapsed */
 .sidenav-fixed.collapsed .sidenav-header .brand {
   opacity: 0;
   width: 0;
