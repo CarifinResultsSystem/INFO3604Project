@@ -1,0 +1,224 @@
+/* ---------------- ROOT VARIABLES ---------------- */
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 60px;
+  --transition: 0.25s ease;
+}
+
+/* ---------------- GLOBAL STYLES ---------------- */
+body {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------------- DESKTOP SIDEBAR ---------------- */
+.sidenav-fixed {
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  transition: width var(--transition);
+}
+
+.sidenav-fixed.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidenav-fixed li > a {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.sidenav-fixed li > a i {
+  margin-right: 20px;
+  transition: margin var(--transition);
+}
+
+.sidenav-fixed.collapsed li > a {
+  justify-content: center;
+}
+
+.sidenav-fixed.collapsed li > a i {
+  margin-right: 0;
+}
+
+.sidenav-fixed.collapsed span {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.menu-top {
+  margin-bottom: 20px;
+}
+
+.menu-bottom {
+  margin-top: auto;
+}
+
+.divider-custom {
+  margin: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ---------------- MAIN CONTENT ---------------- */
+main {
+  flex: 1;
+  padding: 30px;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition);
+}
+
+main.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+/* ---------------- MOBILE ---------------- */
+@media (max-width: 992px) {
+  body {
+    display: block;
+  }
+
+  .sidenav-fixed {
+    display: none;
+  }
+
+  main {
+    margin-left: 0 !important;
+  }
+}
+
+@media (min-width: 993px) {
+  .top-nav {
+    display: none;
+  }
+}
+
+/* ---------------- MOBILE SIDENAV ---------------- */
+.mobile-flex {
+  display: flex !important;
+  flex-direction: column;
+  height: 100% !important;
+}
+
+.mobile-flex li {
+  list-style: none;
+}
+
+.mobile-spacer {
+  flex-grow: 1;
+}
+
+/* ---------------- SIDENAV TEXT ---------------- */
+.sidenav li > a,
+.sidenav li > a i {
+  color: white !important;
+}
+
+/* ---------------- SHARED SIDENAV HEADER ---------------- */
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 64px;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.sidenav-header .brand-icon {
+  font-size: 26px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sidenav-header .brand {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity var(--transition), width var(--transition);
+}
+
+/* Hide brand text when desktop sidebar is collapsed */
+.sidenav-fixed.collapsed .sidenav-header .brand {
+  opacity: 0;
+  width: 0;
+  flex: 0;
+}
+
+/* ---------------- DESKTOP COLLAPSE BUTTON ---------------- */
+.desktop-collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 48px;
+  width: 100%;
+  color: white;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+
+.desktop-collapse-btn:hover,
+.desktop-collapse-btn:focus {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+.desktop-collapse-btn i {
+  font-size: 24px;
+  flex-shrink: 0;
+  transition: margin var(--transition);
+}
+
+.desktop-collapse-btn .btn-label {
+  transition: opacity var(--transition), width var(--transition);
+  overflow: hidden;
+}
+
+.sidenav-fixed.collapsed .desktop-collapse-btn {
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+
+.sidenav-fixed.collapsed .desktop-collapse-btn .btn-label {
+  opacity: 0;
+  width: 0;
+}
+
+.sidenav-fixed.collapsed .desktop-collapse-btn i {
+  margin-right: 0;
+  width: 100%;
+  text-align: center;
+}
+
+/* ---------------- MOBILE CLOSE BUTTON ---------------- */
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  transition: background var(--transition);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.collapse-btn i {
+  font-size: 24px;
+}

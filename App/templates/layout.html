@@ -1,234 +1,132 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <!-- ---------------- META ---------------- -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <!-- ---------------- TITLE ---------------- -->
     <title>{% block title %}CariFin Results & Scoring System{% endblock %}</title>
 
-    <!-- Material Icons -->
+    <!-- ---------------- FONTS & STYLES ---------------- -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-    <!-- Materialize CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-
-    <style>
-      body {
-        display: flex;
-        min-height: 100vh;
-      }
-
-      /* DESKTOP SIDEBAR  */
-      .sidenav-fixed {
-        width: 260px;
-        transition: width 0.25s ease;
-        overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .sidenav-fixed.collapsed {
-        width: 80px;
-      }
-
-      .sidenav-fixed li > a {
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-      }
-
-      .sidenav-fixed li > a i {
-        margin-right: 20px;
-        transition: margin 0.25s ease;
-      }
-
-      /* Hide text smoothly */
-      .sidenav-fixed.collapsed span {
-        opacity: 0;
-        width: 0;
-        overflow: hidden;
-      }
-
-      .sidenav-fixed.collapsed li > a i {
-        margin-right: 0;
-        text-align: center;
-        width: 100%;
-      }
-
-      .menu-top {
-        margin-bottom: 20px;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-      }
-
-      main {
-        flex: 1;
-        padding: 30px;
-        transition: margin-left 0.25s ease;
-        margin-left: 260px;
-      }
-
-      .collapsed ~ main {
-        margin-left: 80px;
-      }
-
-      @media(min-width: 993px){
-        .top-nav {
-          display: none;
-        }
-      }
-
-      /* MOBILE */
-      @media(max-width: 992px){
-        body {
-          display: block;
-        }
-
-        .sidenav-fixed {
-          display: none;
-        }
-
-        main {
-          margin-left: 0 !important;
-        }
-      }
-
-      .divider-custom {
-        margin: 10px 0;
-        border-top: 1px solid rgba(255,255,255,0.3);
-      }
-
-      .mobile-flex {
-        display: flex !important;
-        flex-direction: column;
-        height: 100% !important;
-      }
-
-      .mobile-flex li {
-        list-style: none;
-      }
-
-      .mobile-spacer {
-        flex-grow: 1;
-      }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
   </head>
 
   <body>
-
-    <!-- MOBILE TOP NAV -->
-  <nav class="purple top-nav">
-    <div class="nav-wrapper">
-
-      <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
-        <i class="material-icons">menu</i>
-      </a>
-
-      <a href="#" class="brand-logo center">CariFin</a>
-
-      {% if is_authenticated %}
+    <!-- ---------------- MOBILE TOP NAV ---------------- -->
+    <nav class="purple top-nav">
+      <div class="nav-wrapper">
+        <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
+          <i class="material-icons">menu</i>
+        </a>
+        <a href="#" class="brand-logo center">CariFin</a>
         <ul class="right">
           <li>
-            <a href="/logout" class="white-text mobile-auth-btn">
-              <i class="material-icons left">logout</i>
-              Logout
-            </a>
+            {% if is_authenticated %}
+              <a href="/logout" class="white-text">
+                <i class="material-icons left">logout</i>Logout
+              </a>
+            {% else %}
+              <a href="/login" class="white-text">
+                <i class="material-icons left">login</i>Login
+              </a>
+            {% endif %}
           </li>
         </ul>
-      {% else %}
-        <ul class="right">
-          <li>
-            <a href="/login" class="white-text mobile-auth-btn">
-              <i class="material-icons left">login</i>
-              Login
-            </a>
-          </li>
-        </ul>
-      {% endif %}
+      </div>
+    </nav>
 
-    </div>
-  </nav>
+    <!-- ---------------- DESKTOP SIDEBAR ---------------- -->
+    <ul id="desktop-sidenav" class="sidenav sidenav-fixed purple lighten-1">
 
-    <!-- DESKTOP SIDEBAR -->
-    <ul id="desktop-sidenav" class="sidenav sidenav-fixed purple lighten-1 white-text">
-
-      <!-- TOP MENU ITEMS -->
       <div class="menu-top">
-
+        <!-- Header: logo icon + brand name -->
         <li>
-          <a class="white-text" onclick="toggleMenu()">
-            <i class="material-icons">chevron_left</i>
-            <span>Collapse Menu</span>
+          <div class="sidenav-header">
+            <i class="material-icons brand-icon">query_stats</i>
+            <a href="{{ url_for('index_views.index_page') }}" class="brand">CariFin</a>
+          </div>
+        </li>
+
+        <li><div class="divider-custom"></div></li>
+
+        <!-- Collapse toggle -->
+        <li>
+          <a href="javascript:void(0);" class="desktop-collapse-btn" onclick="toggleMenu()" aria-label="Toggle menu">
+            <i class="material-icons">menu</i>
+            <span class="btn-label">Collapse Menu</span>
           </a>
         </li>
 
+        <!-- Menu Links -->
         <li>
-          <a href="{{ url_for('index_views.index_page') }}" class="white-text">
+          <a href="{{ url_for('index_views.index_page') }}">
             <i class="material-icons">dashboard</i>
             <span>Dashboard</span>
           </a>
         </li>
-
         <li>
-          <a href="#" class="white-text">
+          <a href="#">
             <i class="material-icons">leaderboard</i>
             <span>Leaderboard</span>
           </a>
         </li>
-
         <li>
-          <a href="#" class="white-text">
+          <a href="#">
             <i class="material-icons">event</i>
             <span>Schedule</span>
           </a>
         </li>
-
         <li>
-          <a href="#" class="white-text">
+          <a href="#">
             <i class="material-icons">groups</i>
             <span>Participants</span>
           </a>
         </li>
-
       </div>
 
-      <!-- BOTTOM MENU ITEMS -->
       <div class="menu-bottom">
-
         <li>
-          <a href="#" class="white-text">
+          <a href="#">
             <i class="material-icons">settings</i>
             <span>Settings</span>
           </a>
         </li>
-
         <div class="divider-custom"></div>
-
-        {% if is_authenticated %}
         <li>
-          <a href="/logout" class="white-text">
-            <i class="material-icons">logout</i>
-            <span>Logout</span>
-          </a>
+          {% if is_authenticated %}
+            <a href="/logout">
+              <i class="material-icons">logout</i>
+              <span>Logout</span>
+            </a>
+          {% else %}
+            <a href="/login">
+              <i class="material-icons">login</i>
+              <span>Login</span>
+            </a>
+          {% endif %}
         </li>
-        {% else %}
-        <li>
-          <a href="/login" class="white-text">
-            <i class="material-icons">login</i>
-            <span>Login</span>
-          </a>
-        </li>
-        {% endif %}
-
       </div>
-
     </ul>
 
-    <!-- MOBILE SIDENAV -->
-    <ul id="mobile-sidenav" class="sidenav purple lighten-1 white-text mobile-flex">
+    <!-- ---------------- MOBILE SIDENAV ---------------- -->
+    <ul id="mobile-sidenav" class="sidenav purple lighten-1 mobile-flex">
+      <!-- Header: logo + brand + close button -->
+      <li>
+        <div class="sidenav-header">
+          <i class="material-icons brand-icon">query_stats</i>
+          <a href="#" class="brand">CariFin</a>
+          <button id="mobile-close-btn" class="collapse-btn" aria-label="Close menu">
+            <i class="material-icons">chevron_left</i>
+          </button>
+        </div>
+      </li>
 
-      <!-- TOP ITEMS -->
+      <li><div class="divider-custom" style="margin: 0 16px;"></div></li>
+
+      <!-- Menu Links -->
       <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
       <li><a href="#"><i class="material-icons">leaderboard</i>Leaderboard</a></li>
       <li><a href="#"><i class="material-icons">event</i>Schedule</a></li>
@@ -236,54 +134,54 @@
 
       <li class="mobile-spacer"></li>
 
-      <!-- BOTTOM ITEMS -->
-      <li>
-        <a href="#">
-          <i class="material-icons">settings</i>
-          Settings
-        </a>
-      </li>
-
+      <li><a href="#"><i class="material-icons">settings</i>Settings</a></li>
     </ul>
 
-    <!-- MAIN CONTENT -->
-    <main>
+    <!-- ---------------- MAIN CONTENT ---------------- -->
+    <main id="main-content">
       {% block content %}{% endblock %}
     </main>
 
-    <!-- Materialize JS -->
+    <!-- ---------------- SCRIPTS ---------------- -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var elems = document.querySelectorAll('.sidenav');
-        M.Sidenav.init(elems);
-      });
+      document.addEventListener('DOMContentLoaded', function () {
+        // Initialize sidenavs
+        var sidenavElems = document.querySelectorAll('.sidenav');
+        var sidenavInstances = M.Sidenav.init(sidenavElems);
 
-      function toggleMenu() {
-        const sidenav = document.getElementById("desktop-sidenav");
-        sidenav.classList.toggle("collapsed");
+        // Mobile close button
+        document.getElementById('mobile-close-btn').addEventListener('click', function () {
+          var mobileInstance = M.Sidenav.getInstance(document.getElementById('mobile-sidenav'));
+          if (mobileInstance) mobileInstance.close();
+        });
 
-        const icon = sidenav.querySelector("i");
-        icon.textContent = sidenav.classList.contains("collapsed") 
-          ? "chevron_right" 
-          : "chevron_left";
-      }
+        // Close mobile sidenav when a link is clicked
+        document.querySelectorAll('#mobile-sidenav a').forEach(function (link) {
+          link.addEventListener('click', function () {
+            var mobileInstance = M.Sidenav.getInstance(document.getElementById('mobile-sidenav'));
+            if (mobileInstance) mobileInstance.close();
+          });
+        });
 
-      document.addEventListener('DOMContentLoaded', function() {
-      var elems = document.querySelectorAll('.sidenav');
-      var instances = M.Sidenav.init(elems);
-
-      window.addEventListener('resize', function() {
-        instances.forEach(function(instance) {
-          if (window.innerWidth > 992 && instance.isOpen) {
-            instance.close();
+        // Ensure sidenav closes on window resize above mobile
+        window.addEventListener('resize', function () {
+          if (window.innerWidth > 992) {
+            sidenavInstances.forEach(function (instance) {
+              if (instance.isOpen) instance.close();
+            });
           }
         });
       });
-    });
 
+      // Desktop sidebar toggle
+      function toggleMenu() {
+        var sidenav = document.getElementById('desktop-sidenav');
+        var main = document.getElementById('main-content');
+
+        var isCollapsed = sidenav.classList.toggle('collapsed');
+        main.classList.toggle('sidebar-collapsed', isCollapsed);
+      }
     </script>
-
   </body>
 </html>
