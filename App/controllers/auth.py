@@ -13,13 +13,11 @@ def login(username, password):
 def setup_jwt(app):
     jwt = JWTManager(app)
 
-    # Always store a string user id in the JWT identity (sub),
-    # whether a User object or a raw id is passed.
     @jwt.user_identity_loader
     def user_identity_lookup(identity):
+        # store userID as string
         user_id = getattr(identity, "userID", identity)
         return str(user_id) if user_id is not None else None
-
 
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):
@@ -28,10 +26,10 @@ def setup_jwt(app):
             user_id = int(identity)
         except (TypeError, ValueError):
             return None
+        # This makes current_user available in routes after @jwt_required
         return db.session.get(User, user_id)
-    
-    return jwt
 
+    return jwt
 
 # Context processor to make 'is_authenticated' available to all templates
 def add_auth_context(app):
