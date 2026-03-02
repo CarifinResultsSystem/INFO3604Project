@@ -78,20 +78,92 @@
     </a>
   </div>
 
-  <div class="admin-panel">
+<div class="admin-panel">
     <div class="admin-panel-head split">
-      <h2>Total Institutions (Overall)</h2>
-      <div class="admin-panel-meta">Last 30 days</div>
+        <h2>Total Institutions (Overall)</h2>
+        <div class="admin-panel-meta">
+        <select id="rangeSelect" class="admin-range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+        </select>
+        </div>
     </div>
 
-    <div class="admin-chart-placeholder">
-      <div class="chart-axis-y"></div>
-      <div class="chart-axis-x"></div>
-      <svg class="chart-line" viewBox="0 0 600 260" preserveAspectRatio="none">
-        <polyline points="40,170 170,220 270,120 380,240 560,60"></polyline>
-      </svg>
+    <div class="admin-chart-wrap">
+        <canvas id="instChart" height="110"></canvas>
     </div>
-  </div>
+    </div>
 
-</div>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+    const ctx = document.getElementById('instChart');
+    const rangeSelect = document.getElementById('rangeSelect');
+
+    let chart;
+
+    async function fetchSeries(days) {
+        const res = await fetch(`/admin/api/institutions/series?days=${days}`, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error("Failed to load chart data");
+        return await res.json();
+    }
+
+    function buildChart(labels, values) {
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+            label: 'Total Institutions',
+            data: values,
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+            },
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxTicksLimit: 7 }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(0,0,0,0.06)' }
+            }
+            }
+        }
+        });
+    }
+
+    async function refresh() {
+        const days = rangeSelect.value;
+        const { labels, values } = await fetchSeries(days);
+        buildChart(labels, values);
+    }
+
+    rangeSelect.addEventListener('change', refresh);
+
+    // initial load
+    refresh();
+
+    // auto refresh every 15s
+    setInterval(() => {
+        refresh().catch(() => {});
+    }, 15000);
+    </script>
+    </div>
+
+    </div>
 {% endblock %}
