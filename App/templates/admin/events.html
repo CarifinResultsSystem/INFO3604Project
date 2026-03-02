@@ -1,0 +1,363 @@
+{% extends "layout.html" %}
+{% block title %}Events{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+
+<div class="dash-root admin-root">
+
+  <div class="dash-heading">
+    <h1>Events</h1>
+    <span class="dash-subtitle">Create, edit, and manage events.</span>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <p class="section-label">Add New Event</p>
+  <div class="admin-panel">
+    <form class="admin-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
+      <div class="admin-form-grid">
+
+        <div class="admin-form-row">
+          <label>Event Name</label>
+          <input name="eventName" required placeholder="e.g. Football">
+        </div>
+
+        <div class="admin-form-row">
+          <label>Location</label>
+          <input name="eventLocation" required placeholder="e.g. Hasely Crawford Stadium">
+        </div>
+
+        <div class="admin-form-row">
+          <label>Date</label>
+          <input type="date" name="eventDate" required>
+        </div>
+
+        <div class="admin-form-row">
+          <label>Time</label>
+          <input type="time" name="eventTime" required>
+        </div>
+
+      </div>
+
+      <div class="admin-form-actions">
+        <button class="dash-card-btn btn-purple" type="submit">
+          <i class="material-icons" style="font-size:16px">add</i>
+          Create Event
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <p class="section-label" style="margin-top:22px;">Existing Events</p>
+  <div class="admin-panel">
+
+    <div class="admin-panel-head split">
+      <h2>Events</h2>
+
+      <div class="admin-controls">
+        <input id="eventSearch" class="admin-search" type="text" placeholder="Search...">
+      </div>
+    </div>
+
+    {% if events|length == 0 %}
+      <div style="padding:12px; color:#9e9e9e; font-weight:600;">
+        No events found. Create one above to get started.
+      </div>
+    {% else %}
+      <div class="admin-list" id="eventList">
+        {% for e in events %}
+          <div class="admin-list-row" data-name="{{ e.eventName|lower }}">
+            <div class="alr-name">
+              {{ e.eventName }}
+              <div class="alr-meta">
+                {{ e.eventDate }} · {{ e.time.strftime('%H:%M') }} · {{ e.location }}
+              </div>
+            </div>
+
+            <div class="alr-actions">
+              <button class="link" type="button"
+                onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">
+                Edit
+              </button>
+
+              <form method="POST"
+                action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
+                style="display:inline;">
+                <button class="link danger" type="submit" onclick="return confirm('Remove this event?')">
+                  Remove
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="admin-modal" id="eventModal" aria-hidden="true">
+  <div class="admin-modal-backdrop" onclick="closeModal()"></div>
+
+  <div class="admin-modal-card">
+    <div class="admin-modal-top">
+      <input id="modalEventName" class="admin-modal-title" value="" />
+      <button class="admin-modal-close" type="button" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="admin-modal-body">
+
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">INDIVIDUAL POINTS</div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width:160px">Placement</th>
+                <th>Award</th>
+                <th style="width:140px">Points</th>
+                <th style="width:90px">Edit</th>
+              </tr>
+            </thead>
+            <tbody id="individualTable"></tbody>
+          </table>
+        </div>
+
+        <div id="individualEmpty" style="display:none; padding:10px; color:#9e9e9e; font-weight:600;">
+          No individual point rules yet.
+        </div>
+      </div>
+
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">TEAM POINTS</div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width:240px">Category</th>
+                <th>Awarded For</th>
+                <th style="width:140px">Points</th>
+                <th style="width:90px">Edit</th>
+              </tr>
+            </thead>
+            <tbody id="teamTable"></tbody>
+          </table>
+        </div>
+
+        <div id="teamEmpty" style="display:none; padding:10px; color:#9e9e9e; font-weight:600;">
+          No team point rules yet.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="admin-modal-actions">
+      <button class="dash-card-btn btn-blue" type="button" onclick="saveRules()">
+        Save Changes
+      </button>
+      <button class="dash-card-btn btn-red" type="button" onclick="closeModal()">
+        Discard Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
+
+  const eventSearch = document.getElementById('eventSearch');
+  if (eventSearch) {
+    eventSearch.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('#eventList .admin-list-row').forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        row.style.display = name.includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // ---- Modal + rules ----
+  const modal = document.getElementById('eventModal');
+  const nameInput = document.getElementById('modalEventName');
+  const individualTable = document.getElementById('individualTable');
+  const teamTable = document.getElementById('teamTable');
+
+  const individualEmpty = document.getElementById('individualEmpty');
+  const teamEmpty = document.getElementById('teamEmpty');
+
+  let activeEventId = null;
+  let individualRules = [];
+  let teamRules = [];
+
+  function openModal() {
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModal() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+
+    activeEventId = null;
+    individualRules = [];
+    teamRules = [];
+    individualTable.innerHTML = "";
+    teamTable.innerHTML = "";
+
+    individualEmpty.style.display = "none";
+    teamEmpty.style.display = "none";
+  }
+
+  function placementText(n) {
+    const num = Number(n);
+    if (num === 1) return "1st Place";
+    if (num === 2) return "2nd Place";
+    if (num === 3) return "3rd Place";
+    return `${num}th Place`;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function renderTables() {
+    individualTable.innerHTML = "";
+    teamTable.innerHTML = "";
+
+    if (!individualRules.length) {
+      individualEmpty.style.display = "block";
+    } else {
+      individualEmpty.style.display = "none";
+      individualRules.forEach((r, idx) => {
+        individualTable.innerHTML += `
+          <tr>
+            <td>${placementText(r.placement)}</td>
+            <td>
+              <input class="admin-input" value="${escapeHtml(r.label || "")}"
+                     oninput="individualRules[${idx}].label=this.value">
+            </td>
+            <td>
+              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
+                     oninput="individualRules[${idx}].points=this.value">
+            </td>
+            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
+          </tr>
+        `;
+      });
+    }
+
+    if (!teamRules.length) {
+      teamEmpty.style.display = "block";
+    } else {
+      teamEmpty.style.display = "none";
+      teamRules.forEach((r, idx) => {
+        teamTable.innerHTML += `
+          <tr>
+            <td>
+              <input class="admin-input" value="${escapeHtml(r.conditionType || "")}"
+                     oninput="teamRules[${idx}].conditionType=this.value">
+            </td>
+            <td>
+              <input class="admin-input" value="${escapeHtml(r.label || "")}"
+                     oninput="teamRules[${idx}].label=this.value">
+            </td>
+            <td>
+              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
+                     oninput="teamRules[${idx}].points=this.value">
+            </td>
+            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  async function openEdit(eventId, eventName) {
+    activeEventId = eventId;
+    nameInput.value = eventName || "";
+
+    const res = await fetch(`/admin/events/${eventId}/rules`, { credentials: "same-origin" });
+    if (!res.ok) {
+      alert("Failed to load rules. Check your server logs.");
+      return;
+    }
+    const data = await res.json();
+
+    individualRules = data.individual || [];
+    teamRules = data.team || [];
+
+    renderTables();
+    openModal();
+  }
+
+  async function saveRules() {
+    if (!activeEventId) return;
+
+    const payload = {
+      eventName: nameInput.value.trim(),
+      individual: individualRules.map(r => ({
+        pointsID: r.pointsID,
+        placement: Number(r.placement),
+        label: (r.label || "").trim(),
+        points: Number(r.points || 0)
+      })),
+      team: teamRules.map(r => ({
+        pointsID: r.pointsID,
+        conditionType: (r.conditionType || "").trim(),
+        label: (r.label || "").trim(),
+        lowerLimit: r.lowerLimit ?? 0,
+        upperLimit: r.upperLimit ?? 0,
+        points: Number(r.points || 0)
+      }))
+    };
+
+    const res = await fetch(`/admin/events/${activeEventId}/rules`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      alert("Failed to save changes. Check your server logs.");
+      return;
+    }
+
+    window.location.reload();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+
+{% endblock %}
