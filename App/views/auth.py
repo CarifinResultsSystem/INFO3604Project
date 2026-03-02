@@ -2,6 +2,9 @@ from flask import Blueprint, render_template, jsonify, request, flash, redirect,
 from flask_jwt_extended import jwt_required, current_user, unset_jwt_cookies, set_access_cookies
 
 from App.controllers import login
+from App.controllers.user import create_user
+from App.database import db
+from App.models import User
 
 auth_views = Blueprint('auth_views', __name__, template_folder='../templates')
 
@@ -23,31 +26,84 @@ def login_action():
         flash('Bad username or password given', 'error')
         return redirect(url_for('auth_views.login_page'))
 
-    # Retrieve the user by username
-    from App.database import db
-    from App.models import User
+    user = db.session.execute(
+        db.select(User).filter_by(username=data.get('username'))
+    ).scalar_one_or_none()
 
-    user = db.session.execute(db.select(User).filter_by(username=data.get('username'))).scalar_one_or_none()
     if not user:
         flash('User not found', 'error')
         return redirect(url_for('auth_views.login_page'))
 
-    # Determine redirect URL based on role
-    if user.role == "admin":
-        redirect_url = url_for('admin_views.admin_dashboard')
-    elif user.role == "scoretaker":
-        redirect_url = url_for('scoretaker_views.scoretaker_dashboard')
-    elif user.role == "judge":
-        redirect_url = url_for('judge_views.judge_dashboard')
-    elif user.role == "hr":
-        redirect_url = url_for('hr_views.hr_dashboard')
-    else:
-        redirect_url = url_for('index_views.index_page')
+    # Redirect based on role
+    role_routes = {
+        "admin":      'admin_views.admin_dashboard',
+        "scoretaker": 'scoretaker_views.scoretaker_dashboard',
+        "judge":      'judge_views.judge_dashboard',
+        "hr":         'hr_views.hr_dashboard',
+    }
+    redirect_url = url_for(role_routes.get(user.role, 'index_views.index_page'))
 
     response = redirect(redirect_url)
     flash('Login Successful', 'success')
     set_access_cookies(response, token)
     return response
+
+
+@auth_views.route('/register', methods=['POST'])
+def register_action():
+    username         = request.form.get('username', '').strip()
+    email            = request.form.get('email', '').strip()
+    password         = request.form.get('password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not username or not email or not password:
+        flash('All fields are required.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    if password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    if len(password) < 6:
+        flash('Password must be at least 6 characters.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    existing_username = db.session.execute(
+        db.select(User).filter_by(username=username)
+    ).scalar_one_or_none()
+
+    if existing_username:
+        flash('That username is already taken.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    existing_email = db.session.execute(
+        db.select(User).filter_by(email=email)
+    ).scalar_one_or_none()
+
+    if existing_email:
+        flash('An account with that email already exists.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    try:
+        create_user(username=username, role='user', email=email, password=password)
+    except ValueError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('auth_views.login_page'))
+    except Exception:
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    token = login(username, password)
+    if not token:
+        # Account created but auto-login failed — send to login page
+        flash('Account created! Please sign in.', 'success')
+        return redirect(url_for('auth_views.login_page'))
+
+    flash('Account created successfully. Welcome!', 'success')
+    response = redirect(url_for('index_views.index_page'))
+    set_access_cookies(response, token)
+    return response
+
 
 @auth_views.route('/logout', methods=['GET'])
 def logout_action():
@@ -56,14 +112,11 @@ def logout_action():
     unset_jwt_cookies(response)
     return response
 
+
 @auth_views.route('/logout_to_public', methods=['GET'])
 def logout_to_public():
-    """Logs the user out and redirects to the public dashboard"""
-    from flask import redirect, flash, url_for
-    from flask_jwt_extended import unset_jwt_cookies
-
-    response = redirect(url_for('index_views.index_page'))  # public dashboard
-    flash("You have been logged out to access the Public Viewer Dashboard", "success")
+    response = redirect(url_for('index_views.index_page'))
+    flash('You have been logged out to access the Public Viewer Dashboard', 'success')
     unset_jwt_cookies(response)
     return response
 
@@ -71,7 +124,11 @@ def logout_to_public():
 @auth_views.route('/identify', methods=['GET'])
 @jwt_required()
 def identify_page():
-    return render_template('message.html', title="Identify", message=f"You are logged in as {current_user.userID} - {current_user.username}")
+    return render_template(
+        'message.html',
+        title="Identify",
+        message=f"You are logged in as {current_user.userID} - {current_user.username}"
+    )
 
 
 '''
@@ -92,7 +149,9 @@ def user_login_api():
 @auth_views.route('/api/identify', methods=['GET'])
 @jwt_required()
 def identify_user():
-    return jsonify({'message': f"username: {current_user.username}, id : {current_user.userID}"})
+    return jsonify({
+        'message': f"username: {current_user.username}, id: {current_user.userID}"
+    })
 
 
 @auth_views.route('/api/logout', methods=['GET'])
