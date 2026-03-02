@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+
+<div class="dash-root admin-root">
+
+  <div class="dash-heading">
+    <h1>Users</h1>
+    <span class="dash-subtitle">Assign roles and manage access.</span>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="admin-panel">
+    <div class="admin-panel-head split">
+      <h2>All Users</h2>
+
+      <div class="admin-controls">
+        <input id="userSearch" class="admin-search" type="text" placeholder="Search by username / id / role...">
+        <select id="roleFilter" class="admin-range">
+          <option value="">All roles</option>
+          <option value="admin">admin</option>
+          <option value="scoretaker">scoretaker</option>
+          <option value="judge">judge</option>
+          <option value="hr">hr</option>
+          <option value="user">user</option>
+        </select>
+      </div>
+    </div>
+
+    {% if users|length == 0 %}
+      <div style="padding:12px; color:#9e9e9e; font-weight:600;">
+        No users found.
+      </div>
+    {% else %}
+
+      <!-- Desktop table -->
+      <div class="admin-table-wrap" id="usersTableWrap">
+        <table class="admin-table" id="usersTable">
+          <thead>
+            <tr>
+              <th style="width:90px;">ID</th>
+              <th>Username</th>
+              <th style="width:160px;">Current Role</th>
+              <th style="width:260px;">Set Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+              <tr class="user-row"
+                  data-uid="{{ u.userID }}"
+                  data-username="{{ (u.username or '')|lower }}"
+                  data-role="{{ (u.role or '')|lower }}">
+                <td>{{ u.userID }}</td>
+                <td style="font-weight:700;">{{ u.username }}</td>
+                <td>
+                  <span class="role-pill role-{{ (u.role or 'user')|lower }}">{{ u.role or 'user' }}</span>
+                </td>
+                <td>
+                  <form method="POST" action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
+                        style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
+                    <select name="role" class="admin-input" style="max-width:160px;">
+                      {% set cur = (u.role or 'user') %}
+                      {% for r in ['admin','scoretaker','judge','hr','user'] %}
+                        <option value="{{ r }}" {% if cur == r %}selected{% endif %}>{{ r }}</option>
+                      {% endfor %}
+                    </select>
+
+                    <button class="dash-card-btn btn-blue" type="submit" style="padding:10px 14px;">
+                      Update
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div id="usersCards" style="display:none;">
+        {% for u in users %}
+          <div class="admin-panel user-card user-row"
+               data-uid="{{ u.userID }}"
+               data-username="{{ (u.username or '')|lower }}"
+               data-role="{{ (u.role or '')|lower }}"
+               style="margin-top:12px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+              <div>
+                <div style="font-weight:800; font-size:1.05rem;">{{ u.username }}</div>
+                <div style="color:#9e9e9e; font-weight:600; font-size:0.9rem;">ID: {{ u.userID }}</div>
+              </div>
+              <span class="role-pill role-{{ (u.role or 'user')|lower }}">{{ u.role or 'user' }}</span>
+            </div>
+
+            <div style="margin-top:12px;">
+              <form method="POST" action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
+                    style="display:flex; gap:10px; align-items:center;">
+                <select name="role" class="admin-input" style="flex:1;">
+                  {% set cur = (u.role or 'user') %}
+                  {% for r in ['admin','scoretaker','judge','hr','user'] %}
+                    <option value="{{ r }}" {% if cur == r %}selected{% endif %}>{{ r }}</option>
+                  {% endfor %}
+                </select>
+
+                <button class="dash-card-btn btn-blue" type="submit" style="padding:10px 14px;">
+                  Update
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    {% endif %}
+  </div>
+</div>
+
+
+<script>
+  // Auto-dismiss toasts
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
+
+  const search = document.getElementById('userSearch');
+  const filter = document.getElementById('roleFilter');
+
+  function applyFilters(){
+    const q = (search?.value || '').trim().toLowerCase();
+    const role = (filter?.value || '').trim().toLowerCase();
+
+    document.querySelectorAll('.user-row').forEach(row => {
+      const uname = row.getAttribute('data-username') || '';
+      const uid = (row.getAttribute('data-uid') || '').toLowerCase();
+      const r = row.getAttribute('data-role') || '';
+
+      const matchesQuery = !q || uname.includes(q) || uid.includes(q) || r.includes(q);
+      const matchesRole = !role || r === role;
+
+      row.style.display = (matchesQuery && matchesRole) ? '' : 'none';
+    });
+  }
+
+  if (search) search.addEventListener('input', applyFilters);
+  if (filter) filter.addEventListener('change', applyFilters);
+</script>
+
+{% endblock %}
