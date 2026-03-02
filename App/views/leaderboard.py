@@ -13,7 +13,7 @@ Page/Action Routes
 
 @leaderboard_views.route('/leaderboard', methods=['GET'])
 def get_leaderboard_page():
-    return render_template('leaderboard.html')
+    return render_template('user/leaderboard.html')
 
 
 '''

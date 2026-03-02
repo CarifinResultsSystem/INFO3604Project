@@ -10,7 +10,7 @@ Page/Action Routes
 
 @participant_views.route('/participants', methods=['GET'])
 def get_participants_page():
-    return render_template('participant.html')
+    return render_template('user/participant.html')
 
 
 '''

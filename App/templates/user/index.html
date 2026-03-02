@@ -4,7 +4,9 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
+
+
 
 <div class="dash-root">
 
@@ -13,6 +15,23 @@
     <h1>Dashboard</h1>
     <span class="dash-subtitle">Welcome to CariFin</span>
   </div>
+
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
   <!-- GALLERY -->
   <div class="gallery-section">
@@ -240,6 +259,15 @@
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  /* AUTO-DISMISS TOASTS */
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
 </script>
 
 {% endblock %}

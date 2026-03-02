@@ -33,7 +33,7 @@
       <ul class="right">
         <li>
           {% if is_authenticated %}
-            <a href="/logout" class="white-text">
+            <a href="/logout" class="white-text" onclick="return confirm('Are you sure you want to log out?')">
               <i class="material-icons left">logout</i>Log Out
             </a>
           {% else %}

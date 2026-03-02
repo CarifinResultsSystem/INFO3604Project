@@ -10,7 +10,7 @@ Page/Action Routes
 
 @schedule_views.route('/schedule', methods=['GET'])
 def get_schedule_page():
-    return render_template('schedule.html')
+    return render_template('user/schedule.html')
 
 
 '''
