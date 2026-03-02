@@ -18,7 +18,7 @@ from App.controllers.pointsRules import *
 from App.controllers.automatedResult import *
 from App.controllers.participant import *
 
-from .views import views, setup_admin
+from .views import views
 from .config import load_config
 from .database import *
 from .controllers import setup_jwt
@@ -36,10 +36,10 @@ def create_app(overrides={}):
     CORS(app)
     add_views(app)
     init_db(app)
-    jwt = setup_jwt(app)
-    setup_admin(app)
+    
     add_auth_context(app)
-
+    
+    jwt = setup_jwt(app)
     @jwt.invalid_token_loader
     @jwt.unauthorized_loader
     def custom_unauthorized_responce(error):
