@@ -1,43 +1,169 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <!-- ---------------- META ---------------- -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <!-- ---------------- TITLE ---------------- -->
     <title>{% block title %}CariFin Results & Scoring System{% endblock %}</title>
 
-    <!-- Materialize CSS -->
+    <!-- ---------------- FONTS & STYLES ---------------- -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-
-    <!-- Static CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
   </head>
+
   <body>
-    
-    <!-- Navbar -->
-    <nav class="purple">
-      <div class="nav-wrapper">
-        <a href="{{ url_for('index_views.index_page') }}" class="brand-logo center">CariFin Results & Scoring System</a>
-        <ul id="nav-mobile" class="left">
-          <li><a href="{{ url_for('index_views.index_page') }}">Home</a></li>
-        </ul>
-        <ul id="nav-mobile" class="right">
+    <!-- ---------------- MOBILE TOP NAV ---------------- -->
+  <nav class="purple top-nav">
+    <div class="nav-wrapper">
+      <!-- Menu button -->
+      <a href="#" data-target="mobile-sidenav" class="sidenav-trigger left">
+        <i class="material-icons">menu</i>
+      </a>
+
+      <!-- Brand icon + text next to menu -->
+      <a href="#" class="brand-logo mobile-brand">
+        <i class="material-icons left">query_stats</i>
+        CariFin
+      </a>
+
+      <!-- Login/Logout button -->
+      <ul class="right">
+        <li>
           {% if is_authenticated %}
-            <li><a href="/logout">Logout</a></li>
+            <a href="/logout" class="white-text" onclick="return confirm('Are you sure you want to log out?')">
+              <i class="material-icons left">logout</i>Log Out
+            </a>
           {% else %}
-            <li><a href="/login">Login</a></li>
+            <a href="/login" class="white-text">
+              <i class="material-icons left">login</i>Log In
+            </a>
           {% endif %}
-        </ul>
-      </div>
-    </nav>
-
-    <!-- Main container -->
-    <div class="container" id="content">
-      {% block content %}{% endblock %}
+        </li>
+      </ul>
     </div>
+  </nav>
 
-    <!-- Materialize JS -->
+    <!-- ---------------- DESKTOP SIDEBAR ---------------- -->
+    <ul id="desktop-sidenav" class="sidenav sidenav-fixed purple lighten-1">
+
+      <div class="menu-top">
+        <!-- Header: logo icon + brand name -->
+        <li>
+          <div class="sidenav-header">
+            <i class="material-icons brand-icon">query_stats</i>
+            <a href="{{ url_for('index_views.index_page') }}" class="brand">CariFin</a>
+          </div>
+        </li>
+
+        <li><div class="divider-custom"></div></li>
+
+        <!-- Collapse toggle -->
+        <li>
+          <a href="javascript:void(0);" class="desktop-collapse-btn" onclick="toggleMenu()" aria-label="Toggle menu">
+            <i class="material-icons">menu</i>
+            <span class="btn-label">Collapse Menu</span>
+          </a>
+        </li>
+
+        <!-- Menu Links -->
+        {% include 'desktopMenu.html' %}
+      </div>
+
+      <div class="menu-bottom">
+        <li>
+          <a href="{{ url_for('settings_views.get_settings_page') }}">
+            <i class="material-icons">settings</i>
+            <span>Settings</span>
+          </a>
+        </li>
+        <div class="divider-custom"></div>
+        <li>
+          {% if is_authenticated %}
+            <a href="/logout">
+              <i class="material-icons">logout</i>
+              <span>Log Out</span>
+            </a>
+          {% else %}
+            <a href="/login">
+              <i class="material-icons">login</i>
+              <span>Log In</span>
+            </a>
+          {% endif %}
+        </li>
+      </div>
+    </ul>
+
+    <!-- ---------------- MOBILE SIDENAV ---------------- -->
+    <ul id="mobile-sidenav" class="sidenav purple lighten-1 mobile-flex">
+      <!-- Header: logo + brand + close button -->
+      <li>
+        <div class="sidenav-header">
+          <i class="material-icons brand-icon">query_stats</i>
+          <a href="#" class="brand">CariFin</a>
+          <button id="mobile-close-btn" class="collapse-btn" aria-label="Close menu">
+            <i class="material-icons">chevron_left</i>
+          </button>
+        </div>
+      </li>
+
+      <li><div class="divider-custom" style="margin: 0 16px;"></div></li>
+
+      <!-- Menu Links -->
+      {% include 'mobileMenu.html' %}
+
+      <li class="mobile-spacer"></li>
+
+      <li><a href="{{ url_for('settings_views.get_settings_page') }}"><i class="material-icons">settings</i>Settings</a></li>
+    </ul>
+
+    <!-- ---------------- MAIN CONTENT ---------------- -->
+    <main id="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- ---------------- SCRIPTS ---------------- -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Initialize sidenavs
+        var sidenavElems = document.querySelectorAll('.sidenav');
+        var sidenavInstances = M.Sidenav.init(sidenavElems);
 
+        // Mobile close button
+        document.getElementById('mobile-close-btn').addEventListener('click', function () {
+          var mobileInstance = M.Sidenav.getInstance(document.getElementById('mobile-sidenav'));
+          if (mobileInstance) mobileInstance.close();
+        });
+
+        // Close mobile sidenav when a link is clicked
+        document.querySelectorAll('#mobile-sidenav a').forEach(function (link) {
+          link.addEventListener('click', function () {
+            var mobileInstance = M.Sidenav.getInstance(document.getElementById('mobile-sidenav'));
+            if (mobileInstance) mobileInstance.close();
+          });
+        });
+
+        // Ensure sidenav closes on window resize above mobile
+        window.addEventListener('resize', function () {
+          if (window.innerWidth > 992) {
+            sidenavInstances.forEach(function (instance) {
+              if (instance.isOpen) instance.close();
+            });
+          }
+        });
+      });
+
+      // Desktop sidebar toggle
+      function toggleMenu() {
+        var sidenav = document.getElementById('desktop-sidenav');
+        var main = document.getElementById('main-content');
+
+        var isCollapsed = sidenav.classList.toggle('collapsed');
+        main.classList.toggle('sidebar-collapsed', isCollapsed);
+      }
+    </script>
   </body>
 </html>

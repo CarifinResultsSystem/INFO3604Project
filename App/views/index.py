@@ -5,7 +5,7 @@ index_views = Blueprint('index_views', __name__)
 
 @index_views.route('/', methods=['GET'])
 def index_page():
-    return render_template('index.html')
+    return render_template('user/index.html')
 
 @index_views.route('/init', methods=['GET'])
 def init():

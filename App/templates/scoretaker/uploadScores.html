@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% block title %}Upload Scores{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/scoretaker.css') }}">
+
+<div class="modal-overlay active" id="uploadModal">
+
+  <div class="modal-box">
+    <h2>Upload XML Scores</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+
+      <div class="drop-zone" id="dropZone">
+        Drag & Drop XML Files Here<br>
+        or Click to Select
+        <input type="file" name="files" id="fileInput" accept=".xml" multiple hidden>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <div class="modal-actions">
+        <button type="submit" class="modal-btn btn-confirm">Confirm Upload</button>
+        <a href="{{ url_for('scoretaker_dashboard') }}" class="modal-btn btn-cancel">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+
+dropZone.addEventListener("click", () => fileInput.click());
+
+dropZone.addEventListener("dragover", e => {
+  e.preventDefault();
+  dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  fileInput.files = e.dataTransfer.files;
+  showFiles();
+});
+
+fileInput.addEventListener("change", showFiles);
+
+function showFiles() {
+  fileList.innerHTML = "";
+  for (let file of fileInput.files) {
+    const div = document.createElement("div");
+    div.textContent = file.name;
+    fileList.appendChild(div);
+  }
+}
+</script>
+
+{% endblock %}

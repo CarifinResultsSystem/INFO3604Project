@@ -1,4 +1,4 @@
-from flask import Flask, current_app
+from flask import Flask, redirect, url_for, current_app
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask.cli import with_appcontext
@@ -6,6 +6,7 @@ import click
 from werkzeug.datastructures import FileStorage
 
 
+from App.controllers.auth import add_auth_context
 from App.controllers.user import *
 from App.controllers.judge import *
 from App.controllers.admin import *
@@ -37,11 +38,12 @@ def create_app(overrides={}):
     init_db(app)
     jwt = setup_jwt(app)
     setup_admin(app)
+    add_auth_context(app)
 
     @jwt.invalid_token_loader
     @jwt.unauthorized_loader
     def custom_unauthorized_responce(error):
-        return #render_template('401.html', error=error), 401 <= To be modified when templates are made
+        return #render_template('401.html', error=error), 401
     
 #------------------------ USER CLI TESTS -------------------------
     
@@ -572,6 +574,7 @@ def create_app(overrides={}):
         else:
             click.echo(f"No participant found with ID {participantID}")
 
+
 #--------------------- LEADERBOARD CLI TESTS ---------------------
 
     # Create Leaderboard (flask create-leaderboard <year>)
@@ -781,7 +784,8 @@ def create_app(overrides={}):
             click.echo(f"Automated result {result_id} deleted successfully.")
         else:
             click.echo(f"No automated result found with ID {result_id}")
-    
+
+
     
     app.app_context().push()
     return app
