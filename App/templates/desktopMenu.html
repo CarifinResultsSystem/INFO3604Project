@@ -1,0 +1,42 @@
+{% if current_user.is_authenticated %}
+
+  {% if current_user.role == "admin" %}
+
+    <li><a href="#"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="#"><i class="material-icons">manage_accounts</i><span>Manage Users</span></a></li>
+    <li><a href="#"><i class="material-icons">groups</i><span>Institutions & Participants</span></a></li>
+    <li><a href="#"><i class="material-icons">event</i><span>Events</span></a></li>
+    <li><a href="#"><i class="material-icons">emoji_events</i><span>Awards</span></a></li>
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+  {% elif current_user.role == "scoretaker" %}
+
+    <li><a href="#"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="#"><i class="material-icons">upload</i><span>Upload Scores</span></a></li>
+    <li><a href="#"><i class="material-icons">archive</i><span>Archives</span></a></li>
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+  {% elif current_user.role == "judge" %}
+
+    <li><a href="#"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="#"><i class="material-icons">rate_review</i><span>Review Scores</span></a></li>
+    <li><a href="#"><i class="material-icons">archive</i><span>Archives</span></a></li>
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+  {% elif current_user.role == "hr" %}
+
+    <li><a href="#"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="#"><i class="material-icons">assessment</i><span>Reports</span></a></li>
+    <li><a href="#"><i class="material-icons">archive</i><span>Archives</span></a></li>
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+  {% endif %}
+
+{% else %}
+    
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}"><i class="material-icons">leaderboard</i><span>Leaderboard</span></a></li>
+    <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i><span>Schedule</span></a></li>
+    <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i><span>Participants</span></a></li>
+
+{% endif %}

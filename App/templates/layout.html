@@ -69,30 +69,7 @@
         </li>
 
         <!-- Menu Links -->
-        <li>
-          <a href="{{ url_for('index_views.index_page') }}">
-            <i class="material-icons">dashboard</i>
-            <span>Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}">
-            <i class="material-icons">leaderboard</i>
-            <span>Leaderboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('schedule_views.get_schedule_page') }}">
-            <i class="material-icons">event</i>
-            <span>Schedule</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('participant_views.get_participants_page') }}">
-            <i class="material-icons">groups</i>
-            <span>Participants</span>
-          </a>
-        </li>
+        {% include 'desktopMenu.html' %}
       </div>
 
       <div class="menu-bottom">
@@ -135,16 +112,7 @@
       <li><div class="divider-custom" style="margin: 0 16px;"></div></li>
 
       <!-- Menu Links -->
-      <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">dashboard</i>Dashboard</a></li>
-      
-      <li>
-        <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}">
-          <i class="material-icons">leaderboard</i>Leaderboard
-        </a>
-      </li>
-
-      <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i>Schedule</a></li>
-      <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i>Participants</a></li>
+      {% include 'mobileMenu.html' %}
 
       <li class="mobile-spacer"></li>
 
