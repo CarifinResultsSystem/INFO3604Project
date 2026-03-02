@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block title %}Scoretaker Dashboard{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/scoretaker.css') }}">
+
+<div class="score-root">
+
+  <div class="score-heading">
+    <h1>Scoretaker Dashboard</h1>
+    <span class="score-subtitle">Upload and manage XML score files</span>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-number">{{ total_uploads or 0 }}</div>
+      <div class="stat-label">Total Files Uploaded</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-number">{{ submitted_for_review or 0 }}</div>
+      <div class="stat-label">Submitted For Review</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-number">{{ upload_errors or 0 }}</div>
+      <div class="stat-label">Uploads With Errors</div>
+    </div>
+
+  </div>
+
+  <a href="{{ url_for('scoretaker_views.upload_scores') }}" class="upload-btn">
+    <i class="material-icons">upload_file</i>
+    Upload Scores
+  </a>
+
+</div>
+
+{% endblock %}

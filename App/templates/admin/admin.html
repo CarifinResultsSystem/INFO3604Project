@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+<p>Welcome, {{ user.username }}!</p>
+<ul>
+    <li><a href="#">Manage Users</a></li>
+    <li><a href="#">Institutions & Participants</a></li>
+    <li><a href="#">Events</a></li>
+    <li><a href="#">Awards</a></li>
+    <li><a href="{{ url_for('index_views.index_page') }}">Public Viewer Dashboard</a></li>
+</ul>
+{% endblock %}
