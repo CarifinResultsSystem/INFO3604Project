@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify, request, flash, redirect,
 from flask_jwt_extended import jwt_required, current_user, unset_jwt_cookies, set_access_cookies
 
 from App.controllers import login
+from App.controllers.user import create_user
 
 auth_views = Blueprint('auth_views', __name__, template_folder='../templates')
 
@@ -26,6 +27,37 @@ def login_action():
     flash('Login Successful', 'success')
     set_access_cookies(response, token)
     return response
+
+
+@auth_views.route('/register', methods=['POST'])
+def register_action():
+    data = request.form
+    username = data.get('username', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    confirm_password = data.get('confirm_password', '')
+
+    # Basic validation
+    if not username or not email or not password:
+        flash('All fields are required.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    if password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    if len(password) < 6:
+        flash('Password must be at least 6 characters.', 'error')
+        return redirect(url_for('auth_views.login_page'))
+
+    try:
+        # Always default new registrations to 'user' role
+        create_user(username=username, role='user', email=email, password=password)
+        flash('Account created successfully! Please sign in.', 'success')
+        return redirect(url_for('auth_views.login_page'))
+    except ValueError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('auth_views.login_page'))
 
 
 @auth_views.route('/logout', methods=['GET'])
@@ -55,6 +87,23 @@ def user_login_api():
     response = jsonify(access_token=token)
     set_access_cookies(response, token)
     return response
+
+
+@auth_views.route('/api/register', methods=['POST'])
+def register_api():
+    data = request.json
+    username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip()
+    password = data.get('password') or ''
+
+    if not username or not email or not password:
+        return jsonify(message='username, email, and password are required'), 400
+
+    try:
+        user = create_user(username=username, role='user', email=email, password=password)
+        return jsonify(message='Account created successfully', user=user.get_json()), 201
+    except ValueError as e:
+        return jsonify(message=str(e)), 409
 
 
 @auth_views.route('/api/identify', methods=['GET'])

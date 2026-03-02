@@ -37,8 +37,8 @@
               <i class="material-icons left">logout</i>Log Out
             </a>
           {% else %}
-            <a href="/login" class="white-text">
-              <i class="material-icons left">login</i>Log In
+            <a href="/logout" class="white-text" onclick="return confirm('Are you sure you want to log out?')">
+              <i class="material-icons left">logout</i>Log Out
             </a>
           {% endif %}
         </li>
@@ -105,7 +105,7 @@
         <div class="divider-custom"></div>
         <li>
           {% if is_authenticated %}
-            <a href="/logout">
+            <a href="/logout" onclick="return confirm('Are you sure you want to log out?')">
               <i class="material-icons">logout</i>
               <span>Log Out</span>
             </a>

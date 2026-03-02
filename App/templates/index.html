@@ -11,7 +11,11 @@
   <!-- PAGE HEADING -->
   <div class="dash-heading">
     <h1>Dashboard</h1>
-    <span class="dash-subtitle">Welcome to CariFin</span>
+    {% if is_authenticated and current_user %}
+      <span class="dash-subtitle">Welcome to CariFin, {{ current_user.username }}!</span>
+    {% else %}
+      <span class="dash-subtitle">Welcome to CariFin, User!</span>
+    {% endif %}
   </div>
 
   <!-- GALLERY -->
