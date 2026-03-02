@@ -1,6 +1,7 @@
-from sqlite3 import IntegrityError
-from App.models import User
+from sqlalchemy.exc import IntegrityError
+from App.models import User, Judge
 from App.database import db
+from App.models.scoretaker import Scoretaker
 
 #Create User
 def create_user(username, role, email, password):
@@ -8,6 +9,15 @@ def create_user(username, role, email, password):
 
     try:
         db.session.add(newUser)
+        db.session.flush()  # Flush to assign userID for relationships
+        
+        if role == "judge":
+            judge = Judge(userID=newUser.userID)
+            db.session.add(judge)
+        elif role == "scoretaker":
+            st = Scoretaker(userID=newUser.userID)
+            db.session.add(st)
+        
         db.session.commit()
         return newUser
     except ValueError:

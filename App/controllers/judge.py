@@ -2,20 +2,9 @@ from App.database import db
 from App.models import Judge, AutomatedResult, ScoreDocument
 
 
-# Create / Get Judge Profile
+# Get Judge Profile
 def get_judge(userID):
     return db.session.get(Judge, userID)
-
-
-def get_or_create_judge(userID):
-    judge = db.session.get(Judge, userID)
-
-    if not judge:
-        judge = Judge(userID=userID)
-        db.session.add(judge)
-        db.session.commit()
-
-    return judge
 
 
 # Edit Results
