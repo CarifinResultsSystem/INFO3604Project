@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from App.models import User, Event
 from App.database import db
+from datetime import datetime
 
 def assignRole(userID, role):
     user = db.session.get(User, userID)
