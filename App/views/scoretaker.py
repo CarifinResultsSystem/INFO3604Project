@@ -32,7 +32,8 @@ def scoretaker_dashboard():
         'scoretaker/scoretaker.html',
         total_uploads=total_uploads,
         submitted_for_review=submitted_for_review,
-        upload_errors=upload_errors
+        upload_errors=upload_errors,
+        user=current_user
     )
 
 
