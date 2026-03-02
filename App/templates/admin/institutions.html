@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+{% block title %}Institutions & Participants{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+
+<div class="dash-root admin-root">
+
+  <div class="dash-heading">
+    <h1>Institutions &amp; Participants</h1>
+  </div>
+
+  <div class="admin-stat-grid">
+    <div class="admin-stat-card">
+      <div class="stat-label">Total Institutions Participating This Year</div>
+      <div class="stat-value">{{ total_institutions or 0 }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="stat-label">Total Participants This Year</div>
+      <div class="stat-value">{{ total_participants or 0 }}</div>
+    </div>
+  </div>
+
+  <div class="admin-two-col">
+    <div class="admin-col">
+
+      <div class="admin-panel">
+        <div class="admin-panel-head">
+          <h2>Institution Registration</h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
+          <div class="admin-form-row">
+            <label>Institution Name:</label>
+            <input type="text" name="institutionName" placeholder="e.g. Scotiabank">
+          </div>
+
+          <div class="admin-form-row">
+            <label>Institution Location:</label>
+            <input type="text" name="institutionLocation" placeholder="e.g. Port of Spain">
+          </div>
+
+          <div class="admin-form-actions">
+            <button class="admin-btn" type="submit">+ Add</button>
+            <button class="admin-btn danger" type="button">Remove</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-panel">
+        <div class="admin-panel-head">
+          <h2>Participant Registration</h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
+
+          <div class="admin-form-grid">
+            <div class="admin-form-row">
+              <label>First Name:</label>
+              <input type="text" name="firstName">
+            </div>
+
+            <div class="admin-form-row">
+              <label>Surname:</label>
+              <input type="text" name="surname">
+            </div>
+
+            <div class="admin-form-row">
+              <label>Gender:</label>
+              <select name="gender">
+                <option value="" selected>Choose</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div class="admin-form-row">
+              <label>Date of Birth:</label>
+              <input type="text" name="dob" placeholder="DD/MM/YY">
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Institution:</label>
+            <select name="institution">
+              <option value="" selected>Select institution</option>
+              {% for inst in institutions or [] %}
+                <option value="{{ inst.id }}">{{ inst.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Participant Location:</label>
+            <input type="text" name="participantLocation">
+          </div>
+
+          <div class="admin-form-row">
+            <label>Event Registered In:</label>
+            <select name="event">
+              <option value="" selected>Select event</option>
+              {% for e in events or [] %}
+                <option value="{{ e.id }}">{{ e.eventName }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="admin-form-actions">
+            <button class="admin-btn" type="submit">+ Add</button>
+            <button class="admin-btn danger" type="button">Remove</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+    <div class="admin-col">
+
+      <div class="admin-panel">
+        <div class="admin-panel-head split">
+          <h2>Institutions &amp; Participants</h2>
+
+          <div class="admin-controls">
+            <input class="admin-search" type="text" placeholder="Search...">
+            <div class="admin-sort">
+              <label>Sort By:</label>
+              <select>
+                <option selected>Alphabetical</option>
+                <option>Newest</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-accordion" id="instAccordion">
+
+          <div class="acc-item open">
+            <button class="acc-head" type="button">
+              <span>Institution: SCOTIABANK</span>
+              <span class="acc-caret">▾</span>
+            </button>
+
+            <div class="acc-body">
+              <div class="acc-subtitle">Participant List</div>
+
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Gender</th>
+                      <th>Location</th>
+                      <th>Event</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>John Doe</td>
+                      <td>Male</td>
+                      <td>Princes Town</td>
+                      <td>Aerobics</td>
+                      <td class="row-actions">
+                        <a href="#" class="link">Edit</a>
+                        <a href="#" class="link danger">Remove</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-head" type="button">
+              <span>Institution: INSTITUTION #1</span>
+              <span class="acc-caret">▸</span>
+            </button>
+            <div class="acc-body"></div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-head" type="button">
+              <span>Institution: INSTITUTION #2</span>
+              <span class="acc-caret">▸</span>
+            </button>
+            <div class="acc-body"></div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-head" type="button">
+              <span>Institution: INSTITUTION #3</span>
+              <span class="acc-caret">▸</span>
+            </button>
+            <div class="acc-body"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('#instAccordion .acc-head').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.acc-item');
+      item.classList.toggle('open');
+      const caret = btn.querySelector('.acc-caret');
+      caret.textContent = item.classList.contains('open') ? '▾' : '▸';
+    });
+  });
+</script>
+
+{% endblock %}
