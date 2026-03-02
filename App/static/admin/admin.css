@@ -6,6 +6,7 @@
   --bg: #ffffff;
   --card: #ffffff;
   --border: #f0f0f0;
+
   --shadow: 0 2px 16px rgba(0,0,0,0.07);
   --shadow-hover: 0 6px 28px rgba(0,0,0,0.12);
 
@@ -18,19 +19,19 @@
   --radius-lg: 16px;
 }
 
+/* Base layout / typography */
 .admin-root,
 .dash-root{
   font-family: 'DM Sans', sans-serif;
 }
 
-/* keep same sizing as your user dashboard */
 .admin-root{
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 0 40px 0;
 }
 
-/* ── Heading (same as user dashboard) ── */
+/* Heading */
 .dash-heading{
   margin: 0 0 28px 0;
   display: flex;
@@ -62,7 +63,7 @@
   margin: 0 0 10px 2px;
 }
 
-/* ── Modern panels (replace black borders) ── */
+/* Panels*/
 .admin-panel{
   background: var(--card);
   border-radius: var(--radius);
@@ -84,37 +85,46 @@
   color: var(--text);
 }
 
-.admin-panel-head.center{ text-align:center; }
-
-.admin-panel-head.split{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
+.admin-panel-head.center{
+  text-align: center;
 }
 
-/* ── Dashboard action cards (3 boxes like wireframe but modern) ── */
+.admin-panel-head.split{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-panel-meta{
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding-top: 6px;
+}
+
+/* Dashboard cards / grids*/
 .admin-action-grid{
-  display:grid;
+  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 18px;
 }
 
 .admin-action-card{
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 86px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  text-decoration:none;
+  text-decoration: none;
   color: var(--text);
   transition: box-shadow .2s, transform .2s;
   padding: 14px 16px;
-  text-align:center;
+  text-align: center;
 }
 
 .admin-action-card:hover{
@@ -128,21 +138,28 @@
   font-size: 1.15rem;
 }
 
-/* public link */
+.admin-cards-3{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dash-card.admin-action{
+  min-height: 170px;
+}
+
+/* Public link */
 .admin-public-link{
   margin-top: 12px;
   text-align: center;
 }
-
 .admin-link{
   text-decoration: underline;
   font-weight: 600;
   color: var(--purple);
 }
 
-/* ── Stats cards ── */
+/* Stats */
 .admin-stat-grid{
-  display:grid;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 14px;
@@ -154,7 +171,7 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 16px 14px;
-  text-align:center;
+  text-align: center;
 }
 
 .stat-label{
@@ -170,20 +187,19 @@
   color: var(--text);
 }
 
-/* ── Two column layout ── */
+/* Two column section */
 .admin-two-col{
-  display:grid;
+  display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 18px;
   margin-top: 18px;
 }
-
 .admin-col{ min-width: 0; }
 
-/* ── Controls (search + sort) ── */
+/* Controls*/
 .admin-controls{
-  display:flex;
-  align-items:center;
+  display: flex;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -203,9 +219,21 @@
   box-shadow: 0 0 0 4px rgba(123,31,162,0.12);
 }
 
+.admin-range,
+.admin-sort select,
+.admin-form select{
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  outline: none;
+  font-weight: 600;
+  color: #444;
+}
+
 .admin-sort{
-  display:flex;
-  align-items:center;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -214,26 +242,33 @@
   color: #666;
 }
 
-.admin-sort select,
-.admin-form select{
+/* Inputs and forms*/
+.admin-input{
+  width: 100%;
   border: 1px solid #e6e6e6;
   border-radius: 10px;
   padding: 9px 10px;
-  background: #fff;
   outline: none;
+  background: #fff;
+  font-weight: 600;
+  color: #444;
 }
 
-/* ── Forms ── */
+.admin-input:focus{
+  border-color: rgba(21,101,192,0.55);
+  box-shadow: 0 0 0 4px rgba(21,101,192,0.12);
+}
+
 .admin-form{
-  display:grid;
+  display: grid;
   gap: 12px;
 }
 
 .admin-form-row{
-  display:grid;
+  display: grid;
   grid-template-columns: 180px 1fr;
   gap: 10px;
-  align-items:center;
+  align-items: center;
 }
 
 .admin-form-row label{
@@ -245,7 +280,7 @@
   border: 1px solid #e6e6e6;
   border-radius: 10px;
   padding: 10px 12px;
-  outline:none;
+  outline: none;
   transition: border .15s, box-shadow .15s;
 }
 
@@ -255,29 +290,29 @@
 }
 
 .admin-form-grid{
-  display:grid;
+  display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px 18px;
 }
 
 .admin-form-actions{
-  display:flex;
-  justify-content:flex-end;
+  display: flex;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: 4px;
 }
 
-/* Buttons (modern, matches your dash-card-btn feel) */
+/* Buttons */
 .admin-btn{
-  display:inline-flex;
-  align-items:center;
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
   font-weight: 700;
-  cursor:pointer;
+  cursor: pointer;
   transition: transform .15s, filter .2s, box-shadow .2s;
 }
 
@@ -298,26 +333,114 @@
   color: var(--red);
 }
 
-/* ── Accordion (modern) ── */
+/* Tables, lists, links*/
+.admin-table-wrap{
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.admin-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td{
+  padding: 10px 10px;
+  border-bottom: 1px solid #ededed;
+  text-align: left;
+}
+
+.admin-table thead th{
+  color: #333;
+  font-weight: 700;
+  background: #fbfbfb;
+}
+
+.admin-table tbody tr:hover{
+  background: #fafafa;
+}
+
+.row-actions{
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* action links */
+.link{
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 700;
+  color: var(--blue);
+}
+.link.danger{ color: var(--red); }
+
+/* Events list rows */
+.admin-list{
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.admin-list-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid #ededed;
+}
+.admin-list-row:first-child{ border-top: none; }
+
+.alr-name{
+  font-weight: 600;
+  color: var(--text);
+}
+
+.alr-meta{
+  margin-top: 3px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.alr-actions{
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.admin-footer-actions{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .admin-accordion{
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow:hidden;
+  overflow: hidden;
   background: #fff;
 }
 
 .acc-item{ border-top: 1px solid var(--border); }
-.acc-item:first-child{ border-top:none; }
+.acc-item:first-child{ border-top: none; }
 
 .acc-head{
-  width:100%;
-  background:#fff;
-  border:none;
+  width: 100%;
+  background: #fff;
+  border: none;
   padding: 12px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
   font-weight: 700;
   color: var(--text);
 }
@@ -325,12 +448,12 @@
 .acc-head:hover{ background: #fafafa; }
 
 .acc-body{
-  display:none;
+  display: none;
   padding: 12px 14px 14px;
-  background:#fff;
+  background: #fff;
 }
 
-.acc-item.open .acc-body{ display:block; }
+.acc-item.open .acc-body{ display: block; }
 
 .acc-subtitle{
   font-family: 'Bebas Neue', sans-serif;
@@ -340,149 +463,18 @@
   color: #333;
 }
 
-/* ── Tables (modern like your leaderboard tables) ── */
-.admin-table-wrap{
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow:hidden;
-  background:#fff;
-}
-
-.admin-table{
-  width:100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.admin-table th,
-.admin-table td{
-  padding: 10px 10px;
-  border-bottom: 1px solid #ededed;
-  text-align:left;
-}
-
-.admin-table thead th{
-  color:#333;
-  font-weight: 700;
-  background: #fbfbfb;
-}
-
-.admin-table tbody tr:hover{
-  background:#fafafa;
-}
-
-.row-actions{
-  text-align:right;
-  white-space: nowrap;
-}
-
-/* underline action links */
-.link{
-  border:none;
-  background:transparent;
-  padding:0;
-  cursor:pointer;
-  text-decoration: underline;
-  font-weight: 700;
-  color: var(--blue);
-}
-
-.link.danger{ color: var(--red); }
-
-/* ── Events list rows ── */
-.admin-list{
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow:hidden;
-  background:#fff;
-}
-
-.admin-list-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding: 12px 14px;
-  border-top: 1px solid #ededed;
-}
-
-.admin-list-row:first-child{ border-top:none; }
-
-.alr-name{
-  font-weight: 600;
-  color: var(--text);
-}
-
-.alr-actions{
-  display:flex;
-  gap: 14px;
-  align-items:center;
-}
-
-.admin-footer-actions{
-  display:flex;
-  justify-content:flex-end;
-  margin-top: 12px;
-}
-
-/* ── Chart placeholder (modern) ── */
-.admin-chart-placeholder{
-  position: relative;
-  height: 280px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fbfbfb, #ffffff);
-  border: 1px solid #ededed;
-  overflow:hidden;
-}
-
-.chart-axis-y{
-  position:absolute;
-  left: 14%;
-  top: 10%;
-  bottom: 12%;
-  width: 2px;
-  background:#222;
-  opacity: .25;
-}
-
-.chart-axis-x{
-  position:absolute;
-  left: 14%;
-  right: 10%;
-  bottom: 12%;
-  height: 2px;
-  background:#222;
-  opacity: .25;
-}
-
-.chart-line{
-  position:absolute;
-  left: 14%;
-  right: 10%;
-  top: 10%;
-  bottom: 12%;
-  width: 76%;
-  height: 78%;
-}
-
-.chart-line polyline{
-  fill:none;
-  stroke: #e53935;
-  stroke-width: 4;
-}
-
-/* ── Modal (modern, matches your app feel) ── */
+/* Modal */
 .admin-modal{
-  display:none;
-  position:fixed;
-  inset:0;
+  display: none;
+  position: fixed;
+  inset: 0;
   z-index: 9999;
 }
-
-.admin-modal.open{ display:block; }
+.admin-modal.open{ display: block; }
 
 .admin-modal-backdrop{
-  position:absolute;
-  inset:0;
+  position: absolute;
+  inset: 0;
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(4px);
 }
@@ -492,31 +484,31 @@
   width: min(980px, calc(100% - 32px));
   max-height: calc(100% - 32px);
   margin: 16px auto;
-  background:#fff;
+  background: #fff;
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.35);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(255,255,255,0.1);
 }
 
 .admin-modal-top{
-  display:flex;
-  align-items:center;
+  display: flex;
+  align-items: center;
   gap: 10px;
   padding: 12px 14px;
   border-bottom: 1px solid #ededed;
 }
 
 .admin-modal-title{
-  flex:1;
+  flex: 1;
   border: 1px solid #e6e6e6;
   border-radius: 12px;
   padding: 10px 12px;
   font-weight: 800;
   font-size: 18px;
-  outline:none;
+  outline: none;
 }
 
 .admin-modal-title:focus{
@@ -525,18 +517,17 @@
 }
 
 .admin-modal-close{
-  border:none;
+  border: none;
   background: transparent;
   font-size: 18px;
-  cursor:pointer;
+  cursor: pointer;
   opacity: .7;
 }
-
 .admin-modal-close:hover{ opacity: 1; }
 
 .admin-modal-body{
   padding: 14px;
-  overflow:auto;
+  overflow: auto;
 }
 
 .admin-modal-section{ margin-top: 14px; }
@@ -552,137 +543,38 @@
 .admin-modal-actions{
   border-top: 1px solid #ededed;
   padding: 12px 14px;
-  display:flex;
-  justify-content:flex-end;
+  display: flex;
+  justify-content: flex-end;
   gap: 12px;
 }
 
-/* ── Winners ── */
-.admin-winner-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 18px;
-  margin-top: 18px;
+/* Charts (canvas wrapper)*/
+.admin-chart-wrap{
+  height: 320px;
+  padding: 10px 6px 6px;
 }
 
-.admin-winner-list{
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: .06em;
-  font-size: 2rem;
-  margin: 10px auto 0;
-  width: fit-content;
-  color: var(--text);
+/* Users page add-ons (role badges + mobile switch) */
+.role-pill{
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  border: 1px solid #eee;
+  background: #fafafa;
+  color: #333;
+  text-transform: lowercase;
 }
 
-/* Admin dashboard: make cards 3-up instead of 2-up */
-.admin-cards-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+.role-admin{ border-color: rgba(123,31,162,0.25); background: rgba(123,31,162,0.08); color:#6a1b9a; }
+.role-scoretaker{ border-color: rgba(21,101,192,0.25); background: rgba(21,101,192,0.08); color:#0d47a1; }
+.role-judge{ border-color: rgba(46,125,50,0.25); background: rgba(46,125,50,0.08); color:#1b5e20; }
+.role-hr{ border-color: rgba(198,40,40,0.25); background: rgba(198,40,40,0.08); color:#b71c1c; }
+.role-user{ border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.04); color:#333; }
 
-/* Slightly tighter spacing for action cards */
-.dash-card.admin-action {
-  min-height: 170px;
-}
-
-/* Optional: small meta text on the chart panel header */
-.admin-panel-meta {
-  color: #9e9e9e;
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding-top: 6px;
-}
-
-/* Center the public link and make it feel like the user UI */
-.admin-public-link.modern {
-  margin-top: 14px;
-  text-align: center;
-}
-
-.admin-public-link.modern .admin-link {
-  color: #7b1fa2;
-  font-weight: 600;
-}
-
-/* admin-only styles; base dashboard styles come from user/index.css */
-
-.admin-root { max-width: 1200px; } /* safe */
-
-.admin-cards-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
-
-@media (max-width: 980px){
-  .admin-cards-3 { grid-template-columns: 1fr; }
-}
-
-/* Panel + chart */
-.admin-panel{
-  background:#fff;
-  border-radius:14px;
-  padding: 18px 18px 16px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  border: 1px solid #f0f0f0;
-  margin-top: 18px;
-}
-
-.admin-panel-head.split{
-  display:flex;
-  justify-content:space-between;
-  gap: 12px;
-  align-items:flex-start;
-}
-
-.admin-panel-meta{
-  color:#9e9e9e;
-  font-size:0.85rem;
-  font-weight:500;
-  padding-top:6px;
-}
-
-.admin-public-link.modern{
-  margin-top: 14px;
-  text-align:center;
-}
-
-.admin-public-link.modern .admin-link{
-  color:#7b1fa2;
-  font-weight:600;
-  text-decoration: underline;
-}
-
-/* Chart placeholder */
-.admin-chart-placeholder{
-  position: relative;
-  height: 280px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fbfbfb, #ffffff);
-  border: 1px solid #ededed;
-  overflow:hidden;
-}
-
-.chart-axis-y{
-  position:absolute; left: 14%; top: 10%; bottom: 12%;
-  width: 2px; background:#222; opacity:.25;
-}
-
-.chart-axis-x{
-  position:absolute; left: 14%; right: 10%; bottom: 12%;
-  height: 2px; background:#222; opacity:.25;
-}
-
-.chart-line{
-  position:absolute; left: 14%; right: 10%; top: 10%; bottom: 12%;
-  width: 76%; height: 78%;
-}
-
-.chart-line polyline{
-  fill:none; stroke:#e53935; stroke-width:4;
-}
-
-/* Responsive */
-@media (max-width: 980px) {
-  .admin-cards-3 { grid-template-columns: 1fr; }
-}
-
-/* Responsive */
+/*Responsive*/
 @media (max-width: 980px){
   .admin-two-col{ grid-template-columns: 1fr; }
   .admin-action-grid{ grid-template-columns: 1fr; }
@@ -690,6 +582,7 @@
   .admin-form-row{ grid-template-columns: 1fr; }
   .admin-form-grid{ grid-template-columns: 1fr; }
   .admin-panel-head.split{ flex-direction: column; align-items: stretch; }
+  .admin-cards-3{ grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px){
