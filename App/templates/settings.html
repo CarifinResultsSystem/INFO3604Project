@@ -1,0 +1,251 @@
+{% extends "layout.html" %}
+
+{% block title %}Settings — CariFin{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
+
+<div class="settings-root">
+
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
+    <h1>Settings</h1>
+    <span class="dash-subtitle">Manage your preferences</span>
+  </div>
+
+  <!-- TABS -->
+  <div class="settings-tabs">
+    <button class="settings-tab active" onclick="switchTab('settings', this)">
+      <i class="material-icons">tune</i> Settings
+    </button>
+    <button class="settings-tab" onclick="switchTab('about', this)">
+      <i class="material-icons">info</i> About
+    </button>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div id="panel-settings" class="tab-panel active">
+
+    <div class="settings-grid">
+
+      <!-- Appearance -->
+      <div class="settings-card">
+        <div class="settings-card-title">Appearance</div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Default Season</span>
+            <span class="setting-desc">Season shown when pages first load</span>
+          </div>
+          <select class="setting-select" id="defaultSeason">
+            <option value="2025" selected>2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Default Leaderboard View</span>
+            <span class="setting-desc">Show table or chart view by default</span>
+          </div>
+          <select class="setting-select" id="defaultView">
+            <option value="table" selected>Table</option>
+            <option value="chart">Chart</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Compact Table Rows</span>
+            <span class="setting-desc">Reduce padding in tables for more content</span>
+          </div>
+          <div class="toggle-switch" id="compactRows" onclick="toggleSwitch(this)"></div>
+        </div>
+
+      </div>
+
+      <!-- Notifications -->
+      <div class="settings-card">
+        <div class="settings-card-title">Notifications</div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Event Reminders</span>
+            <span class="setting-desc">Get notified before events begin</span>
+          </div>
+          <div class="toggle-switch on" id="eventReminders" onclick="toggleSwitch(this)"></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Score Updates</span>
+            <span class="setting-desc">Notify when new results are posted</span>
+          </div>
+          <div class="toggle-switch on" id="scoreUpdates" onclick="toggleSwitch(this)"></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Leaderboard Changes</span>
+            <span class="setting-desc">Alert when standings change position</span>
+          </div>
+          <div class="toggle-switch" id="lbChanges" onclick="toggleSwitch(this)"></div>
+        </div>
+
+      </div>
+
+      <!-- Privacy & Account -->
+      <div class="settings-card">
+        <div class="settings-card-title">Privacy &amp; Account</div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Show Profile Publicly</span>
+            <span class="setting-desc">Allow others to view your profile</span>
+          </div>
+          <div class="toggle-switch on" id="publicProfile" onclick="toggleSwitch(this)"></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Data Analytics</span>
+            <span class="setting-desc">Share anonymous usage data to improve CariFin</span>
+          </div>
+          <div class="toggle-switch on" id="analytics" onclick="toggleSwitch(this)"></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Delete Account</span>
+            <span class="setting-desc">Permanently remove your account and all data</span>
+          </div>
+          <button class="setting-danger-btn" onclick="confirmDelete()">Delete Account</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="settings-save-bar">
+      <button class="settings-save-btn" id="saveBtn" onclick="saveSettings()">Save Changes</button>
+    </div>
+
+  </div>
+
+  <!-- ABOUT PANEL -->
+  <div id="panel-about" class="tab-panel">
+
+    <!-- Hero -->
+    <div class="about-hero">
+      <div class="about-hero-content">
+        <div class="about-hero-logo">
+          <i class="material-icons">query_stats</i>
+          <span>CariFin</span>
+        </div>
+        <h2>The Caribbean's Results &amp;<br>Scoring Platform</h2>
+        <p>CariFin is the official digital platform for tracking results, standings, and schedules across Caribbean financial and sporting competitions. Built to bring transparency, accuracy, and accessibility to every event.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="about-stats">
+      <div class="about-stat">
+        <div class="about-stat-num">24+</div>
+        <div class="about-stat-label">Events Tracked</div>
+      </div>
+      <div class="about-stat">
+        <div class="about-stat-num">300+</div>
+        <div class="about-stat-label">Participants</div>
+      </div>
+      <div class="about-stat">
+        <div class="about-stat-num">12</div>
+        <div class="about-stat-label">Nations</div>
+      </div>
+      <div class="about-stat">
+        <div class="about-stat-num">4</div>
+        <div class="about-stat-label">Seasons</div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <p class="section-label">Meet the Team</p>
+    <div class="team-grid">
+
+      <div class="team-card">
+        <div class="team-card-avatar avatar-bg-1">SS</div>
+        <div class="team-card-body">
+          <div class="team-card-name">Sangeeta Santokee</div>
+          <div class="team-card-role">Lead Developer &amp; UI Designer</div>
+          <p class="team-card-bio">Sangeeta spearheaded the front-end architecture and design system for CariFin, bringing a sharp eye for usability and a passion for clean, accessible interfaces.</p>
+        </div>
+      </div>
+
+      <div class="team-card">
+        <div class="team-card-avatar avatar-bg-2">NB</div>
+        <div class="team-card-body">
+          <div class="team-card-name">Nathan Baptiste</div>
+          <div class="team-card-role">Backend Developer</div>
+          <p class="team-card-bio">Nathan built the server-side infrastructure powering CariFin, from the database schema and REST API to authentication and role management.</p>
+        </div>
+      </div>
+
+      <div class="team-card">
+        <div class="team-card-avatar avatar-bg-3">JA</div>
+        <div class="team-card-body">
+          <div class="team-card-name">Jameel Ali</div>
+          <div class="team-card-role">Full Stack Developer</div>
+          <p class="team-card-bio">Jameel bridges the front and back end, integrating real-time scoring logic, leaderboard calculations, and schedule management.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Mission -->
+    <div class="about-mission">
+      <h3>Our Mission</h3>
+      <p>CariFin was created to solve a real problem — the lack of a centralised, reliable platform for Caribbean competition results. Too often, scores were scattered across spreadsheets, noticeboards, and word of mouth. We set out to change that.</p>
+      <p>Our goal is to make every result, ranking, and schedule instantly accessible to participants, coaches, institutions, and fans across the region — in real time, on any device.</p>
+    </div>
+
+    <div class="about-version">
+      CariFin v1.0.0 &nbsp;·&nbsp; Built in Trinidad &amp; Tobago &nbsp;·&nbsp; 2025
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function switchTab(name, btn) {
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  function toggleSwitch(el) {
+    el.classList.toggle('on');
+  }
+
+  function saveSettings() {
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = '✓ Saved!';
+    btn.classList.add('saved');
+    setTimeout(() => {
+      btn.textContent = 'Save Changes';
+      btn.classList.remove('saved');
+    }, 2200);
+  }
+
+  function confirmDelete() {
+    if (confirm('Are you sure you want to permanently delete your account? This cannot be undone.')) {
+      window.location.href = '/logout';
+    }
+  }
+</script>
+
+{% endblock %}
