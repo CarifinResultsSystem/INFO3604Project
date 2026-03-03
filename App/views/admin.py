@@ -41,11 +41,11 @@ def admin_users():
     users = User.query.order_by(User.userID.asc()).all()
     return render_template("admin/users.html", user=current_user, users=users)
 
-
 @admin_views.route("/admin/users/<int:user_id>/role", methods=["POST"])
 @jwt_required()
 def admin_set_user_role(user_id):
-    role = request.form.get("role", "").strip()
+    role = (request.form.get("role") or "").strip().lower()
+
     updated = assignRole(user_id, role)
 
     if updated is None:

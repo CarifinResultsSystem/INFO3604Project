@@ -34,6 +34,10 @@
 
       <div class="admin-controls">
         <input id="userSearch" class="admin-search" type="text" placeholder="Search by username / id / role...">
+        <button class="dash-card-btn btn-purple" type="button" onclick="openUserModal()">
+          <i class="material-icons" style="font-size:16px;">person_add</i>
+          Add User
+        </button>
         <select id="roleFilter" class="admin-range">
           <option value="">All roles</option>
           <option value="admin">admin</option>
@@ -74,10 +78,12 @@
                   <span class="role-pill role-{{ (u.role or 'user')|lower }}">{{ u.role or 'user' }}</span>
                 </td>
                 <td>
-                  <form method="POST" action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
+                  <form method="POST"
+                        action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
                         style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
-                    <select name="role" class="admin-input" style="max-width:160px;">
-                      {% set cur = (u.role or 'user') %}
+
+                    <select name="role" class="admin-input" style="max-width:160px;" required>
+                      {% set cur = (u.role or 'user')|lower %}
                       {% for r in ['admin','scoretaker','judge','hr','user'] %}
                         <option value="{{ r }}" {% if cur == r %}selected{% endif %}>{{ r }}</option>
                       {% endfor %}
@@ -133,9 +139,13 @@
   </div>
 </div>
 
-
 <script>
   // Auto-dismiss toasts
+  document.addEventListener('DOMContentLoaded', function () {
+    const selects = document.querySelectorAll('select');
+    M.FormSelect.init(selects);
+  });
+
   document.querySelectorAll('.toast').forEach(toast => {
     setTimeout(() => {
       toast.style.transition = 'opacity 0.4s';
@@ -165,6 +175,8 @@
 
   if (search) search.addEventListener('input', applyFilters);
   if (filter) filter.addEventListener('change', applyFilters);
+
+  
 </script>
 
 {% endblock %}
