@@ -272,7 +272,7 @@ def create_app(overrides={}):
         if not st:
             click.echo("No Scoretaker profile found.")
             return
-        click.echo(st.get_json() if hasattr(st, "get_json") else f"Scoretaker(id={getattr(st, 'id', None)})")
+        click.echo(st.get_json() if hasattr(st, "get_json") else f"Scoretaker(id={st.userID})")
 
 
     # List My Score Documents (flask score-docs-list <user_id>)

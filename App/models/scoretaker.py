@@ -40,12 +40,13 @@ class Scoretaker(db.Model):
             raise ValueError("Invalid filename.")
 
         ext = os.path.splitext(original_name)[1].lower()
-
         stored_name = f"{uuid.uuid4().hex}{ext}"
         stored_path = os.path.join(upload_folder, stored_name)
 
+        # Save file to disk
         file_storage.save(stored_path)
 
+        # Create DB record
         doc = ScoreDocument(
             originalFilename=original_name,
             storedFilename=stored_name,
@@ -53,5 +54,8 @@ class Scoretaker(db.Model):
             uploadedOn=datetime.utcnow(),
             scoretakerID=self.userID,
         )
+
         db.session.add(doc)
+        db.session.flush()
+
         return doc

@@ -63,6 +63,38 @@ function showFiles() {
     fileList.appendChild(div);
   }
 }
+
+const uploadForm = document.getElementById("uploadForm");
+
+uploadForm.addEventListener("submit", function(e) {
+  e.preventDefault(); // prevent default submission
+
+  if (selectedFiles.length === 0) {
+    alert("No files selected!");
+    return;
+  }
+
+  const formData = new FormData();
+  for (const file of selectedFiles) {
+    formData.append("files", file);
+  }
+
+  fetch(uploadForm.action, {
+    method: "POST",
+    body: formData,
+  })
+  .then(res => {
+    if (res.redirected) {
+      window.location.href = res.url; // follow redirect to archives
+    } else {
+      return res.text();
+    }
+  })
+  .catch(err => {
+    console.error("Upload failed:", err);
+    alert("Upload failed. See console for details.");
+  });
+});
 </script>
 
 {% endblock %}
