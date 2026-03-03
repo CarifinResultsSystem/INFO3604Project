@@ -40,9 +40,12 @@ def scoretaker_dashboard():
         total_uploads=total_uploads,
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         submitted_for_review=submitted_for_review,
         upload_errors=upload_errors
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         uploaded_today=uploaded_today,
