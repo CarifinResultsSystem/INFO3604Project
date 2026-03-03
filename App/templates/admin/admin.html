@@ -9,7 +9,7 @@
 
   <div class="dash-heading">
     <h1>Dashboard</h1>
-    <span class="dash-subtitle">Welcome, {{ user.username }}.</span>
+    <span class="dash-subtitle">Welcome, {{ user.username }} (Admin).</span>
   </div>
 
   <p class="section-label">Quick Actions</p>
@@ -73,7 +73,7 @@
   </div>
 
   <div class="admin-public-link modern">
-    <a href="{{ url_for('index_views.index_page') }}" class="admin-link">
+    <a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')" class="admin-link">
       Go to Public Dashboard
     </a>
   </div>

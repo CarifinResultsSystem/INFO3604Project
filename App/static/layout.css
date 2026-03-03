@@ -1,6 +1,6 @@
 /* ---------------- ROOT VARIABLES ---------------- */
 :root {
-  --sidebar-width: 260px;
+  --sidebar-width: 280px;
   --sidebar-collapsed-width: 60px;
   --transition: 0.25s ease;
 }

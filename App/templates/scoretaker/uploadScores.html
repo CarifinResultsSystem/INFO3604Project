@@ -3,37 +3,90 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/scoretaker.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/uploadScores.css') }}">
 
-<div class="modal-overlay active" id="uploadModal">
+<div class="upload-root">
+  <div class="upload-card">
 
-  <div class="modal-box">
-    <h2>Upload XML Scores</h2>
+    <!-- Header -->
+    <div class="upload-card-header">
+      <div class="upload-header-icon">
+        <i class="material-icons">upload_file</i>
+      </div>
+      <h2>Upload Scores</h2>
+      <p>Drag and drop your score files or click to browse</p>
+    </div>
 
-    <form method="POST" enctype="multipart/form-data">
+    <!-- Body -->
+    <div class="upload-card-body">
 
-      <div class="drop-zone" id="dropZone">
-        Drag & Drop XML Files Here<br>
-        or Click to Select
-        <input type="file" name="files" id="fileInput" accept=".xml" multiple hidden>
+      <!-- Accepted format badges -->
+      <div class="format-badges">
+        <span class="format-badge xml">
+          <i class="material-icons" style="font-size:13px">code</i> XML
+        </span>
+        <span class="format-badge xlsx">
+          <i class="material-icons" style="font-size:13px">table_chart</i> XLSX
+        </span>
+        <span class="format-badge xls">
+          <i class="material-icons" style="font-size:13px">table_chart</i> XLS
+        </span>
+        <span class="format-badge xlsm">
+          <i class="material-icons" style="font-size:13px">table_chart</i> XLSM
+        </span>
+        <span class="format-badge xlsb">
+          <i class="material-icons" style="font-size:13px">table_chart</i> XLSB
+        </span>
+        <span class="format-badge csv">
+          <i class="material-icons" style="font-size:13px">grid_on</i> CSV
+        </span>
       </div>
 
-      <div class="file-list" id="fileList"></div>
+      <form method="POST" enctype="multipart/form-data" id="uploadForm">
 
-      <div class="modal-actions">
-        <button type="submit" class="modal-btn btn-confirm">Confirm Upload</button>
-        <a href="{{ url_for('scoretaker_dashboard') }}" class="modal-btn btn-cancel">Cancel</a>
-      </div>
+        <!-- Drop zone -->
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-icon">
+            <i class="material-icons">cloud_upload</i>
+          </div>
+          <div class="drop-zone-title">Drop files here</div>
+          <div class="drop-zone-sub">or <span>click to browse</span></div>
+          <input
+            type="file"
+            name="files"
+            id="fileInput"
+            accept=".xml,.xlsx,.xls,.xlsm,.xlsb,.xlam,.xltx,.xltm,.csv,.ods"
+            multiple
+            hidden
+          >
+        </div>
 
-    </form>
+        <!-- File list -->
+        <div class="file-list" id="fileList"></div>
+
+        <!-- Actions -->
+        <div class="upload-actions">
+          <button type="submit" class="btn-upload-confirm">
+            <i class="material-icons">check_circle</i>
+            Confirm Upload
+          </button>
+          <a href="{{ url_for('scoretaker_views.scoretaker_dashboard') }}" class="btn-upload-cancel">
+            <i class="material-icons">close</i>
+            Cancel
+          </a>
+        </div>
+
+      </form>
+    </div>
   </div>
-
 </div>
 
 <script>
-const dropZone = document.getElementById("dropZone");
+const dropZone  = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
-const fileList = document.getElementById("fileList");
+const fileList  = document.getElementById("fileList");
+
+let selectedFiles = [];
 
 dropZone.addEventListener("click", () => fileInput.click());
 
@@ -42,27 +95,111 @@ dropZone.addEventListener("dragover", e => {
   dropZone.classList.add("dragover");
 });
 
-dropZone.addEventListener("dragleave", () => {
-  dropZone.classList.remove("dragover");
+dropZone.addEventListener("dragleave", e => {
+  if (!dropZone.contains(e.relatedTarget)) {
+    dropZone.classList.remove("dragover");
+  }
 });
 
 dropZone.addEventListener("drop", e => {
   e.preventDefault();
   dropZone.classList.remove("dragover");
-  fileInput.files = e.dataTransfer.files;
-  showFiles();
+  mergeFiles([...e.dataTransfer.files]);
 });
 
-fileInput.addEventListener("change", showFiles);
+fileInput.addEventListener("change", () => {
+  mergeFiles([...fileInput.files]);
+  fileInput.value = "";
+});
 
-function showFiles() {
-  fileList.innerHTML = "";
-  for (let file of fileInput.files) {
-    const div = document.createElement("div");
-    div.textContent = file.name;
-    fileList.appendChild(div);
+function mergeFiles(incoming) {
+  const existingNames = new Set(selectedFiles.map(f => f.name));
+  for (const f of incoming) {
+    if (!existingNames.has(f.name)) selectedFiles.push(f);
   }
+  renderList();
+  syncInputFiles();
 }
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  renderList();
+  syncInputFiles();
+}
+
+function syncInputFiles() {
+  const dt = new DataTransfer();
+  for (const f of selectedFiles) dt.items.add(f);
+  fileInput.files = dt.files;
+}
+
+function getExtIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'xml')  return { cls: 'xml-icon',  icon: 'code' };
+  if (['xlsx','xls','xlsm','xlsb','xlam','xltx','xltm','ods'].includes(ext))
+                      return { cls: 'xlsx-icon', icon: 'table_chart' };
+  if (ext === 'csv')  return { cls: 'csv-icon',  icon: 'grid_on' };
+  return { cls: 'other-icon', icon: 'insert_drive_file' };
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024)         return bytes + ' B';
+  if (bytes < 1024 * 1024)  return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderList() {
+  fileList.innerHTML = "";
+  selectedFiles.forEach((file, i) => {
+    const { cls, icon } = getExtIcon(file.name);
+    const item = document.createElement("div");
+    item.className = "file-item";
+    item.innerHTML = `
+      <div class="file-item-icon ${cls}">
+        <i class="material-icons">${icon}</i>
+      </div>
+      <span class="file-item-name" title="${file.name}">${file.name}</span>
+      <span class="file-item-size">${formatSize(file.size)}</span>
+      <button type="button" class="file-item-remove" aria-label="Remove file">
+        <i class="material-icons">close</i>
+      </button>
+    `;
+    item.querySelector(".file-item-remove").addEventListener("click", () => removeFile(i));
+    fileList.appendChild(item);
+  });
+}
+
+const uploadForm = document.getElementById("uploadForm");
+
+uploadForm.addEventListener("submit", function(e) {
+  e.preventDefault(); // prevent default submission
+
+  if (selectedFiles.length === 0) {
+    alert("No files selected!");
+    return;
+  }
+
+  const formData = new FormData();
+  for (const file of selectedFiles) {
+    formData.append("files", file);
+  }
+
+  fetch(uploadForm.action, {
+    method: "POST",
+    body: formData,
+  })
+  .then(res => {
+    if (res.redirected) {
+      window.location.href = res.url; // follow redirect to archives
+    } else {
+      return res.text();
+    }
+  })
+  .catch(err => {
+    console.error("Upload failed:", err);
+    alert("Upload failed. See console for details.");
+  });
+});
 </script>
 
 {% endblock %}
