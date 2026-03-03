@@ -13,6 +13,13 @@ class PointsRules(db.Model):
     upperLimit = db.Column(db.Integer, nullable=False)
     lowerLimit = db.Column(db.Integer, nullable=False)
 
+    points = db.Column(db.Float, nullable=False, default=0)
+    label = db.Column(db.String(150), nullable=True)             # (award text / awarded_for)
+
+    seasonID = db.Column(db.Integer, db.ForeignKey("seasons.seasonID"), nullable=False)
+    eventID = db.Column(db.Integer, db.ForeignKey("event.eventID"), nullable=False)
+    event = db.relationship("Event", backref=db.backref("points_rules", lazy=True, cascade="all, delete-orphan"))
+
     seasonID = db.Column(
         db.Integer,
         db.ForeignKey("seasons.seasonID"),
@@ -31,12 +38,14 @@ class PointsRules(db.Model):
         lazy=True
     )
 
-    def __init__(self, eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+    def __init__(self, eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID, points=0, label=None):
         self.eventType = eventType
         self.conditionType = conditionType
         self.conditionValue = conditionValue
         self.upperLimit = upperLimit
         self.lowerLimit = lowerLimit
+        self.points = points
+        self.label = label
         self.seasonID = seasonID
 
     def get_json(self):
@@ -47,5 +56,8 @@ class PointsRules(db.Model):
             "conditionValue": self.conditionValue,
             "upperLimit": self.upperLimit,
             "lowerLimit": self.lowerLimit,
+            "points": self.points,
+            "label": self.label,
             "seasonID": self.seasonID
+            
         }

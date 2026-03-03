@@ -1,13 +1,169 @@
 {% extends "layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-<h1>Admin Dashboard</h1>
-<p>Welcome, {{ user.username }}!</p>
-<ul>
-    <li><a href="#">Manage Users</a></li>
-    <li><a href="#">Institutions & Participants</a></li>
-    <li><a href="#">Events</a></li>
-    <li><a href="#">Awards</a></li>
-    <li><a href="{{ url_for('index_views.index_page') }}">Public Viewer Dashboard</a></li>
-</ul>
+<link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+
+<div class="dash-root admin-root">
+
+  <div class="dash-heading">
+    <h1>Dashboard</h1>
+    <span class="dash-subtitle">Welcome, {{ user.username }} (Admin).</span>
+  </div>
+
+  <p class="section-label">Quick Actions</p>
+
+  <div class="cards-grid admin-cards-3">
+
+    <a class="dash-card admin-action" href="{{ url_for('admin_views.admin_institutions') }}">
+      <div class="dash-card-header">
+        <div class="dash-card-icon icon-standings">
+          <i class="material-icons">apartment</i>
+        </div>
+        <div class="dash-card-title">Institutions &amp; Participants</div>
+      </div>
+
+      <div class="dash-card-body">
+        Register institutions, manage participant lists, and assignments.
+      </div>
+
+      <span class="dash-card-btn btn-purple">
+        <i class="material-icons" style="font-size:16px">open_in_new</i>
+        Manage
+      </span>
+    </a>
+
+    <a class="dash-card admin-action" href="{{ url_for('admin_views.admin_events') }}">
+      <div class="dash-card-header">
+        <div class="dash-card-icon icon-results">
+          <i class="material-icons">event</i>
+        </div>
+        <div class="dash-card-title">Events</div>
+      </div>
+
+      <div class="dash-card-body">
+        Create events, edit scoring rules, and maintain schedules.
+      </div>
+
+      <span class="dash-card-btn btn-blue">
+        <i class="material-icons" style="font-size:16px">open_in_new</i>
+        Manage
+      </span>
+    </a>
+
+    <a class="dash-card admin-action" href="{{ url_for('admin_views.admin_awards') }}">
+      <div class="dash-card-header">
+        <div class="dash-card-icon icon-now">
+          <i class="material-icons">emoji_events</i>
+        </div>
+        <div class="dash-card-title">Awards</div>
+      </div>
+
+      <div class="dash-card-body">
+        View winners, generate awards summaries, and finalize standings.
+      </div>
+
+      <span class="dash-card-btn btn-red">
+        <i class="material-icons" style="font-size:16px">open_in_new</i>
+        Manage
+      </span>
+    </a>
+
+  </div>
+
+  <div class="admin-public-link modern">
+    <a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')" class="admin-link">
+      Go to Public Dashboard
+    </a>
+  </div>
+
+<div class="admin-panel">
+    <div class="admin-panel-head split">
+        <h2>Total Institutions (Overall)</h2>
+        <div class="admin-panel-meta">
+        <select id="rangeSelect" class="admin-range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+        </select>
+        </div>
+    </div>
+
+    <div class="admin-chart-wrap">
+        <canvas id="instChart" height="110"></canvas>
+    </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+    const ctx = document.getElementById('instChart');
+    const rangeSelect = document.getElementById('rangeSelect');
+
+    let chart;
+
+    async function fetchSeries(days) {
+        const res = await fetch(`/admin/api/institutions/series?days=${days}`, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error("Failed to load chart data");
+        return await res.json();
+    }
+
+    function buildChart(labels, values) {
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+            label: 'Total Institutions',
+            data: values,
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+            },
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxTicksLimit: 7 }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(0,0,0,0.06)' }
+            }
+            }
+        }
+        });
+    }
+
+    async function refresh() {
+        const days = rangeSelect.value;
+        const { labels, values } = await fetchSeries(days);
+        buildChart(labels, values);
+    }
+
+    rangeSelect.addEventListener('change', refresh);
+
+    // initial load
+    refresh();
+
+    // auto refresh every 15s
+    setInterval(() => {
+        refresh().catch(() => {});
+    }, 15000);
+    </script>
+    </div>
+
+    </div>
 {% endblock %}

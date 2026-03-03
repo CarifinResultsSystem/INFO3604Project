@@ -1,7 +1,7 @@
 #Imports go here
 from .index import index_views
 from .user import user_views
-from .admin import setup_admin, admin_views
+from .admin import admin_views
 from .auth import auth_views
 from .leaderboard import leaderboard_views
 from .schedule import schedule_views
