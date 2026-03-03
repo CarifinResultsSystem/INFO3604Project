@@ -10,7 +10,7 @@ def get_scoretaker(userID: int):
 # Upload Score Document
 def upload_score_document(userID: int, file_storage, upload_folder: str):
     """
-    userID: the current logged in user id
+    Uploads a score document for a given userID
     """
     st = Scoretaker.get_or_create_for_user(userID)
 
@@ -24,10 +24,11 @@ def get_score_document(documentID: int):
     return db.session.get(ScoreDocument, documentID)
 
 def get_my_score_documents(userID: int):
-    st = get_scoretaker(userID)
-    if not st:
-        return []
-    return st.score_documents
+    # Use get_or_create so a missing Scoretaker row never silently returns []
+    # This is safe — if no row exists it creates one (with no documents) rather than returning nothing
+    st = Scoretaker.get_or_create_for_user(userID)
+    db.session.flush()  # ensure the new row is visible within this session if just created
+    return list(st.score_documents)
 
 def get_my_score_documents_json(userID: int):
     docs = get_my_score_documents(userID)
