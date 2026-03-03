@@ -5,6 +5,23 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
 
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
 <div class="dash-root">
 
   <!-- PAGE HEADING -->
@@ -314,6 +331,15 @@ function closePreview() {
   overlay.classList.remove('active');
   document.body.style.overflow = '';
 }
+
+// AUTO-DISMISS TOASTS
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
 </script>
 
 {% endblock %}
