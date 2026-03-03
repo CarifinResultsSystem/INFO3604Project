@@ -2,41 +2,101 @@
 {% block title %}Scoretaker Dashboard{% endblock %}
 
 {% block content %}
-
 <link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/scoretaker.css') }}">
 
-<div class="score-root">
+<div class="dash-root score-root">
 
-  <div class="score-heading">
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
     <h1>Scoretaker Dashboard</h1>
-    <span class="score-subtitle">Welcome, {{ user.username }} (Scoretaker).</span>
+    <span class="dash-subtitle">Welcome, {{ user.username }} (Scoretaker).</span>
   </div>
 
-  <!-- STATS -->
-  <div class="stats-grid">
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
+  <!-- STATS GRID -->
+  <div class="stats-grid">
     <div class="stat-card">
+      <div class="stat-icon icon-total">
+        <i class="material-icons">folder_open</i>
+      </div>
       <div class="stat-number">{{ total_uploads or 0 }}</div>
       <div class="stat-label">Total Files Uploaded</div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-number">{{ submitted_for_review or 0 }}</div>
-      <div class="stat-label">Submitted For Review</div>
+      <div class="stat-icon icon-today">
+        <i class="material-icons">today</i>
+      </div>
+      <div class="stat-number">{{ uploaded_today or 0 }}</div>
+      <div class="stat-label">Uploaded Today</div>
     </div>
+  </div>
 
-    <div class="stat-card">
-      <div class="stat-number">{{ upload_errors or 0 }}</div>
-      <div class="stat-label">Uploads With Errors</div>
-    </div>
+  <!-- QUICK ACTIONS -->
+  <p class="section-label">Quick Actions</p>
+
+  <div class="cards-grid score-cards-2">
+
+    <a class="dash-card score-action" href="{{ url_for('scoretaker_views.upload_scores') }}">
+      <div class="dash-card-header">
+        <div class="dash-card-icon icon-upload">
+          <i class="material-icons">upload_file</i>
+        </div>
+        <div class="dash-card-title">Upload Scores</div>
+      </div>
+      <div class="dash-card-body">
+        Add XML, XLSX, CSV, and other score files.
+      </div>
+      <span class="dash-card-btn btn-purple">
+        <i class="material-icons" style="font-size:16px">open_in_new</i>
+        Manage
+      </span>
+    </a>
+
+    <a class="dash-card score-action" href="{{ url_for('scoretaker_views.archives') }}">
+      <div class="dash-card-header">
+        <div class="dash-card-icon icon-archive">
+          <i class="material-icons">archive</i>
+        </div>
+        <div class="dash-card-title">View Archives</div>
+      </div>
+      <div class="dash-card-body">
+        Browse, search, and manage uploaded score files.
+      </div>
+      <span class="dash-card-btn btn-blue">
+        <i class="material-icons" style="font-size:16px">open_in_new</i>
+        Manage
+      </span>
+    </a>
 
   </div>
 
-  <a href="{{ url_for('scoretaker_views.upload_scores') }}" class="upload-btn">
-    <i class="material-icons">upload_file</i>
-    Upload Scores
-  </a>
-
 </div>
 
+<script>
+  // AUTO-DISMISS TOASTS
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
+</script>
 {% endblock %}

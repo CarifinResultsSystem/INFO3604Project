@@ -1,0 +1,345 @@
+{% extends "layout.html" %}
+{% block title %}Score Archives — CariFin{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
+
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+<div class="dash-root">
+
+  <!-- PAGE HEADING -->
+  <div class="dash-heading">
+    <h1>Score Archives</h1>
+    <span class="dash-subtitle">
+      <i class="material-icons">folder_open</i>
+      {{ total }} document{{ 's' if total != 1 else '' }} on record
+    </span>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="lb-controls arc-controls">
+
+    <div class="arc-search-wrap">
+      <i class="material-icons">search</i>
+      <input type="text" id="arcSearch" class="arc-search" placeholder="Search filename…" autocomplete="off">
+    </div>
+
+    <div class="arc-selects">
+      <div class="lb-season-select">
+        <i class="material-icons">insert_drive_file</i>
+        <span>Type:</span>
+        <select id="filterType" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="XML">XML</option>
+          <option value="XLSX">XLSX</option>
+          <option value="XLS">XLS</option>
+          <option value="XLSM">XLSM</option>
+          <option value="XLSB">XLSB</option>
+          <option value="CSV">CSV</option>
+          <option value="ODS">ODS</option>
+        </select>
+      </div>
+
+      <div class="lb-season-select">
+        <i class="material-icons">date_range</i>
+        <span>Date:</span>
+        <select id="filterDate" onchange="applyFilters()">
+          <option value="">Any time</option>
+          <option value="today">Today</option>
+          <option value="week">This week</option>
+          <option value="month">This month</option>
+        </select>
+      </div>
+    </div>
+
+    <a href="{{ url_for('scoretaker_views.upload_scores') }}" class="arc-upload-btn">
+      <i class="material-icons">upload_file</i>
+      Upload New
+    </a>
+  </div>
+
+  <!-- TABLE -->
+  <div class="lb-table-wrap arc-table-wrap" id="arcTableWrap">
+    <table class="lb-table arc-table" id="arcTable">
+      <thead>
+        <tr>
+          <th class="col-name" onclick="sortTable(this, 0)">
+            Filename <i class="material-icons sort-icon">unfold_more</i>
+          </th>
+          <th class="col-type" onclick="sortTable(this, 1)">
+            Type <i class="material-icons sort-icon">unfold_more</i>
+          </th>
+          <th class="col-date" onclick="sortTable(this, 2)">
+            Uploaded <i class="material-icons sort-icon">unfold_more</i>
+          </th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="arcBody">
+        {% for doc in documents %}
+        <tr
+          class="arc-row"
+          data-name="{{ doc.filename | lower }}"
+          data-type="{{ doc.fileType }}"
+          data-date="{{ doc.uploadedAtRaw }}"
+        >
+          <!-- Filename -->
+          <td class="col-name">
+            <div class="arc-fname-cell">
+              <span class="arc-ext ext-{{ doc.fileType | lower }}">{{ doc.fileType }}</span>
+              <span class="arc-fname" title="{{ doc.filename }}">{{ doc.filename }}</span>
+            </div>
+          </td>
+
+          <!-- Type -->
+          <td class="col-type">{{ doc.fileType }}</td>
+
+          <!-- Date -->
+          <td class="col-date">{{ doc.uploadedAt }}</td>
+
+          <!-- Actions -->
+          <td class="col-actions">
+            <button
+              class="arc-action-btn btn-view"
+              title="View / Download"
+              onclick="openPreview('{{ doc.id }}','{{ doc.filename }}','{{ doc.viewUrl }}','{{ doc.fileType }}')"
+            >
+              <i class="material-icons">visibility</i>
+            </button>
+            <form method="POST" action="{{ doc.deleteUrl }}" class="arc-inline-form"
+                  onsubmit="return confirm('Delete \'{{ doc.filename }}\'? This cannot be undone.')">
+              <button type="submit" class="arc-action-btn btn-delete" title="Delete">
+                <i class="material-icons">delete_outline</i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="arc-empty">
+            <i class="material-icons">inbox</i>
+            <p>No documents uploaded yet.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="arc-no-results" id="noResults" style="display:none;">
+      <i class="material-icons">search_off</i>
+      <p>No files match your search or filters.</p>
+    </div>
+  </div>
+
+  <!-- PAGINATION -->
+  <div class="arc-pagination" id="arcPagination"></div>
+
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="arc-preview-overlay" id="previewOverlay">
+  <div class="arc-preview-box">
+
+    <div class="arc-preview-header">
+      <div class="arc-preview-title">
+        <span class="arc-ext" id="pvExt"></span>
+        <span class="arc-preview-name" id="pvName"></span>
+      </div>
+      <div class="arc-preview-header-actions">
+        <a id="pvDownload" href="#" class="arc-dl-btn" download>
+          <i class="material-icons">download</i> Download
+        </a>
+        <button class="arc-preview-close" id="pvClose" aria-label="Close">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+    </div>
+
+    <div class="arc-preview-body" id="pvBody">
+      <div class="arc-preview-loading">
+        <span class="arc-spinner"></span> Loading…
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const PER_PAGE = 15;
+let currentPage = 1;
+
+const searchInput = document.getElementById('arcSearch');
+const filterType  = document.getElementById('filterType');
+const filterDate  = document.getElementById('filterDate');
+const arcBody     = document.getElementById('arcBody');
+const noResults   = document.getElementById('noResults');
+const pagination  = document.getElementById('arcPagination');
+
+function dateBound(f) {
+  const now = new Date();
+  if (f === 'today') { const d = new Date(now); d.setHours(0,0,0,0); return d; }
+  if (f === 'week')  { const d = new Date(now); d.setDate(d.getDate()-7); return d; }
+  if (f === 'month') { const d = new Date(now); d.setMonth(d.getMonth()-1); return d; }
+  return null;
+}
+
+function applyFilters() {
+  const q      = searchInput.value.toLowerCase().trim();
+  const type   = filterType.value;
+  const bound  = dateBound(filterDate.value);
+  const allRows = [...arcBody.querySelectorAll('tr.arc-row')];
+  let visible  = [];
+
+  allRows.forEach(row => {
+    const match =
+      (!q     || row.dataset.name.includes(q)) &&
+      (!type  || row.dataset.type === type) &&
+      (!bound || (row.dataset.date && new Date(row.dataset.date) >= bound));
+
+    row.style.display = 'none';
+    if (match) visible.push(row);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+  if (currentPage > totalPages) currentPage = 1;
+
+  const start = (currentPage - 1) * PER_PAGE;
+  visible.slice(start, start + PER_PAGE).forEach(r => r.style.display = '');
+
+  noResults.style.display = visible.length === 0 ? 'flex' : 'none';
+  renderPagination(totalPages);
+}
+
+[searchInput, filterType, filterDate].forEach(el =>
+  el.addEventListener('input', () => { currentPage = 1; applyFilters(); })
+);
+
+function renderPagination(total) {
+  pagination.innerHTML = '';
+  if (total <= 1) return;
+
+  const mkBtn = (html, disabled, active, onClick) => {
+    const b = document.createElement('button');
+    b.className = 'arc-page-btn' + (active ? ' active' : '');
+    b.innerHTML = html;
+    b.disabled  = disabled;
+    b.onclick   = onClick;
+    return b;
+  };
+
+  pagination.appendChild(mkBtn('<i class="material-icons">chevron_left</i>', currentPage === 1, false,
+    () => { currentPage--; applyFilters(); }));
+
+  for (let i = 1; i <= total; i++) {
+    const p = i;
+    pagination.appendChild(mkBtn(String(i), false, i === currentPage,
+      () => { currentPage = p; applyFilters(); }));
+  }
+
+  pagination.appendChild(mkBtn('<i class="material-icons">chevron_right</i>', currentPage === total, false,
+    () => { currentPage++; applyFilters(); }));
+}
+
+function sortTable(th, colIndex) {
+  const tbody   = document.querySelector('#arcTable tbody');
+  const rows    = [...tbody.querySelectorAll('tr.arc-row')];
+  const headers = [...th.closest('tr').querySelectorAll('th')];
+  const isAsc   = th.classList.contains('sorted-asc');
+
+  headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+  th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+  rows.sort((a, b) => {
+    let av = colIndex === 2 ? (a.dataset.date || '') : a.cells[colIndex].textContent.trim();
+    let bv = colIndex === 2 ? (b.dataset.date || '') : b.cells[colIndex].textContent.trim();
+    return isAsc ? bv.localeCompare(av) : av.localeCompare(bv);
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
+  applyFilters();
+}
+
+applyFilters();
+
+// Preview modal
+const overlay = document.getElementById('previewOverlay');
+const pvExt   = document.getElementById('pvExt');
+const pvName  = document.getElementById('pvName');
+const pvDl    = document.getElementById('pvDownload');
+const pvBody  = document.getElementById('pvBody');
+const pvClose = document.getElementById('pvClose');
+
+function openPreview(id, filename, url, type) {
+  pvExt.textContent  = type;
+  pvExt.className    = 'arc-ext ext-' + type.toLowerCase();
+  pvName.textContent = filename;
+  pvDl.href          = url;
+  pvDl.download      = filename;
+  pvBody.innerHTML   = '<div class="arc-preview-loading"><span class="arc-spinner"></span> Loading…</div>';
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  if (['XML', 'CSV'].includes(type)) {
+    fetch(url, { credentials: 'same-origin' })
+      .then(r => r.text())
+      .then(text => {
+        const pre = document.createElement('pre');
+        pre.className   = 'arc-preview-code';
+        pre.textContent = text;
+        pvBody.innerHTML = '';
+        pvBody.appendChild(pre);
+      })
+      .catch(() => showFallback(url, filename));
+  } else {
+    showFallback(url, filename);
+  }
+}
+
+function showFallback(url, filename) {
+  pvBody.innerHTML = `
+    <div class="arc-preview-fallback">
+      <i class="material-icons">insert_drive_file</i>
+      <p>This file type can't be previewed in the browser.</p>
+      <a href="${url}" download="${filename}" class="arc-dl-btn large">
+        <i class="material-icons">download</i> Download File
+      </a>
+    </div>`;
+}
+
+pvClose.addEventListener('click', closePreview);
+overlay.addEventListener('click', e => { if (e.target === overlay) closePreview(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+
+function closePreview() {
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// AUTO-DISMISS TOASTS
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  });
+</script>
+
+{% endblock %}
