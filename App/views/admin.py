@@ -2,7 +2,9 @@ from datetime import date, timedelta
 
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, request
 from flask_jwt_extended import jwt_required, current_user, verify_jwt_in_request
+from pymysql import IntegrityError
 from sqlalchemy import func
+from werkzeug.security import generate_password_hash
 
 from App.models import User, Event, Institution, PointsRules
 from App.database import db
@@ -52,6 +54,44 @@ def admin_set_user_role(user_id):
         flash("Could not update user role.", "error")
     else:
         flash("Role updated successfully.", "success")
+
+    return redirect(url_for("admin_views.admin_users"))
+
+@admin_views.route("/admin/users/create", methods=["POST"])
+@jwt_required()
+def admin_create_user():
+    username = (request.form.get("username") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    password = (request.form.get("password") or "").strip()
+    role = (request.form.get("role") or "user").strip().lower()
+
+    if not username or not email or not password:
+        flash("Username, email, and password are required.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    if role not in User.ALLOWED_ROLES:
+        flash("Invalid role selected.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+    
+    if User.query.filter_by(username=username).first():
+        flash("Username already exists.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    if User.query.filter_by(email=email).first():
+        flash("Email already exists.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    try:
+        new_user = User(username=username, role=role, email=email, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash("User created successfully.", "success")
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), "error")
+    except IntegrityError:
+        db.session.rollback()
+        flash("Could not create user (username/email must be unique).", "error")
 
     return redirect(url_for("admin_views.admin_users"))
 
