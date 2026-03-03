@@ -1,10 +1,38 @@
 {% extends "layout.html" %}
+{%block title%}Judge Dashboard{%endblock%}
 
 {% block content %}
-<h1>Judge Dashboard</h1>
-<p>Welcome, {{ user.username }}!</p>
-<ul>
-    <li><a href="#">Score Submissions</a></li>
-    <li><a href="#">View Reports</a></li>
-</ul>
+
+<div>
+
+    <div>
+        <h1>Dashboard</h1>
+        <div>Welcome {{user.username}}!</div>
+    </div>
+
+    <div>
+        <span>View All Uploaded Scores</span>
+    </div>
+
+    <div>
+        <div>
+        <div>
+            Uploaded Scores Awaiting Confirmation
+        </div>
+        <div>#</div>
+        </div>
+
+        <div>
+        <div>
+            Automated Errors Identified
+        </div>
+        <div>#</div>
+        </div>
+    </div>
+
+    <div>
+        <a href="#">Go to Public Dashboard</a>
+    </div>
+
+</div>
 {% endblock %}
