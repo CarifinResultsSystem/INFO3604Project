@@ -29,12 +29,36 @@
     {% endif %}
   {% endwith %}
 
+  <!-- ================= Seasons ================= -->
+  <p class="section-label">Seasons</p>
+  <div class="admin-panel" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% for s in seasons %}
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#f3f0ff;
+                       border:1px solid #c4b5fd;border-radius:20px;padding:4px 14px;
+                       font-size:13px;font-weight:600;color:#6d28d9;">
+            {{ s.year }}
+          </span>
+        {% endfor %}
+        {% if not seasons %}
+          <span style="color:#999;font-size:13px;">No seasons yet.</span>
+        {% endif %}
+      </div>
+      <button class="dash-card-btn btn-purple" type="button" onclick="openSeasonModal()"
+              style="display:inline-flex;align-items:center;gap:6px;">
+        <i class="material-icons" style="font-size:16px;">add</i>
+        Add Season
+      </button>
+    </div>
+  </div>
+
   <!-- ================= Create Event ================= -->
   <p class="section-label" id="createEvent">Add New Event</p>
   <div class="admin-panel">
     <form class="events-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
-
       <div class="events-form-grid">
+
         <div class="events-field">
           <label>Event Name</label>
           <input class="admin-input" name="eventName" required placeholder="e.g. Football">
@@ -47,404 +71,492 @@
 
         <div class="events-field">
           <label>Date</label>
-          <input class="admin-input" type="date" name="eventDate" required>
+          <input class="admin-input" type="date" name="eventDate" id="eventDateInput" required>
         </div>
 
         <div class="events-field">
           <label>Time</label>
           <input class="admin-input" type="time" name="eventTime" required>
         </div>
-      </div>
 
+        <div class="events-field">
+          <label>Season</label>
+          <select class="admin-input" name="seasonID" id="seasonSelect" required
+                  style="display:block;width:100%;height:40px;padding:0 10px;
+                         background:#fff;border:1px solid #ccc;border-radius:6px;
+                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;">
+            {% for s in seasons %}
+              <option value="{{ s.seasonID }}"
+                {% if s.seasonID == current_season_id %}selected{% endif %}>
+                {{ s.year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
       <div class="events-form-actions">
         <button class="dash-card-btn btn-purple" type="submit">
           <i class="material-icons" style="font-size:16px">add</i>
           Create Event
         </button>
       </div>
-
     </form>
   </div>
 
   <!-- ================= Existing Events ================= -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
 
-  <div class="events-card">
+  {#
+    Build a seasonID -> year lookup so each event row knows its season's year.
+    valid_years comes from the seasons list directly (not event dates).
+  #}
+  {% set season_year_map = {} %}
+  {% for s in seasons %}
+    {% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}
+  {% endfor %}
 
+  {# valid_years = ALL season years, sorted #}
+  {% set valid_years = seasons | map(attribute='year') | list | sort %}
+
+  {# Unique sorted locations #}
+  {% set all_locations = [] %}
+  {% for e in events %}
+    {% if e.location and e.location not in all_locations %}
+      {% if all_locations.append(e.location) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set all_locations = all_locations | sort %}
+
+  <div class="events-card">
     <div class="events-card-head">
       <div>
         <div class="events-card-title">Events</div>
         <div class="events-card-sub">Search, sort, and manage events.</div>
       </div>
 
-      <div class="events-controls">
-        <input id="eventSearch" class="events-search" type="text" placeholder="Search events...">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;">
 
-        <div class="events-sortbox">
-          <span class="events-sortlabel">Sort</span>
-          <select id="eventSort" class="events-select">
+        <input id="eventSearch" type="text" placeholder="Search events..."
+               style="height:36px;padding:0 10px;border:1px solid #ccc;border-radius:6px;
+                      font-size:13px;min-width:160px;outline:none;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;color:#555;white-space:nowrap;">Location</span>
+          <select id="locationFilter"
+                  style="height:36px;padding:0 8px;border:1px solid #ccc;border-radius:6px;
+                         font-size:13px;background:#fff;appearance:auto;-webkit-appearance:auto;min-width:140px;">
+            <option value="">All</option>
+            {% for loc in all_locations %}
+              <option value="{{ loc|lower }}">{{ loc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0;border:1px solid #ccc;border-radius:6px;
+                    background:#fff;height:36px;padding:0 6px;">
+          <button type="button" id="yearPrev"
+                  style="background:none;border:none;cursor:pointer;font-size:22px;
+                         line-height:1;padding:0 4px;color:#444;">&#8249;</button>
+          <span id="yearLabel"
+                style="font-weight:600;min-width:48px;text-align:center;font-size:14px;color:#222;">—</span>
+          <button type="button" id="yearNext"
+                  style="background:none;border:none;cursor:pointer;font-size:22px;
+                         line-height:1;padding:0 4px;color:#444;">&#8250;</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;color:#555;white-space:nowrap;">Sort By:</span>
+          <select id="eventSort"
+                  style="height:36px;padding:0 8px;border:1px solid #ccc;border-radius:6px;
+                         font-size:13px;background:#fff;appearance:auto;-webkit-appearance:auto;">
             <option value="az" selected>Alphabetical</option>
             <option value="date">Date</option>
           </select>
         </div>
+
       </div>
-    </div>
+    </div><!-- /.events-card-head -->
 
     {% if events|length == 0 %}
-      <div class="events-empty">
-        No events found. Create one above to get started.
-      </div>
+      <div class="events-empty">No events found. Create one above to get started.</div>
     {% else %}
       <div class="events-table-wrap">
-        <table class="events-table" id="eventTable">
+        <table class="events-table">
           <thead>
             <tr>
-              <th style="width:320px;">Event</th>
+              <th style="width:280px;">Event</th>
               <th style="width:140px;">Date</th>
-              <th style="width:120px;">Time</th>
+              <th style="width:110px;">Time</th>
               <th>Location</th>
-              <th style="width:140px; text-align:right;">Actions</th>
+              <th style="width:140px;text-align:right;">Actions</th>
             </tr>
           </thead>
-
           <tbody id="eventTbody">
             {% for e in events %}
-              <tr class="event-row"
-                  data-name="{{ e.eventName|lower }}"
-                  data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}">
-                <td class="event-name">
-                  {{ e.eventName }}
-                </td>
-
-                <td>
-                  <span class="event-chip">
-                    {{ e.eventDate }}
-                  </span>
-                </td>
-
-                <td>
-                  <span class="event-chip event-chip-blue">
-                    {{ e.time.strftime('%H:%M') }}
-                  </span>
-                </td>
-
-                <td class="event-loc">
-                  {{ e.location }}
-                </td>
-
-                <td style="text-align:right;">
-                  <button class="link" type="button"
-                          onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">
-                    Edit
-                  </button>
-
-                  <form method="POST"
-                        action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
-                        style="display:inline;">
-                    <button class="link danger" type="submit"
-                            onclick="return confirm('Remove this event?')">
-                      Remove
-                    </button>
-                  </form>
-                </td>
-              </tr>
+            {# Use the season's year for data-year, not the event date's year #}
+            {% set row_season_year = season_year_map.get(e.seasonID, '') %}
+            <tr class="event-row"
+                data-name="{{ e.eventName|lower }}"
+                data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
+                data-location="{{ e.location|lower if e.location else '' }}"
+                data-year="{{ row_season_year }}"
+                data-has-season="{{ 'true' if e.seasonID else 'false' }}">
+              <td class="event-name">{{ e.eventName }}</td>
+              <td><span class="event-chip">{{ e.eventDate }}</span></td>
+              <td><span class="event-chip event-chip-blue">{{ e.time.strftime('%H:%M') }}</span></td>
+              <td class="event-loc">{{ e.location }}</td>
+              <td style="text-align:right;">
+                <button class="link" type="button"
+                        onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">Edit</button>
+                <form method="POST"
+                      action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
+                      style="display:inline;">
+                  <button class="link danger" type="submit"
+                          onclick="return confirm('Remove this event?')">Remove</button>
+                </form>
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
-
         </table>
       </div>
+      <div id="noResultsMsg"
+           style="display:none;padding:28px;text-align:center;color:#888;font-size:14px;">
+        No events match your filters.
+      </div>
     {% endif %}
+  </div><!-- /.events-card -->
+
+  <!-- ================= Add Season Modal ================= -->
+  <div id="seasonModal"
+       style="display:none;position:fixed;inset:0;z-index:2000;
+              align-items:center;justify-content:center;">
+    <div onclick="closeSeasonModal()"
+         style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+    <div style="position:relative;background:#fff;border-radius:12px;padding:32px 28px;
+                width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1;">
+      <h3 style="margin:0 0 6px;font-size:18px;font-weight:700;">Add New Season</h3>
+      <p style="margin:0 0 20px;color:#666;font-size:13px;">Enter the year for the new season.</p>
+      <form method="POST" action="{{ url_for('admin_views.admin_seasons_create') }}">
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Year</label>
+          <input class="admin-input" name="seasonYear" type="number" required
+                 placeholder="e.g. 2027" min="2000" max="2100"
+                 style="width:100%;height:40px;padding:0 12px;border:1px solid #ccc;
+                        border-radius:6px;font-size:14px;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" onclick="closeSeasonModal()"
+                  style="padding:8px 18px;border:1px solid #ccc;border-radius:6px;
+                         background:#fff;font-size:13px;cursor:pointer;">Cancel</button>
+          <button type="submit" class="dash-card-btn btn-purple"
+                  style="padding:8px 18px;">Create Season</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <!-- ================= Modal ================= -->
-
+  <!-- ================= Edit Rules Modal ================= -->
   <div class="admin-modal" id="eventModal" aria-hidden="true">
     <div class="admin-modal-backdrop" onclick="closeModal()"></div>
-
-    <div class="admin-modal-card event-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalEventName">
-
-      <!-- TOP: editable event name + close -->
+    <div class="admin-modal-card event-modal-card" role="dialog" aria-modal="true">
       <div class="event-modal-top">
-        <input id="modalEventName"
-              class="event-modal-title"
-              value=""
-              placeholder="Event name" />
-        <button class="event-modal-close" type="button" onclick="closeModal()" aria-label="Close">✕</button>
+        <input id="modalEventName" class="event-modal-title" value="" placeholder="Event name"/>
+        <button class="event-modal-close" type="button" onclick="closeModal()">✕</button>
       </div>
-
-      <!-- BODY: scrollable -->
       <div class="event-modal-body">
-
-        <!-- INDIVIDUAL -->
         <div class="event-modal-section">
           <div class="event-modal-section-title">INDIVIDUAL POINTS</div>
-
           <div class="event-table-wrap">
             <table class="event-table">
-              <thead>
-                <tr>
-                  <th style="width:160px;">Placement</th>
-                  <th>Award</th>
-                  <th style="width:140px;">Points</th>
-                  <th style="width:100px;">Edit Points</th>
-                </tr>
-              </thead>
+              <thead><tr>
+                <th style="width:160px;">Placement</th><th>Award</th>
+                <th style="width:140px;">Points</th><th style="width:100px;">Edit Points</th>
+              </tr></thead>
               <tbody id="individualTable"></tbody>
             </table>
           </div>
-
-          <div id="individualEmpty" class="event-empty" style="display:none;">
-            No individual point rules yet.
-          </div>
+          <div id="individualEmpty" class="event-empty" style="display:none;">No individual point rules yet.</div>
         </div>
-
-        <!-- TEAM -->
         <div class="event-modal-section">
           <div class="event-modal-section-title">TEAM POINTS</div>
-
           <div class="event-table-wrap">
             <table class="event-table">
-              <thead>
-                <tr>
-                  <th style="width:240px;">Category</th>
-                  <th>Awarded For</th>
-                  <th style="width:140px;">Points</th>
-                  <th style="width:100px;">Edit Points</th>
-                </tr>
-              </thead>
+              <thead><tr>
+                <th style="width:240px;">Category</th><th>Awarded For</th>
+                <th style="width:140px;">Points</th><th style="width:100px;">Edit Points</th>
+              </tr></thead>
               <tbody id="teamTable"></tbody>
             </table>
           </div>
-
-          <div id="teamEmpty" class="event-empty" style="display:none;">
-            No team point rules yet.
-          </div>
+          <div id="teamEmpty" class="event-empty" style="display:none;">No team point rules yet.</div>
         </div>
-
       </div>
-
-      <!-- FOOTER: actions -->
       <div class="event-modal-actions">
-        <button class="event-btn event-btn-primary" type="button" onclick="saveRules()">
-          Save Changes
-        </button>
-        <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
-          Discard Changes
-        </button>
+        <button class="event-btn event-btn-primary" type="button" onclick="saveRules()">Save Changes</button>
+        <button class="event-btn event-btn-danger"  type="button" onclick="closeModal()">Discard Changes</button>
       </div>
-
     </div>
   </div>
 
+</div><!-- /.dash-root -->
+
 <script>
-  // ---------- Toasts ----------
-  document.querySelectorAll('.toast').forEach(toast => {
-    setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
+// ─── Data from server ─────────────────────────────────────────────
+var VALID_YEARS = {{ valid_years | tojson }};
+
+// ─── Season modal ─────────────────────────────────────────────────
+function openSeasonModal()  { document.getElementById('seasonModal').style.display = 'flex'; }
+function closeSeasonModal() { document.getElementById('seasonModal').style.display = 'none'; }
+
+// ─── Year stepper state ───────────────────────────────────────────
+var yearIndex = (function() {
+  var cal = new Date().getFullYear();
+  var i   = VALID_YEARS.indexOf(cal);
+  return i >= 0 ? i : Math.max(0, VALID_YEARS.length - 1);
+})();
+
+function getActiveYear() {
+  return VALID_YEARS.length ? VALID_YEARS[yearIndex] : null;
+}
+
+// ─── Core filter + sort ───────────────────────────────────────────
+function refreshTable() {
+  var searchEl  = document.getElementById('eventSearch');
+  var locEl     = document.getElementById('locationFilter');
+  var sortEl    = document.getElementById('eventSort');
+  var tbody     = document.getElementById('eventTbody');
+  var noResults = document.getElementById('noResultsMsg');
+
+  if (!tbody) return;
+
+  var q    = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  var loc  = locEl    ? locEl.value.trim().toLowerCase()    : '';
+  var mode = sortEl   ? sortEl.value                        : 'az';
+  var y    = getActiveYear();
+
+  // Sort
+  var rows = Array.from(tbody.querySelectorAll('tr.event-row'));
+  rows.sort(function(a, b) {
+    if (mode === 'date') {
+      var ad = a.getAttribute('data-date') || '';
+      var bd = b.getAttribute('data-date') || '';
+      return ad < bd ? -1 : ad > bd ? 1 : 0;
+    }
+    var an = a.getAttribute('data-name') || '';
+    var bn = b.getAttribute('data-name') || '';
+    return an < bn ? -1 : an > bn ? 1 : 0;
+  });
+  rows.forEach(function(r) { tbody.appendChild(r); });
+
+  // Filter visibility — data-year is now the SEASON's year
+  var visible = 0;
+  rows.forEach(function(row) {
+    var name      = row.getAttribute('data-name')       || '';
+    var location  = row.getAttribute('data-location')   || '';
+    var rowYear   = row.getAttribute('data-year')       || '';
+    var hasSeason = row.getAttribute('data-has-season') === 'true';
+
+    var nameOk = !q   || name.includes(q);
+    var locOk  = !loc || location === loc;
+    var yearOk = hasSeason && (y === null || rowYear === String(y));
+
+    var show = nameOk && locOk && yearOk;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  if (noResults) noResults.style.display = visible === 0 ? 'block' : 'none';
+}
+
+// ─── Year stepper UI ──────────────────────────────────────────────
+function updateYearUI() {
+  var y    = getActiveYear();
+  var lbl  = document.getElementById('yearLabel');
+  var prev = document.getElementById('yearPrev');
+  var next = document.getElementById('yearNext');
+  if (lbl)  lbl.textContent    = y !== null ? y : '—';
+  if (prev) prev.style.opacity = yearIndex <= 0 ? '0.3' : '1';
+  if (next) next.style.opacity = yearIndex >= VALID_YEARS.length - 1 ? '0.3' : '1';
+  refreshTable();
+}
+
+// ─── Wire up once DOM ready ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+
+  document.querySelectorAll('.toast').forEach(function(t) {
+    setTimeout(function() {
+      t.style.transition = 'opacity 0.4s';
+      t.style.opacity    = '0';
+      setTimeout(function() { t.remove(); }, 400);
     }, 4000);
   });
 
-  // ---------- Search ----------
-  const eventSearch = document.getElementById('eventSearch');
-  function applySearch(){
-    const q = (eventSearch?.value || '').trim().toLowerCase();
-    document.querySelectorAll('#eventTbody .event-row').forEach(row => {
-      const name = row.getAttribute('data-name') || '';
-      row.style.display = !q || name.includes(q) ? '' : 'none';
-    });
-  }
-  if (eventSearch) eventSearch.addEventListener('input', applySearch);
-
-  // ---------- Sort ----------
-  const eventSort = document.getElementById('eventSort');
-  function applySort(){
-    const mode = eventSort?.value || 'az';
-    const body = document.getElementById('eventTbody');
-    if (!body) return;
-
-    const rows = Array.from(body.querySelectorAll('.event-row'));
-    rows.sort((a,b) => {
-      if (mode === 'date'){
-        const ad = a.getAttribute('data-date') || '';
-        const bd = b.getAttribute('data-date') || '';
-        return ad.localeCompare(bd);
-      }
-      const an = a.getAttribute('data-name') || '';
-      const bn = b.getAttribute('data-name') || '';
-      return an.localeCompare(bn);
-    });
-
-    rows.forEach(r => body.appendChild(r));
-  }
-  if (eventSort) eventSort.addEventListener('change', applySort);
-
-  // ---- Modal + rules ----
-  const modal = document.getElementById('eventModal');
-  const nameInput = document.getElementById('modalEventName');
-  const individualTable = document.getElementById('individualTable');
-  const teamTable = document.getElementById('teamTable');
-
-  const individualEmpty = document.getElementById('individualEmpty');
-  const teamEmpty = document.getElementById('teamEmpty');
-
-  let activeEventId = null;
-  let individualRules = [];
-  let teamRules = [];
-
-  function openModal() {
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-  }
-
-  function closeModal() {
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
-
-    activeEventId = null;
-    individualRules = [];
-    teamRules = [];
-    individualTable.innerHTML = "";
-    teamTable.innerHTML = "";
-
-    individualEmpty.style.display = "none";
-    teamEmpty.style.display = "none";
-  }
-
-  function placementText(n) {
-    const num = Number(n);
-    if (num === 1) return "1st Place";
-    if (num === 2) return "2nd Place";
-    if (num === 3) return "3rd Place";
-    return `${num}th Place`;
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function renderTables() {
-    individualTable.innerHTML = "";
-    teamTable.innerHTML = "";
-
-    if (!individualRules.length) {
-      individualEmpty.style.display = "block";
-    } else {
-      individualEmpty.style.display = "none";
-      individualRules.forEach((r, idx) => {
-        individualTable.innerHTML += `
-          <tr>
-            <td>${placementText(r.placement)}</td>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.label || "")}"
-                     oninput="individualRules[${idx}].label=this.value">
-            </td>
-            <td>
-              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
-                     oninput="individualRules[${idx}].points=this.value">
-            </td>
-            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
-          </tr>
-        `;
+  var dateInput    = document.getElementById('eventDateInput');
+  var seasonSelect = document.getElementById('seasonSelect');
+  if (dateInput && seasonSelect) {
+    dateInput.addEventListener('change', function() {
+      var yr = this.value ? String(new Date(this.value).getUTCFullYear()) : null;
+      if (!yr) return;
+      Array.from(seasonSelect.options).forEach(function(o) {
+        if (o.text.trim() === yr) o.selected = true;
       });
-    }
-
-    if (!teamRules.length) {
-      teamEmpty.style.display = "block";
-    } else {
-      teamEmpty.style.display = "none";
-      teamRules.forEach((r, idx) => {
-        teamTable.innerHTML += `
-          <tr>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.conditionType || "")}"
-                     oninput="teamRules[${idx}].conditionType=this.value">
-            </td>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.label || "")}"
-                     oninput="teamRules[${idx}].label=this.value">
-            </td>
-            <td>
-              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
-                     oninput="teamRules[${idx}].points=this.value">
-            </td>
-            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
-          </tr>
-        `;
-      });
-    }
-  }
-
-  async function openEdit(eventId, eventName) {
-    activeEventId = eventId;
-    nameInput.value = eventName || "";
-
-    const res = await fetch(`/admin/events/${eventId}/rules`, { credentials: "same-origin" });
-    if (!res.ok) {
-      alert("Failed to load rules. Check your server logs.");
-      return;
-    }
-    const data = await res.json();
-
-    individualRules = data.individual || [];
-    teamRules = data.team || [];
-
-    renderTables();
-    openModal();
-  }
-
-  async function saveRules() {
-    if (!activeEventId) return;
-
-    const payload = {
-      eventName: nameInput.value.trim(),
-      individual: individualRules.map(r => ({
-        pointsID: r.pointsID,
-        placement: Number(r.placement),
-        label: (r.label || "").trim(),
-        points: Number(r.points || 0)
-      })),
-      team: teamRules.map(r => ({
-        pointsID: r.pointsID,
-        conditionType: (r.conditionType || "").trim(),
-        label: (r.label || "").trim(),
-        lowerLimit: r.lowerLimit ?? 0,
-        upperLimit: r.upperLimit ?? 0,
-        points: Number(r.points || 0)
-      }))
-    };
-
-    const res = await fetch(`/admin/events/${activeEventId}/rules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload)
     });
-
-    if (!res.ok) {
-      alert("Failed to save changes. Check your server logs.");
-      return;
-    }
-
-    window.location.reload();
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+  var prevBtn = document.getElementById('yearPrev');
+  var nextBtn = document.getElementById('yearNext');
+  if (prevBtn) prevBtn.addEventListener('click', function() {
+    if (yearIndex > 0) { yearIndex--; updateYearUI(); }
+  });
+  if (nextBtn) nextBtn.addEventListener('click', function() {
+    if (yearIndex < VALID_YEARS.length - 1) { yearIndex++; updateYearUI(); }
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-  const selects = document.querySelectorAll('select');
-  if (window.M && M.FormSelect) M.FormSelect.init(selects);
+  var searchEl = document.getElementById('eventSearch');
+  var locEl    = document.getElementById('locationFilter');
+  var sortEl   = document.getElementById('eventSort');
+  if (searchEl) searchEl.addEventListener('input',  refreshTable);
+  if (locEl)    locEl.addEventListener('change',    refreshTable);
+  if (sortEl)   sortEl.addEventListener('change',   refreshTable);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeModal(); closeSeasonModal(); }
+  });
+
+  if (window.M && M.FormSelect) {
+    M.FormSelect.init(
+      document.querySelectorAll('select:not(#seasonSelect):not(#eventSort):not(#locationFilter)')
+    );
+  }
+
+  // After the M.FormSelect.init(...) call, forcibly destroy on our selects
+  if (window.M && M.FormSelect) {
+    ['locationFilter', 'eventSort'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        try { M.FormSelect.getInstance(el) && M.FormSelect.getInstance(el).destroy(); } catch(e) {}
+      }
+    });
+  }
+
+  updateYearUI();
 });
+
+// ─── Edit-rules modal ─────────────────────────────────────────────
+var _activeEventId   = null;
+var _individualRules = [];
+var _teamRules       = [];
+
+function openModal() {
+  var m = document.getElementById('eventModal');
+  m.classList.add('open');
+  m.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function closeModal() {
+  var m = document.getElementById('eventModal');
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  _activeEventId = null; _individualRules = []; _teamRules = [];
+  document.getElementById('individualTable').innerHTML = '';
+  document.getElementById('teamTable').innerHTML       = '';
+  document.getElementById('individualEmpty').style.display = 'none';
+  document.getElementById('teamEmpty').style.display       = 'none';
+}
+
+function _placementText(n) {
+  var num = Number(n);
+  if (num === 1) return '1st Place';
+  if (num === 2) return '2nd Place';
+  if (num === 3) return '3rd Place';
+  return num + 'th Place';
+}
+
+function _esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function _renderTables() {
+  var iBody = document.getElementById('individualTable');
+  var tBody = document.getElementById('teamTable');
+  var iMpty = document.getElementById('individualEmpty');
+  var tMpty = document.getElementById('teamEmpty');
+  iBody.innerHTML = ''; tBody.innerHTML = '';
+
+  if (!_individualRules.length) {
+    iMpty.style.display = 'block';
+  } else {
+    iMpty.style.display = 'none';
+    _individualRules.forEach(function(r, idx) {
+      iBody.innerHTML += '<tr>'
+        + '<td>' + _placementText(r.placement) + '</td>'
+        + '<td><input class="admin-input" value="' + _esc(r.label||'') + '"'
+        + ' oninput="_individualRules['+idx+'].label=this.value"></td>'
+        + '<td><input class="admin-input" type="number" step="0.01" value="' + Number(r.points||0) + '"'
+        + ' oninput="_individualRules['+idx+'].points=this.value"></td>'
+        + '<td><span style="color:#777;">Edit</span></td></tr>';
+    });
+  }
+
+  if (!_teamRules.length) {
+    tMpty.style.display = 'block';
+  } else {
+    tMpty.style.display = 'none';
+    _teamRules.forEach(function(r, idx) {
+      tBody.innerHTML += '<tr>'
+        + '<td><input class="admin-input" value="' + _esc(r.conditionType||'') + '"'
+        + ' oninput="_teamRules['+idx+'].conditionType=this.value"></td>'
+        + '<td><input class="admin-input" value="' + _esc(r.label||'') + '"'
+        + ' oninput="_teamRules['+idx+'].label=this.value"></td>'
+        + '<td><input class="admin-input" type="number" step="0.01" value="' + Number(r.points||0) + '"'
+        + ' oninput="_teamRules['+idx+'].points=this.value"></td>'
+        + '<td><span style="color:#777;">Edit</span></td></tr>';
+    });
+  }
+}
+
+async function openEdit(eventId, eventName) {
+  _activeEventId = eventId;
+  document.getElementById('modalEventName').value = eventName || '';
+  var res = await fetch('/admin/events/' + eventId + '/rules', { credentials: 'same-origin' });
+  if (!res.ok) { alert('Failed to load rules.'); return; }
+  var data = await res.json();
+  _individualRules = data.individual || [];
+  _teamRules       = data.team       || [];
+  _renderTables();
+  openModal();
+}
+
+async function saveRules() {
+  if (!_activeEventId) return;
+  var payload = {
+    eventName:  document.getElementById('modalEventName').value.trim(),
+    individual: _individualRules.map(function(r) {
+      return { pointsID: r.pointsID, placement: Number(r.placement),
+               label: (r.label||'').trim(), points: Number(r.points||0) };
+    }),
+    team: _teamRules.map(function(r) {
+      return { pointsID: r.pointsID, conditionType: (r.conditionType||'').trim(),
+               label: (r.label||'').trim(),
+               lowerLimit: r.lowerLimit ?? 0, upperLimit: r.upperLimit ?? 0,
+               points: Number(r.points||0) };
+    })
+  };
+  var res = await fetch('/admin/events/' + _activeEventId + '/rules', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) { alert('Failed to save changes.'); return; }
+  window.location.reload();
+}
+
 
 </script>
 

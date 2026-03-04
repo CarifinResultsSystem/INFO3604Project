@@ -354,3 +354,29 @@
 .event-btn-danger:hover{
   background: rgba(198,40,40,0.08);
 }
+
+/* ── Prevent Materialize from hiding/replacing filter & sort selects ── */
+#locationFilter,
+#eventSort {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  pointer-events: auto !important;
+  height: 36px !important;
+  padding: 0 8px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  background: #fff !important;
+  color: #333 !important;
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  min-width: 120px;
+}
+
+/* Hide the Materialize-generated wrapper dropdown if it sneaks through */
+.select-wrapper:has(#locationFilter),
+.select-wrapper:has(#eventSort) {
+  display: none !important;
+}
