@@ -8,3 +8,4 @@ from .leaderboard import *
 from .institution import *
 from .season import *
 from .pointsRules import *
+from .hr import *
