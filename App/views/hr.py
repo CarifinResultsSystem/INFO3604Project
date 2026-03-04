@@ -85,3 +85,44 @@ def hr_generate_report():
         filepath=None,
     )
     return jsonify({"success": True, "report_id": report.reportID, "filename": filename})
+
+# DOWNLOAD REPORT 
+@hr_views.route("/hr/reports/<int:report_id>/download")
+@hr_required
+def hr_download_report(report_id):
+    import io
+    report = get_report(report_id)
+    if not report or report.generated_by != current_user.userID:
+        abort(404)
+    season = report.season or str(_local_now().year)
+    data = build_report_data(season)
+    pdf_bytes = _stub_pdf(data, season)
+    buf = io.BytesIO(pdf_bytes)
+    buf.seek(0)
+    try:
+        return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=report.filename)
+    except TypeError:
+        return send_file(buf, mimetype="application/pdf", as_attachment=True, attachment_filename=report.filename)
+
+
+def _stub_pdf(data, season):
+    content = (
+        f"CariFin Results & Scoring System\n"
+        f"Season: {season}\n"
+        f"Institutions: {data['institutions_count']}\n"
+        f"Participants: {data['participants_count']}\n"
+        f"Generated: {_local_now().isoformat()}\n"
+    )
+    body = content.encode()
+    pdf_txt = (
+        b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+        b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R"
+        b"/Resources<<>>/Contents 4 0 R>>endobj\n"
+        + f"4 0 obj<</Length {len(body)}>>\nstream\n".encode()
+        + body
+        + b"\nendstream\nendobj\n"
+        b"xref\n0 5\n0000000000 65535 f\n"
+        b"trailer<</Size 5/Root 1 0 R>>\n%%EOF"
+    )
+    return pdf_txt
