@@ -113,14 +113,6 @@ def logout_action():
     return response
 
 
-@auth_views.route('/logout_to_public', methods=['GET'])
-def logout_to_public():
-    response = redirect(url_for('index_views.index_page'))
-    flash('You have been logged out to access the Public Viewer Dashboard', 'success')
-    unset_jwt_cookies(response)
-    return response
-
-
 @auth_views.route('/identify', methods=['GET'])
 @jwt_required()
 def identify_page():
