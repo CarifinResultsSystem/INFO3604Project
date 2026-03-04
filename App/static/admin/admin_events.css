@@ -1,0 +1,356 @@
+.events-wrap{
+  max-width:1200px;
+  margin:0 auto;
+}
+
+.events-form{ display:block; }
+
+.events-form-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:18px 28px;
+}
+
+.events-field{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.events-field label{
+  font-weight:700;
+  color:#333;
+}
+
+.events-form-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+
+
+.events-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.events-card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px;
+  border-bottom:1px solid #f0f0f0;
+}
+
+.events-card-title{
+  font-family:'Bebas Neue', sans-serif;
+  font-size:1.15rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--text);
+}
+
+.events-card-sub{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:0.86rem;
+  font-weight:500;
+}
+
+/* Controls (search + sort) */
+.events-controls{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.events-search{
+  width:280px;
+  border-radius:12px;
+  border:1px solid #e6e6e6;
+  padding:10px 12px;
+  outline:none;
+  background:#fff;
+  font-weight:600;
+  color:#333;
+  transition:border .15s, box-shadow .15s;
+}
+
+.events-search:focus{
+  border-color:rgba(123,31,162,0.55);
+  box-shadow:0 0 0 4px rgba(123,31,162,0.12);
+}
+
+.events-sortbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border:1px solid #e6e6e6;
+  border-radius:12px;
+  background:#fff;
+}
+
+.events-sortlabel{
+  font-weight:700;
+  color:#777;
+  font-size:0.86rem;
+}
+
+/* IMPORTANT: don’t reuse .admin-range here because Materialize can mess with it */
+.events-select{
+  border:none;
+  outline:none;
+  background:transparent;
+  font-weight:800;
+  color:#333;
+  cursor:pointer;
+  padding:6px 2px;
+  min-width:150px;
+}
+
+/* Table */
+.events-table-wrap{ overflow:auto; }
+
+.events-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:860px; /* prevents crushed columns */
+}
+
+.events-table thead{
+  background:#f8f5fc;
+}
+
+.events-table thead th{
+  padding:14px 18px;
+  font-family:'Bebas Neue', sans-serif;
+  font-size:0.85rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--purple);
+  border-bottom:2px solid #ede7f6;
+  white-space:nowrap;
+}
+
+.events-table tbody td{
+  padding:16px 18px;
+  border-bottom:1px solid #f5f5f5;
+  color:#333;
+  font-size:0.92rem;
+  vertical-align:middle;
+}
+
+.events-table tbody tr:hover{
+  background:#faf7fe;
+}
+
+.event-name{
+  font-weight:800;
+  color:#151515;
+}
+
+.event-loc{
+  color:#555;
+  font-weight:600;
+}
+
+/* Chips */
+.event-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 12px;
+  border-radius:999px;
+  background:#f3e5f5;
+  color:var(--purple);
+  font-size:0.82rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.event-chip-blue{
+  background:rgba(21,101,192,0.10);
+  color:var(--blue);
+}
+
+/* Empty state */
+.events-empty{
+  padding:18px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+/* Responsive */
+@media (max-width: 900px){
+  .events-card-head{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .events-search{ width:100%; }
+}
+
+@media (max-width: 850px){
+  .events-form-grid{
+    grid-template-columns: 1fr;
+    gap:14px;
+  }
+}
+/* ================
+   EVENT MODAL (wireframe look)
+================ */
+
+.event-modal-card{
+  width: min(980px, calc(100% - 48px));
+  margin: 18px auto;
+  border-radius: 18px;
+  border: 2px solid #111;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top bar */
+.event-modal-top{
+  position: relative;
+  padding: 14px 16px 12px;
+  border-bottom: 2px solid #111;
+  background: #fff;
+}
+
+.event-modal-title{
+  width: 100%;
+  border: 2px solid #111;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 800;
+  font-size: 20px;
+  outline: none;
+}
+
+.event-modal-title:focus{
+  border-color: var(--purple);
+  box-shadow: 0 0 0 4px rgba(123,31,162,0.12);
+}
+
+/* Close button (top-right X) */
+.event-modal-close{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 2px solid #111;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.event-modal-close:hover{ background: #f2f2f2; }
+
+/* Scrollable body */
+.event-modal-body{
+  padding: 14px 16px 16px;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
+}
+
+/* Visible scrollbar */
+.event-modal-body::-webkit-scrollbar{ width: 10px; }
+.event-modal-body::-webkit-scrollbar-track{ background: #f2f2f2; }
+.event-modal-body::-webkit-scrollbar-thumb{ background: #bdbdbd; border-radius: 999px; }
+
+/* Section headings */
+.event-modal-section{ margin-top: 12px; }
+.event-modal-section:first-child{ margin-top: 0; }
+
+.event-modal-section-title{
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: .14em;
+  font-size: 0.9rem;
+  color: #222;
+  margin: 8px 0 10px;
+}
+
+/* Table grid */
+.event-table-wrap{
+  border: 2px solid #111;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.event-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.event-table thead th{
+  background: #fff;
+  border-bottom: 2px solid #111;
+  padding: 12px 12px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.event-table td{
+  border-bottom: 1px solid #111;
+  padding: 12px 12px;
+  vertical-align: middle;
+}
+
+.event-table tbody tr:last-child td{ border-bottom: none; }
+
+/* Inputs inside table */
+.event-modal-body .admin-input{
+  border: 2px solid #111;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+/* Empty messages */
+.event-empty{
+  padding: 10px 2px;
+  color: #777;
+  font-weight: 700;
+}
+
+/* Footer buttons */
+.event-modal-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 2px solid #111;
+  background: #fff;
+}
+
+.event-btn{
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid #111;
+  background: #fff;
+}
+
+.event-btn-primary:hover{ background: #f5f5f5; }
+
+.event-btn-danger{
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.event-btn-danger:hover{
+  background: rgba(198,40,40,0.08);
+}
