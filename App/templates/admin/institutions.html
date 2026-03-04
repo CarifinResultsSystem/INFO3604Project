@@ -3,218 +3,303 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_institutions.css') }}">
 
 <div class="dash-root admin-root">
 
+  <!-- ================= HEADER ================= -->
   <div class="dash-heading">
     <h1>Institutions &amp; Participants</h1>
+    <span class="dash-subtitle">Register institutions, add participants, and manage the directory.</span>
   </div>
 
-  <div class="admin-stat-grid">
+  <!-- ================= TOASTS ================= -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ================= STATS TOP ================= -->
+  <div class="inst-top-stats">
     <div class="admin-stat-card">
-      <div class="stat-label">Total Institutions Participating This Year</div>
+      <div class="stat-label">Total Institutions</div>
       <div class="stat-value">{{ total_institutions or 0 }}</div>
     </div>
     <div class="admin-stat-card">
-      <div class="stat-label">Total Participants This Year</div>
+      <div class="stat-label">Total Participants</div>
       <div class="stat-value">{{ total_participants or 0 }}</div>
     </div>
   </div>
 
-  <div class="admin-two-col">
-    <div class="admin-col">
+  <!-- ================= FORMS (FULL WIDTH, STACKED) ================= -->
+  <div class="inst-forms-stack">
 
-      <div class="admin-panel">
-        <div class="admin-panel-head">
-          <h2>Institution Registration</h2>
-        </div>
-
-        <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
-          <div class="admin-form-row">
-            <label>Institution Name:</label>
-            <input type="text" name="institutionName" placeholder="e.g. Scotiabank">
-          </div>
-
-          <div class="admin-form-row">
-            <label>Institution Location:</label>
-            <input type="text" name="institutionLocation" placeholder="e.g. Port of Spain">
-          </div>
-
-          <div class="admin-form-actions">
-            <button class="admin-btn" type="submit">+ Add</button>
-            <button class="admin-btn danger" type="button">Remove</button>
-          </div>
-        </form>
+    <!-- Institution Registration -->
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>Institution Registration</h2>
+        <div class="admin-panel-meta">Add a new institution to the system.</div>
       </div>
 
-      <div class="admin-panel">
-        <div class="admin-panel-head">
-          <h2>Participant Registration</h2>
+      <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
+        <div class="inst-form-grid-2">
+          <div class="admin-form-row">
+            <label>Institution Name</label>
+            <input class="admin-input" type="text" name="institutionName" required placeholder="e.g. Scotiabank">
+          </div>
+
+          <div class="admin-form-row">
+            <label>Location</label>
+            <input class="admin-input" type="text" name="institutionLocation" required placeholder="e.g. Port of Spain">
+          </div>
         </div>
 
-        <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
-
-          <div class="admin-form-grid">
-            <div class="admin-form-row">
-              <label>First Name:</label>
-              <input type="text" name="firstName">
-            </div>
-
-            <div class="admin-form-row">
-              <label>Surname:</label>
-              <input type="text" name="surname">
-            </div>
-
-            <div class="admin-form-row">
-              <label>Gender:</label>
-              <select name="gender">
-                <option value="" selected>Choose</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-            </div>
-
-            <div class="admin-form-row">
-              <label>Date of Birth:</label>
-              <input type="text" name="dob" placeholder="DD/MM/YY">
-            </div>
-          </div>
-
-          <div class="admin-form-row">
-            <label>Institution:</label>
-            <select name="institution">
-              <option value="" selected>Select institution</option>
-              {% for inst in institutions or [] %}
-                <option value="{{ inst.id }}">{{ inst.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="admin-form-row">
-            <label>Participant Location:</label>
-            <input type="text" name="participantLocation">
-          </div>
-
-          <div class="admin-form-row">
-            <label>Event Registered In:</label>
-            <select name="event">
-              <option value="" selected>Select event</option>
-              {% for e in events or [] %}
-                <option value="{{ e.id }}">{{ e.eventName }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="admin-form-actions">
-            <button class="admin-btn" type="submit">+ Add</button>
-            <button class="admin-btn danger" type="button">Remove</button>
-          </div>
-        </form>
-      </div>
-
+        <div class="admin-form-actions">
+          <button class="dash-card-btn btn-purple" type="submit">
+            <i class="material-icons" style="font-size:16px;">add</i>
+            Add Institution
+          </button>
+        </div>
+      </form>
     </div>
 
-    <div class="admin-col">
-
-      <div class="admin-panel">
-        <div class="admin-panel-head split">
-          <h2>Institutions &amp; Participants</h2>
-
-          <div class="admin-controls">
-            <input class="admin-search" type="text" placeholder="Search...">
-            <div class="admin-sort">
-              <label>Sort By:</label>
-              <select>
-                <option selected>Alphabetical</option>
-                <option>Newest</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="admin-accordion" id="instAccordion">
-
-          <div class="acc-item open">
-            <button class="acc-head" type="button">
-              <span>Institution: SCOTIABANK</span>
-              <span class="acc-caret">▾</span>
-            </button>
-
-            <div class="acc-body">
-              <div class="acc-subtitle">Participant List</div>
-
-              <div class="admin-table-wrap">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Gender</th>
-                      <th>Location</th>
-                      <th>Event</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>John Doe</td>
-                      <td>Male</td>
-                      <td>Princes Town</td>
-                      <td>Aerobics</td>
-                      <td class="row-actions">
-                        <a href="#" class="link">Edit</a>
-                        <a href="#" class="link danger">Remove</a>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="acc-item">
-            <button class="acc-head" type="button">
-              <span>Institution: INSTITUTION #1</span>
-              <span class="acc-caret">▸</span>
-            </button>
-            <div class="acc-body"></div>
-          </div>
-
-          <div class="acc-item">
-            <button class="acc-head" type="button">
-              <span>Institution: INSTITUTION #2</span>
-              <span class="acc-caret">▸</span>
-            </button>
-            <div class="acc-body"></div>
-          </div>
-
-          <div class="acc-item">
-            <button class="acc-head" type="button">
-              <span>Institution: INSTITUTION #3</span>
-              <span class="acc-caret">▸</span>
-            </button>
-            <div class="acc-body"></div>
-          </div>
-
-        </div>
-
+    <!-- Participant Registration -->
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>Participant Registration</h2>
+        <div class="admin-panel-meta">Assign a participant to an institution and register them for an event.</div>
       </div>
 
+      <form method="POST" action="{{ url_for('admin_views.admin_participants_create') }}" class="admin-form">
+        <div class="inst-form-grid-4">
+          <div class="admin-form-row">
+            <label>First Name</label>
+            <input class="admin-input" type="text" name="firstName" required>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Last Name</label>
+            <input class="admin-input" type="text" name="lastName" required>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Gender</label>
+            <!-- IMPORTANT: no browser-default (so Materialize can style it) -->
+            <select name="gender" class="admin-input" required>
+              <option value="" selected disabled>Choose</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Date of Birth</label>
+            <input class="admin-input" type="date" name="dateOfBirth" required>
+          </div>
+        </div>
+
+        <div class="inst-form-grid-3">
+          <div class="admin-form-row">
+            <label>Institution</label>
+            <select name="institutionID" class="admin-input" required>
+              <option value="" selected disabled>Select institution</option>
+              {% for inst in institutions %}
+                <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Events Registered For</label>
+              <select name="eventIDs" class="admin-input" multiple required>
+                {% for e in events %}
+                  <option value="{{ e.eventID }}">{{ e.eventName }}</option>
+                {% endfor %}
+              </select>
+              <small style="color:#9e9e9e;">Hold Ctrl (Windows) / Cmd (Mac) to select multiple.</small>
+          </div>
+
+          <div class="admin-form-row">
+            <label>Participant Location</label>
+            <input class="admin-input" type="text" name="location" required placeholder="e.g. Chaguanas">
+          </div>
+        </div>
+
+        <div class="admin-form-actions">
+          <button class="dash-card-btn btn-blue" type="submit">
+            <i class="material-icons" style="font-size:16px;">person_add</i>
+            Add Participant
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- ================= DIRECTORY TABLE ================= -->
+  <div class="admin-panel">
+    <div class="admin-panel-head split">
+      <div>
+        <h2>Directory</h2>
+        <div class="admin-panel-meta">Search and filter institutions + participants.</div>
+      </div>
+
+      <div class="inst-table-controls">
+        <input id="dirSearch" class="admin-search" type="text" placeholder="Search by institution, participant, gender, location, event...">
+
+        <select id="dirSort" class="admin-range">
+          <option value="az" selected>Participant A → Z</option>
+          <option value="za">Participant Z → A</option>
+        </select>
+
+        <select id="dirInstFilter" class="admin-range">
+          <option value="" selected>All institutions</option>
+          {% for inst in institutions %}
+            <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
+          {% endfor %}
+        </select>
+
+        <select id="dirEventFilter" class="admin-range">
+          <option value="" selected>All events</option>
+          {% for e in events %}
+            <option value="{{ e.eventID }}">{{ e.eventName }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="dirTable">
+        <thead>
+          <tr>
+            <th style="width:220px;">Institution</th>
+            <th style="width:180px;">Institution Location</th>
+            <th>Participant</th>
+            <th style="width:110px;">Gender</th>
+            <th style="width:140px;">DOB</th>
+            <th style="width:180px;">Participant Location</th>
+            <th style="width:220px;">Event</th>
+          </tr>
+        </thead>
+
+        <tbody id="dirBody">
+          {% if (participants or [])|length == 0 %}
+            <tr>
+              <td colspan="7" style="color:#9e9e9e; font-weight:700;">No participants yet.</td>
+            </tr>
+          {% else %}
+            {% for p in participants %}
+              {# robust institution lookup from relationship #}
+              {% set instName = (p.institution.insName if p.institution is defined and p.institution else '') %}
+              {% set instLoc  = (p.institution.insLocation if p.institution is defined and p.institution else '') %}
+
+              {# event display: will show '-' until you actually store event on the participant #}
+              {% set evNames = (p.events | map(attribute='eventName') | list) if p.events else [] %}
+              {% set evIds = (p.events | map(attribute='eventID') | list) if p.events else [] %}
+              {% set evNamesText = evNames | join(', ') if evNames|length else '-' %}
+              {% set evIdsText = evIds | join(',') if evIds|length else '' %}
+
+              <tr class="dir-row"
+                  data-inst-id="{{ p.institutionID }}"
+                  data-event-ids="{{ evIdsText }}"
+                  data-name="{{ ((p.firstName ~ ' ' ~ p.lastName)|lower) }}"
+                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evName)|lower) }}">
+                <td style="font-weight:800;">{{ instName }}</td>
+                <td>{{ instLoc }}</td>
+                <td style="font-weight:700;">{{ p.firstName }} {{ p.lastName }}</td>
+                <td>{{ p.gender }}</td>
+                <td>{{ p.dateOfBirth }}</td>
+                <td>{{ p.location }}</td>
+                <td>{{ evNamesText }}</td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
     </div>
   </div>
 
 </div>
 
 <script>
-  document.querySelectorAll('#instAccordion .acc-head').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item = btn.closest('.acc-item');
-      item.classList.toggle('open');
-      const caret = btn.querySelector('.acc-caret');
-      caret.textContent = item.classList.contains('open') ? '▾' : '▸';
-    });
+  // ---------- Toasts ----------
+  document.querySelectorAll('.toast').forEach(toast => {
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
   });
+
+  // ---------- Materialize selects ----------
+  document.addEventListener('DOMContentLoaded', function () {
+    const selects = document.querySelectorAll('select');
+    if (window.M && M.FormSelect) M.FormSelect.init(selects);
+  });
+
+  // ---------- Directory table search/filter/sort ----------
+  const dirSearch = document.getElementById('dirSearch');
+  const dirSort = document.getElementById('dirSort');
+  const dirInstFilter = document.getElementById('dirInstFilter');
+  const dirEventFilter = document.getElementById('dirEventFilter');
+  const dirBody = document.getElementById('dirBody');
+
+  function applyDirFilters(){
+    const q = (dirSearch?.value || '').trim().toLowerCase();
+    const instId = (dirInstFilter?.value || '').trim();
+    const eventId = (dirEventFilter?.value || '').trim();
+
+    document.querySelectorAll('.dir-row').forEach(row => {
+      const blob = row.getAttribute('data-search') || '';
+      const rowInst = row.getAttribute('data-inst-id') || '';
+      const rowEvent = row.getAttribute('data-event-id') || '';
+
+      const matchesQ = !q || blob.includes(q);
+      const matchesInst = !instId || rowInst === instId;
+      const matchesEvent = !eventId || rowEvent === eventId;
+
+      row.style.display = (matchesQ && matchesInst && matchesEvent) ? '' : 'none';
+    });
+  }
+
+  function applyDirFilters(){
+    const q = (dirSearch?.value || '').trim().toLowerCase();
+    const instId = (dirInstFilter?.value || '').trim();
+    const eventId = (dirEventFilter?.value || '').trim();
+
+    document.querySelectorAll('.dir-row').forEach(row => {
+      const blob = row.getAttribute('data-search') || '';
+      const rowInst = row.getAttribute('data-inst-id') || '';
+
+      const rowEvents = (row.getAttribute('data-event-ids') || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const matchesQ = !q || blob.includes(q);
+      const matchesInst = !instId || rowInst === instId;
+      const matchesEvent = !eventId || rowEvents.includes(eventId);
+
+      row.style.display = (matchesQ && matchesInst && matchesEvent) ? '' : 'none';
+    });
+  }
+
+  if (dirSearch) dirSearch.addEventListener('input', applyDirFilters);
+  if (dirInstFilter) dirInstFilter.addEventListener('change', applyDirFilters);
+  if (dirEventFilter) dirEventFilter.addEventListener('change', applyDirFilters);
+  if (dirSort) dirSort.addEventListener('change', applyDirSort);
 </script>
 
 {% endblock %}
