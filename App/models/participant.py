@@ -1,5 +1,5 @@
 from App.database import db
-
+from App.models.participant_event import participant_events
 
 class Participant(db.Model):
     __tablename__ = "participants"
@@ -22,6 +22,13 @@ class Participant(db.Model):
         "Institution",
         backref=db.backref("participants", lazy=True, cascade="all, delete-orphan"),
         lazy=True,
+    )
+    
+    events = db.relationship(
+        "Event",
+        secondary=participant_events,
+        lazy="subquery",
+        backref=db.backref("participants", lazy=True)
     )
 
     def __init__(self, participantID, firstName, lastName, gender, dateOfBirth, location, institutionID):
