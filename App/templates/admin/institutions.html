@@ -10,7 +10,7 @@
   <!-- ================= HEADER ================= -->
   <div class="dash-heading">
     <h1>Institutions &amp; Participants</h1>
-    <span class="dash-subtitle">Register institutions, add participants, and manage the directory.</span>
+    <span class="dash-subtitle">Register Institutions, Add Participants</span>
   </div>
 
   <!-- ================= TOASTS ================= -->
@@ -49,7 +49,7 @@
     <div class="admin-panel">
       <div class="admin-panel-head">
         <h2>Institution Registration</h2>
-        <div class="admin-panel-meta">Add a new institution to the system.</div>
+        <div class="admin-panel-meta">Add New Institution</div>
       </div>
 
       <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
@@ -75,14 +75,16 @@
     </div>
 
     <!-- Participant Registration -->
-    <div class="admin-panel">
+    <div class="admin-panel participant-panel">
       <div class="admin-panel-head">
         <h2>Participant Registration</h2>
-        <div class="admin-panel-meta">Assign a participant to an institution and register them for an event.</div>
+        <div class="admin-panel-meta">Assign Participant, Register for Events</div>
       </div>
 
-      <form method="POST" action="{{ url_for('admin_views.admin_participants_create') }}" class="admin-form">
-        <div class="inst-form-grid-4">
+      <form method="POST" action="{{ url_for('admin_views.admin_participants_create') }}" class="admin-form participant-form">
+
+        <div class="participant-grid">
+
           <div class="admin-form-row">
             <label>First Name</label>
             <input class="admin-input" type="text" name="firstName" required>
@@ -95,8 +97,7 @@
 
           <div class="admin-form-row">
             <label>Gender</label>
-            <!-- IMPORTANT: no browser-default (so Materialize can style it) -->
-            <select name="gender" class="admin-input" required>
+            <select name="gender" class="admin-input browser-default" required>
               <option value="" selected disabled>Choose</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -108,12 +109,10 @@
             <label>Date of Birth</label>
             <input class="admin-input" type="date" name="dateOfBirth" required>
           </div>
-        </div>
 
-        <div class="inst-form-grid-3">
           <div class="admin-form-row">
             <label>Institution</label>
-            <select name="institutionID" class="admin-input" required>
+            <select name="institutionID" class="admin-input browser-default" required>
               <option value="" selected disabled>Select institution</option>
               {% for inst in institutions %}
                 <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
@@ -121,91 +120,110 @@
             </select>
           </div>
 
-          <div class="admin-form-row">
-            <label>Events Registered For</label>
-              <select name="eventIDs" class="admin-input" multiple required>
-                {% for e in events %}
-                  <option value="{{ e.eventID }}">{{ e.eventName }}</option>
-                {% endfor %}
-              </select>
-              <small style="color:#9e9e9e;">Hold Ctrl (Windows) / Cmd (Mac) to select multiple.</small>
+          <div class="admin-form-row events-checkbox-group">
+            <label>REGISTER FOR EVENTS</label>
+
+            <div class="events-checkbox-grid">
+
+              {% for e in events %}
+              <label class="event-checkbox">
+                <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
+                <span>{{ e.eventName }}</span>
+              </label>
+              {% endfor %}
+
+            </div>
+
           </div>
 
           <div class="admin-form-row">
             <label>Participant Location</label>
             <input class="admin-input" type="text" name="location" required placeholder="e.g. Chaguanas">
           </div>
+
         </div>
 
         <div class="admin-form-actions">
-          <button class="dash-card-btn btn-blue" type="submit">
+          <button class="dash-card-btn btn-purple participant-btn" type="submit">
             <i class="material-icons" style="font-size:16px;">person_add</i>
             Add Participant
           </button>
         </div>
+
       </form>
     </div>
 
   </div>
 
-  <!-- ================= DIRECTORY TABLE ================= -->
-  <div class="admin-panel">
-    <div class="admin-panel-head split">
+  <!-- ================= DIRECTORY ================= -->
+  <p class="section-label" style="margin-top:22px;">Directory</p>
+
+  <div class="dir-card">
+
+    <div class="dir-card-head">
       <div>
-        <h2>Directory</h2>
-        <div class="admin-panel-meta">Search and filter institutions + participants.</div>
+        <div class="dir-card-title">Directory</div>
+        <div class="dir-card-sub">Search, sort, and filter institutions + participants.</div>
       </div>
 
-      <div class="inst-table-controls">
-        <input id="dirSearch" class="admin-search" type="text" placeholder="Search by institution, participant, gender, location, event...">
+      <div class="dir-controls">
+        <input id="dirSearch" class="dir-search" type="text"
+              placeholder="Search institution, participant, gender, location, event...">
 
-        <select id="dirSort" class="admin-range">
-          <option value="az" selected>Participant A → Z</option>
-          <option value="za">Participant Z → A</option>
-        </select>
+        <div class="dir-sortbox">
+          <span class="dir-sortlabel">Sort</span>
+          <select id="dirSort" class="dir-select">
+            <option value="az" selected>Participant A → Z</option>
+            <option value="za">Participant Z → A</option>
+          </select>
+        </div>
 
-        <select id="dirInstFilter" class="admin-range">
-          <option value="" selected>All institutions</option>
-          {% for inst in institutions %}
-            <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
-          {% endfor %}
-        </select>
+        <div class="dir-sortbox">
+          <span class="dir-sortlabel">Institution</span>
+          <select id="dirInstFilter" class="dir-select">
+            <option value="" selected>All</option>
+            {% for inst in institutions %}
+              <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-        <select id="dirEventFilter" class="admin-range">
-          <option value="" selected>All events</option>
-          {% for e in events %}
-            <option value="{{ e.eventID }}">{{ e.eventName }}</option>
-          {% endfor %}
-        </select>
+        <div class="dir-sortbox">
+          <span class="dir-sortlabel">Event</span>
+          <select id="dirEventFilter" class="dir-select">
+            <option value="" selected>All</option>
+            {% for e in events %}
+              <option value="{{ e.eventID }}">{{ e.eventName }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
     </div>
 
-    <div class="admin-table-wrap">
-      <table class="admin-table" id="dirTable">
+    <div class="dir-table-wrap">
+      <table class="dir-table" id="dirTable">
         <thead>
           <tr>
             <th style="width:220px;">Institution</th>
-            <th style="width:180px;">Institution Location</th>
+            <th style="width:180px;">Inst. Location</th>
             <th>Participant</th>
             <th style="width:110px;">Gender</th>
             <th style="width:140px;">DOB</th>
             <th style="width:180px;">Participant Location</th>
-            <th style="width:220px;">Event</th>
+            <th style="width:260px;">Events</th>
           </tr>
         </thead>
 
         <tbody id="dirBody">
           {% if (participants or [])|length == 0 %}
             <tr>
-              <td colspan="7" style="color:#9e9e9e; font-weight:700;">No participants yet.</td>
+              <td colspan="7" class="dir-empty">No participants yet.</td>
             </tr>
           {% else %}
             {% for p in participants %}
-              {# robust institution lookup from relationship #}
               {% set instName = (p.institution.insName if p.institution is defined and p.institution else '') %}
               {% set instLoc  = (p.institution.insLocation if p.institution is defined and p.institution else '') %}
 
-              {# event display: will show '-' until you actually store event on the participant #}
               {% set evNames = (p.events | map(attribute='eventName') | list) if p.events else [] %}
               {% set evIds = (p.events | map(attribute='eventID') | list) if p.events else [] %}
               {% set evNamesText = evNames | join(', ') if evNames|length else '-' %}
@@ -215,23 +233,32 @@
                   data-inst-id="{{ p.institutionID }}"
                   data-event-ids="{{ evIdsText }}"
                   data-name="{{ ((p.firstName ~ ' ' ~ p.lastName)|lower) }}"
-                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evName)|lower) }}">
-                <td style="font-weight:800;">{{ instName }}</td>
+                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evNamesText)|lower) }}">
+                <td class="dir-strong">{{ instName }}</td>
                 <td>{{ instLoc }}</td>
-                <td style="font-weight:700;">{{ p.firstName }} {{ p.lastName }}</td>
+                <td class="dir-strong">{{ p.firstName }} {{ p.lastName }}</td>
                 <td>{{ p.gender }}</td>
-                <td>{{ p.dateOfBirth }}</td>
+                <td>
+                  <span class="dir-chip">{{ p.dateOfBirth }}</span>
+                </td>
                 <td>{{ p.location }}</td>
-                <td>{{ evNamesText }}</td>
+                <td>
+                  {% if evNames|length %}
+                    {% for name in evNames %}
+                      <span class="dir-chip dir-chip-purple">{{ name }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="dir-muted">-</span>
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
           {% endif %}
         </tbody>
       </table>
     </div>
-  </div>
 
-</div>
+  </div>
 
 <script>
   // ---------- Toasts ----------
@@ -245,7 +272,7 @@
 
   // ---------- Materialize selects ----------
   document.addEventListener('DOMContentLoaded', function () {
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll('select:not(.browser-default)');
     if (window.M && M.FormSelect) M.FormSelect.init(selects);
   });
 
@@ -255,24 +282,6 @@
   const dirInstFilter = document.getElementById('dirInstFilter');
   const dirEventFilter = document.getElementById('dirEventFilter');
   const dirBody = document.getElementById('dirBody');
-
-  function applyDirFilters(){
-    const q = (dirSearch?.value || '').trim().toLowerCase();
-    const instId = (dirInstFilter?.value || '').trim();
-    const eventId = (dirEventFilter?.value || '').trim();
-
-    document.querySelectorAll('.dir-row').forEach(row => {
-      const blob = row.getAttribute('data-search') || '';
-      const rowInst = row.getAttribute('data-inst-id') || '';
-      const rowEvent = row.getAttribute('data-event-id') || '';
-
-      const matchesQ = !q || blob.includes(q);
-      const matchesInst = !instId || rowInst === instId;
-      const matchesEvent = !eventId || rowEvent === eventId;
-
-      row.style.display = (matchesQ && matchesInst && matchesEvent) ? '' : 'none';
-    });
-  }
 
   function applyDirFilters(){
     const q = (dirSearch?.value || '').trim().toLowerCase();
@@ -294,6 +303,20 @@
 
       row.style.display = (matchesQ && matchesInst && matchesEvent) ? '' : 'none';
     });
+  }
+
+  function applyDirSort(){
+    const mode = dirSort?.value || 'az';
+    if (!dirBody) return;
+
+    const rows = Array.from(dirBody.querySelectorAll('.dir-row'));
+    rows.sort((a,b) => {
+      const an = a.getAttribute('data-name') || '';
+      const bn = b.getAttribute('data-name') || '';
+      return (mode === 'za') ? bn.localeCompare(an) : an.localeCompare(bn);
+    });
+
+    rows.forEach(r => dirBody.appendChild(r));
   }
 
   if (dirSearch) dirSearch.addEventListener('input', applyDirFilters);
