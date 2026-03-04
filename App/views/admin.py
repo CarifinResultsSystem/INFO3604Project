@@ -253,19 +253,23 @@ def admin_events_delete(event_id):
 @admin_views.route("/admin/events/<int:event_id>/update", methods=["POST"])
 @jwt_required()
 def admin_events_update(event_id):
-    eventName     = request.form.get("eventName", "")
-    eventDate     = request.form.get("eventDate", "")
-    eventTime     = request.form.get("eventTime", "")
-    eventLocation = request.form.get("eventLocation", "")
-    seasonID      = request.form.get("seasonID", "")
+    eventName     = request.form.get("eventName", "").strip()
+    eventDate     = request.form.get("eventDate", "").strip()
+    eventTime     = request.form.get("eventTime", "").strip()
+    eventLocation = request.form.get("eventLocation", "").strip()
+    seasonID      = request.form.get("seasonID", "").strip()
+
+    # If no seasonID passed, preserve the existing one
+    if not seasonID:
+        existing = db.session.get(Event, event_id)
+        if existing and existing.seasonID:
+            seasonID = str(existing.seasonID)
 
     ev, err = update_event(event_id, eventName, eventDate, eventTime, eventLocation, seasonID)
-    if err:
-        flash(err, "error")
-    else:
-        flash("Event updated.", "success")
 
-    return redirect(url_for("admin_views.admin_events"))
+    if err:
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True})
 
 
 @admin_views.route("/admin/institutions", methods=["GET", "POST"])
