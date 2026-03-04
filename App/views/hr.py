@@ -55,3 +55,18 @@ def hr_dashboard():
         institutions_per_year  = get_institutions_per_year(),
         latest_report          = get_latest_report(current_user.userID),
     )
+    
+
+# REPORTS LIST
+@hr_views.route("/hr/reports")
+@hr_required
+def hr_reports():
+    reports = get_all_reports(current_user.userID)
+    return render_template("hr/hr_reports.html", reports=reports)
+
+# REPORT PREVIEW 
+@hr_views.route("/hr/reports/preview")
+@hr_required
+def hr_report_preview():
+    data = build_report_data()
+    return jsonify(data)
