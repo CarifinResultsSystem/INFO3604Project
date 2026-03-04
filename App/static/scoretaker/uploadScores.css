@@ -1,11 +1,6 @@
-/* ============================================================
-   UPLOAD SCORES PAGE  —  scores_upload.css
-   Pairs with the CariFin purple theme
-   ============================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 
-/* ---------- page shell ---------- */
+/* Page shell */
 .upload-root {
   min-height: 100vh;
   display: flex;
@@ -16,7 +11,7 @@
   font-family: 'DM Sans', sans-serif;
 }
 
-/* ---------- card ---------- */
+/* Card */
 .upload-card {
   width: 100%;
   max-width: 680px;
@@ -28,7 +23,7 @@
   overflow: hidden;
 }
 
-/* ---------- card header ---------- */
+/* Card header */
 .upload-card-header {
   background: linear-gradient(135deg, #6a1b9a 0%, #9c27b0 60%, #ab47bc 100%);
   padding: 36px 40px 32px;
@@ -92,12 +87,12 @@
   margin: 0;
 }
 
-/* ---------- card body ---------- */
+/* Card body */
 .upload-card-body {
   padding: 36px 40px 40px;
 }
 
-/* ---------- accepted formats badge strip ---------- */
+/* Accepted formats badge strip */
 .format-badges {
   display: flex;
   flex-wrap: wrap;
@@ -128,7 +123,7 @@
   font-size: 14px;
 }
 
-/* ---------- drop zone ---------- */
+/* Drop zone */
 .drop-zone {
   border: 2.5px dashed #ce93d8;
   border-radius: 16px;
@@ -195,7 +190,7 @@
   text-underline-offset: 2px;
 }
 
-/* ---------- file list ---------- */
+/* File list */
 .file-list {
   display: flex;
   flex-direction: column;
@@ -275,7 +270,7 @@
   font-size: 18px;
 }
 
-/* ---------- action buttons ---------- */
+/* Action buttons */
 .upload-actions {
   display: flex;
   gap: 12px;
@@ -338,7 +333,7 @@
   color: #6a1b9a;
 }
 
-/* ---------- responsive ---------- */
+/* Responsive */
 @media (max-width: 600px) {
   .upload-card-header,
   .upload-card-body {

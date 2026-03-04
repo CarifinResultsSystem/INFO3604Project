@@ -24,9 +24,14 @@
 
     <!-- CARD HEADER -->
     <div class="dir-card-head">
+      <div>
+        <div class="dir-card-title">Participant Directory</div>
+        <div class="dir-card-sub" id="resultCount"></div>
+      </div>
+
       <div class="dir-controls">
 
-        <!-- Season  -->
+        <!-- Season -->
         <div class="dir-sortbox">
           <i class="material-icons" style="font-size:18px;color:#7b1fa2">calendar_today</i>
           <span class="dir-sortlabel">Season:</span>
@@ -48,7 +53,7 @@
           </select>
         </div>
 
-        <!-- Event  -->
+        <!-- Event -->
         <div class="dir-sortbox">
           <i class="material-icons" style="font-size:18px;color:#7b1fa2">emoji_events</i>
           <span class="dir-sortlabel">Event:</span>
@@ -65,8 +70,6 @@
             <option value="all">All</option>
           </select>
         </div>
-
-        <div class="dir-card-sub" id="resultCount"></div>
 
         <!-- Search -->
         <input
@@ -89,6 +92,7 @@
             <th onclick="sortTable(this, 1)">Event</th>
             <th onclick="sortTable(this, 2)">Location</th>
             <th onclick="sortTable(this, 3)">Institution</th>
+            <th onclick="sortTable(this, 4)">Season</th>
           </tr>
         </thead>
         <tbody id="participantBody">
@@ -113,6 +117,7 @@
             <td><span class="event-tag">{{ event.eventName }}</span></td>
             <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
             <td><span class="institution-tag">{{ inst_name }}</span></td>
+            <td></td>
           </tr>
           {% else %}
           <tr
@@ -130,6 +135,7 @@
             <td><span class="event-tag">—</span></td>
             <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
             <td><span class="institution-tag">{{ inst_name }}</span></td>
+            <td></td>
           </tr>
           {% endfor %}
           {% else %}
@@ -147,7 +153,7 @@
     <!-- FOOTER -->
     <div class="p-table-footer" id="tableFooter"></div>
 
-  </div>
+  </div><!-- /.dir-card -->
 
 </div>
 
@@ -231,7 +237,7 @@
     headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
     th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
 
-    const dataKeys = ['name', 'event', 'location', 'institution'];
+    const dataKeys = ['name', 'event', 'location', 'institution', 'season'];
     const key = dataKeys[colIndex];
 
     rows.sort((a, b) => {
