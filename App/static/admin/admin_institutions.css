@@ -1,0 +1,306 @@
+/* =========================================
+   Institutions & Participants - polish layer
+   Put in: static/admin/institutions.css
+   ========================================= */
+
+/* Page breathing room */
+.admin-root {
+  padding-bottom: 48px;
+}
+
+/* Make columns feel more balanced + airy */
+.admin-two-col {
+  gap: 22px;
+  align-items: start;
+}
+
+/* Panels: slightly “lifted” look */
+.admin-panel {
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+}
+
+/* Panel header: align title/meta nicer */
+.admin-panel-head h2 {
+  margin-bottom: 4px;
+}
+
+.admin-panel-meta {
+  line-height: 1.35;
+}
+
+/* Stats: tighter + modern */
+.admin-stat-grid {
+  margin-top: 8px;
+  gap: 18px;
+}
+
+.admin-stat-card {
+  border-radius: 16px;
+  padding: 18px 16px;
+}
+
+.stat-label {
+  font-weight: 700;
+  color: #555;
+  letter-spacing: 0.01em;
+}
+
+.stat-value {
+  margin-top: 6px;
+}
+
+/* ---------- Forms polish ---------- */
+
+.admin-form-row label {
+  font-weight: 800;
+  color: #2c2c2c;
+}
+
+.admin-input {
+  height: 44px;
+  border-radius: 12px;
+}
+
+/* Make <select> look consistent across browsers */
+.admin-form select.admin-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  padding-right: 38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #777 50%),
+    linear-gradient(135deg, #777 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 18px,
+    calc(100% - 12px) 18px,
+    calc(100% - 44px) 0.6em;
+  background-size:
+    6px 6px,
+    6px 6px,
+    1px 2.4em;
+  background-repeat: no-repeat;
+}
+
+/* Form grid spacing */
+.admin-form-grid {
+  gap: 12px 18px;
+}
+
+/* Action buttons area */
+.admin-form-actions {
+  margin-top: 6px;
+}
+
+/* Make main CTA buttons align and feel consistent */
+.dash-card-btn {
+  border-radius: 12px;
+  padding: 11px 16px;
+}
+
+/* ---------- Directory (right side) ---------- */
+
+#instSearch.admin-search {
+  width: 320px;
+  border-radius: 12px;
+}
+
+/* Accordion: nicer open/hover states */
+.admin-accordion {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Each institution item */
+.acc-item {
+  transition: background 0.2s ease;
+}
+
+.acc-head {
+  padding: 14px 14px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.acc-head:hover {
+  background: #f7f7f7;
+}
+
+/* Open state highlight */
+.acc-item.open .acc-head {
+  background: rgba(123, 31, 162, 0.06);
+}
+
+/* Caret look/align */
+.acc-caret {
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+/* Body spacing */
+.acc-body {
+  padding: 14px 14px 16px;
+}
+
+/* Subtitle inside accordion */
+.acc-subtitle {
+  margin: 4px 0 12px;
+  color: #333;
+}
+
+/* ---------- Table polish ---------- */
+
+.admin-table-wrap {
+  border-radius: 14px;
+}
+
+/* A little more padding + readability */
+.admin-table th,
+.admin-table td {
+  padding: 12px 12px;
+}
+
+/* Slight zebra stripes */
+.admin-table tbody tr:nth-child(odd) {
+  background: #fcfcfc;
+}
+
+.admin-table tbody tr:hover {
+  background: #f6f6f6;
+}
+
+/* Make headers feel stronger */
+.admin-table thead th {
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #444;
+}
+
+/* ---------- Toast positioning ---------- */
+
+#toast-container {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 99999;
+  display: grid;
+  gap: 10px;
+  max-width: min(420px, calc(100% - 36px));
+}
+
+/* Make toast cleaner */
+.toast {
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+}
+
+/* ---------- Responsive improvements ---------- */
+@media (max-width: 980px) {
+  #instSearch.admin-search {
+    width: 100%;
+  }
+
+  .admin-panel {
+    padding: 16px 14px 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .stat-value {
+    font-size: 2.6rem;
+  }
+
+  .admin-table {
+    font-size: 0.88rem;
+  }
+}
+
+/* Page-specific layout polish */
+.inst-top-stats{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 6px;
+  margin-bottom: 18px;
+}
+
+.inst-forms-stack{
+  display: grid;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+/* Make the forms feel more “full width” and aligned */
+.inst-form-grid-2{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.inst-form-grid-4{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.inst-form-grid-3{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.admin-form-row{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-row label{
+  font-weight: 700;
+  color: #333;
+}
+
+/* Make selects look consistent */
+.admin-input,
+select.admin-input{
+  height: 44px;
+  border-radius: 12px;
+}
+
+/* Directory controls */
+.inst-table-controls{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inst-table-controls .admin-search{
+  width: min(420px, 100%);
+}
+
+/* Table readability */
+#dirTable th{
+  white-space: nowrap;
+}
+
+#dirTable td{
+  vertical-align: middle;
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .inst-form-grid-4{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inst-form-grid-3{ grid-template-columns: 1fr; }
+  .inst-form-grid-2{ grid-template-columns: 1fr; }
+  .inst-top-stats{ grid-template-columns: 1fr; }
+}
