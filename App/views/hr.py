@@ -151,3 +151,20 @@ def hr_mark_read(report_id):
 def hr_mark_all_read():
     mark_all_reports_read(current_user.userID)
     return jsonify({"success": True})
+
+# DELETE SINGLE REPORT
+@hr_views.route("/hr/reports/<int:report_id>/delete", methods=["POST"])
+@hr_required
+def hr_delete_report(report_id):
+    report = get_report(report_id)
+    if not report or report.generated_by != current_user.userID:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    success = delete_report(report_id)
+    return jsonify({"success": success})
+
+# DELETE ALL REPORTS
+@hr_views.route("/hr/reports/delete-all", methods=["POST"])
+@hr_required
+def hr_delete_all():
+    delete_all_reports(current_user.userID)
+    return jsonify({"success": True})
