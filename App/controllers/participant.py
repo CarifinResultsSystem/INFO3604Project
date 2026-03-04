@@ -1,10 +1,10 @@
 from sqlite3 import IntegrityError
 from App.database import db
-from App.models import Participant
+from App.models import Participant, Event, Institution
 
 
 # Create Participant
-def create_participant(participantID, firstName, lastName, gender, dateOfBirth, location, institutionID):
+def create_participant(participantID, firstName, lastName, gender, dateOfBirth, location, institutionID, eventIDs=None):
     if not firstName or not lastName:
         raise ValueError("First name and last name are required")
 
@@ -17,6 +17,12 @@ def create_participant(participantID, firstName, lastName, gender, dateOfBirth, 
         location=location,
         institutionID=institutionID
     )
+
+    eventIDs = eventIDs or []
+    for eid in eventIDs:
+        ev = db.session.get(Event, int(eid))
+        if ev:
+            newParticipant.events.append(ev)
 
     try:
         db.session.add(newParticipant)
