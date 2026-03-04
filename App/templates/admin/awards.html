@@ -3,54 +3,92 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_awards.css') }}">
 
-<div class="dash-root admin-root">
+<div class="dash-root admin-root awards-root">
 
   <div class="dash-heading">
     <h1>Awards</h1>
+    <span class="dash-subtitle">Top Institutions & Event Winners</span>
   </div>
 
-  <div class="admin-panel">
-    <div class="admin-panel-head center">
-      <h2>Overall Institution Winners</h2>
+  <!-- ================= OVERALL PODIUM ================= -->
+  <div class="awards-overall">
+
+    <div class="admin-panel awards-panel">
+      <div class="admin-panel-head center">
+        <h2>Overall Institution Winners</h2>
+      </div>
+
+      <div class="awards-podium">
+
+        <div class="podium-place second">
+          <div class="podium-medal silver">2</div>
+          <div class="podium-name">Institution #2</div>
+        </div>
+
+        <div class="podium-place first">
+          <div class="podium-medal gold">1</div>
+          <div class="podium-name">Institution #1</div>
+        </div>
+
+        <div class="podium-place third">
+          <div class="podium-medal bronze">3</div>
+          <div class="podium-name">Institution #3</div>
+        </div>
+
+      </div>
     </div>
 
-    <ol class="admin-winner-list">
-      <li>Institution #1</li>
-      <li>Institution #2</li>
-      <li>Institution #3</li>
-    </ol>
   </div>
 
-  <div class="admin-winner-grid">
-    <div class="admin-panel">
-      <div class="admin-panel-head center"><h2>Event #1 Winners</h2></div>
-      <ol class="admin-winner-list">
-        <li>Institution #1</li><li>Institution #2</li><li>Institution #3</li>
+
+  <!-- ================= EVENT WINNERS ================= -->
+
+  <div class="awards-grid">
+
+    <div class="admin-panel awards-panel">
+      <div class="admin-panel-head center"><h2>Event #1</h2></div>
+
+      <ol class="awards-list">
+        <li class="gold">Institution #1</li>
+        <li class="silver">Institution #2</li>
+        <li class="bronze">Institution #3</li>
       </ol>
     </div>
 
-    <div class="admin-panel">
-      <div class="admin-panel-head center"><h2>Event #2 Winners</h2></div>
-      <ol class="admin-winner-list">
-        <li>Institution #1</li><li>Institution #2</li><li>Institution #3</li>
+    <div class="admin-panel awards-panel">
+      <div class="admin-panel-head center"><h2>Event #2</h2></div>
+
+      <ol class="awards-list">
+        <li class="gold">Institution #1</li>
+        <li class="silver">Institution #2</li>
+        <li class="bronze">Institution #3</li>
       </ol>
     </div>
 
-    <div class="admin-panel">
-      <div class="admin-panel-head center"><h2>Event #3 Winners</h2></div>
-      <ol class="admin-winner-list">
-        <li>Institution #1</li><li>Institution #2</li><li>Institution #3</li>
+    <div class="admin-panel awards-panel">
+      <div class="admin-panel-head center"><h2>Event #3</h2></div>
+
+      <ol class="awards-list">
+        <li class="gold">Institution #1</li>
+        <li class="silver">Institution #2</li>
+        <li class="bronze">Institution #3</li>
       </ol>
     </div>
 
-    <div class="admin-panel">
-      <div class="admin-panel-head center"><h2>Event #4 Winners</h2></div>
-      <ol class="admin-winner-list">
-        <li>Institution #1</li><li>Institution #2</li><li>Institution #3</li>
+    <div class="admin-panel awards-panel">
+      <div class="admin-panel-head center"><h2>Event #4</h2></div>
+
+      <ol class="awards-list">
+        <li class="gold">Institution #1</li>
+        <li class="silver">Institution #2</li>
+        <li class="bronze">Institution #3</li>
       </ol>
     </div>
+
   </div>
 
 </div>
+
 {% endblock %}
