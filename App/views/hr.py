@@ -137,3 +137,17 @@ def hr_report_file(report_id):
     if not report.filepath:
         abort(404)
     return send_file(report.filepath, mimetype="application/pdf")
+
+# MARK SINGLE REPORT AS READ 
+@hr_views.route("/hr/reports/<int:report_id>/read", methods=["POST"])
+@hr_required
+def hr_mark_read(report_id):
+    success = mark_report_read(report_id)
+    return jsonify({"success": success})
+
+# MARK ALL REPORTS AS READ 
+@hr_views.route("/hr/reports/mark-all-read", methods=["POST"])
+@hr_required
+def hr_mark_all_read():
+    mark_all_reports_read(current_user.userID)
+    return jsonify({"success": True})
