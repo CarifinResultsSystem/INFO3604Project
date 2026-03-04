@@ -152,44 +152,71 @@ def admin_events():
 @admin_views.route("/admin/events/create", methods=["POST"])
 @jwt_required()
 def admin_events_create():
-    eventName     = request.form.get("eventName", "")
+    eventName     = request.form.get("eventName", "").strip()
     eventDate     = request.form.get("eventDate", "")
     eventTime     = request.form.get("eventTime", "")
     eventLocation = request.form.get("eventLocation", "")
     seasonID      = request.form.get("seasonID", "")
 
+    # Check for duplicate name within the same season
+    if seasonID:
+        duplicate = Event.query.filter(
+            func.lower(Event.eventName) == eventName.lower(),
+            Event.seasonID == int(seasonID)
+        ).first()
+        if duplicate:
+            flash(f'An event named "{eventName}" already exists in this season.', "error")
+            return redirect(url_for("admin_views.admin_events"))
+
     ev, err = create_event(eventName, eventDate, eventTime, eventLocation, seasonID)
     if err:
         flash(err, "error")
-    else:
-        flash(f"Event created: {ev.eventName}", "success")
+        return redirect(url_for("admin_views.admin_events"))
 
-        # Auto-duplicate into every subsequent season (ordered by year)
-        try:
-            current_season = Season.query.get(int(seasonID))
-            if current_season and ev.eventDate:
-                future_seasons = Season.query.filter(
-                    Season.year > current_season.year
-                ).order_by(Season.year.asc()).all()
+    flash(f"Event created: {ev.eventName}", "success")
 
-                for next_season in future_seasons:
-                    year_diff = next_season.year - current_season.year
-                    try:
-                        next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff)
-                    except ValueError:
-                        # Feb 29 edge case — fall back to Feb 28
-                        next_date = ev.eventDate.replace(
-                            year=ev.eventDate.year + year_diff, day=28
-                        )
-                    create_event(
-                        ev.eventName,
-                        next_date.isoformat(),
-                        ev.time.strftime("%H:%M") if ev.time else "",
-                        ev.location or "",
-                        str(next_season.seasonID)
-                    )
-        except Exception:
-            pass  # Never block the primary creation
+    # Auto-duplicate into every future season 
+    try:
+        current_season = db.session.get(Season, int(seasonID))
+        if not current_season or not ev.eventDate:
+            return redirect(url_for("admin_views.admin_events"))
+
+        future_seasons = Season.query.filter(
+            Season.year > current_season.year
+        ).order_by(Season.year.asc()).all()
+
+        for next_season in future_seasons:
+            # Skip if a same-named event already exists in that season
+            already_exists = Event.query.filter(
+                func.lower(Event.eventName) == eventName.lower(),
+                Event.seasonID == next_season.seasonID
+            ).first()
+            if already_exists:
+                continue
+
+            year_diff = next_season.year - current_season.year
+            try:
+                next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff)
+            except ValueError:
+                next_date = ev.eventDate.replace(
+                    year=ev.eventDate.year + year_diff, day=28
+                )
+
+            time_str = ev.time.strftime("%H:%M") if ev.time else "00:00"
+            dup, dup_err = create_event(
+                ev.eventName,
+                next_date.isoformat(),
+                time_str,
+                ev.location or "",
+                str(next_season.seasonID)
+            )
+            if dup_err:
+                flash(f"Could not duplicate into season {next_season.year}: {dup_err}", "error")
+            else:
+                flash(f"Duplicated into season {next_season.year}.", "success")
+
+    except Exception as e:
+        flash(f"Duplication error: {str(e)}", "error")
 
     return redirect(url_for("admin_views.admin_events"))
 
