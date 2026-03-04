@@ -11,3 +11,4 @@ from .pointsRules import *
 from .automatedResult import *
 from .participant import *
 from .judge import *
+from .hr import *

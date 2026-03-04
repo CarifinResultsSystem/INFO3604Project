@@ -1,0 +1,233 @@
+{% extends "layout.html" %}
+
+{% block title %}HR | Reports{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='hr/reports.css') }}">
+
+<div class="hr-root">
+
+  <div class="hr-heading">
+    <h1>Reports</h1>
+    <span class="hr-subtitle">{{ reports | length }} file{{ 's' if reports | length != 1 else '' }}</span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="reports-card">
+    {% if reports %}
+    <table class="reports-table">
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Date Generated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+        <tr id="report-row-{{ report.reportID }}">
+
+          <!-- File name -->
+          <td>
+            <div class="file-name-cell">
+              <div class="file-icon"><i class="material-icons">description</i></div>
+              <span class="file-name-text">
+                {{ report.filename }}
+                {% if not report.is_read %}<span class="unread-dot" title="Unread"></span>{% endif %}
+              </span>
+            </div>
+          </td>
+
+          <!-- Date -->
+          <td class="date-cell">
+            {{ report.generated_at.strftime('%d %B, %Y %I:%M %p') }}
+          </td>
+
+          <!-- Actions -->
+          <td>
+            <div class="action-group">
+              <button class="action-link link-view"
+                      onclick="viewReport({{ report.reportID }}, '{{ report.filename }}', '{{ url_for('hr_views.hr_report_file', report_id=report.reportID) }}')"
+                      title="View">
+                <i class="material-icons">visibility</i> View
+              </button>
+
+              <button class="action-link link-read {% if report.is_read %}already-read{% endif %}"
+                      id="read-btn-{{ report.reportID }}"
+                      onclick="markRead({{ report.reportID }})"
+                      {% if report.is_read %}disabled title="Already marked as read"{% endif %}>
+                <i class="material-icons">done</i>
+                {% if report.is_read %}Read{% else %}Mark as Read{% endif %}
+              </button>
+
+              <button class="action-link link-delete"
+                      onclick="deleteReport({{ report.reportID }}, '{{ report.filename }}')"
+                      title="Delete">
+                <i class="material-icons">delete_outline</i> Delete
+              </button>
+            </div>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="material-icons">folder_open</i>
+      <p>No reports have been generated yet.<br>Head back to the dashboard to generate your first one.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if reports %}
+  <div class="bulk-bar">
+    <button class="hr-btn btn-outline" onclick="markAllRead()">
+      <i class="material-icons">done_all</i>
+      Mark All as Read
+    </button>
+    <button class="hr-btn btn-red-outline" onclick="deleteAll()">
+      <i class="material-icons">delete_sweep</i>
+      Delete All
+    </button>
+  </div>
+  {% endif %}
+
+</div>
+
+
+<!-- ── VIEW REPORT MODAL ── -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <p class="modal-title">Report</p>
+        <p class="modal-file-name" id="view-modal-filename">—</p>
+      </div>
+      <button class="modal-close" onclick="closeViewModal()">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="pdf-embed" id="pdf-embed-area">
+        <i class="material-icons">picture_as_pdf</i>
+        <p>PDF preview will appear here once generated.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="hr-btn btn-outline" onclick="closeViewModal()" style="padding:8px 16px;font-size:0.84rem;">Close</button>
+      <a class="hr-btn btn-purple" id="view-modal-download" href="#" download style="padding:8px 18px;font-size:0.84rem;background:linear-gradient(135deg,#7b1fa2,#9c27b0);">
+        <i class="material-icons" style="font-size:16px;">download</i> Download
+      </a>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  /* ── VIEW MODAL ── */
+  function viewReport(id, filename, fileUrl) {
+    document.getElementById('view-modal-filename').textContent = filename;
+    document.getElementById('view-modal-download').href = fileUrl;
+
+    const embedArea = document.getElementById('pdf-embed-area');
+    if (fileUrl && fileUrl !== '#') {
+      embedArea.innerHTML = `<iframe src="${fileUrl}" style="width:100%;height:420px;border:none;border-radius:10px;"></iframe>`;
+    }
+
+    document.getElementById('view-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Auto mark as read
+    markRead(id);
+  }
+
+  function closeViewModal() {
+    document.getElementById('view-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('view-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeViewModal();
+  });
+
+  /* ── SHARED FETCH HELPER ── */
+  function postJSON(url) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    }).then(r => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    });
+  }
+
+  /* ── MARK AS READ ── */
+  function markRead(id) {
+    postJSON(`/hr/reports/${id}/read`)
+    .then(data => {
+      if (data.success) {
+        const btn = document.getElementById(`read-btn-${id}`);
+        if (btn) {
+          btn.innerHTML = '<i class="material-icons">done</i> Read';
+          btn.classList.add('already-read');
+          btn.disabled = true;
+        }
+        const row = document.getElementById(`report-row-${id}`);
+        if (row) {
+          const dot = row.querySelector('.unread-dot');
+          if (dot) dot.remove();
+        }
+      }
+    }).catch(() => {});
+  }
+
+  /* ── MARK ALL READ ── */
+  function markAllRead() {
+    postJSON('/hr/reports/mark-all-read')
+    .then(() => {
+      document.querySelectorAll('.unread-dot').forEach(d => d.remove());
+      document.querySelectorAll('[id^="read-btn-"]').forEach(btn => {
+        btn.innerHTML = '<i class="material-icons">done</i> Read';
+        btn.classList.add('already-read');
+        btn.disabled = true;
+      });
+      M.toast({ html: 'All reports marked as read.', classes: 'green darken-2' });
+    })
+    .catch(() => M.toast({ html: 'Something went wrong.', classes: 'red darken-2' }));
+  }
+
+  /* ── DELETE SINGLE ── */
+  function deleteReport(id, filename) {
+    if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return;
+    postJSON(`/hr/reports/${id}/delete`)
+    .then(data => {
+      if (data.success) {
+        const row = document.getElementById(`report-row-${id}`);
+        if (row) row.remove();
+        M.toast({ html: 'Report deleted.', classes: 'grey darken-2' });
+      } else {
+        M.toast({ html: 'Could not delete report.', classes: 'red darken-2' });
+      }
+    })
+    .catch(err => {
+      console.error('Delete failed:', err);
+      M.toast({ html: `Delete failed (${err.message})`, classes: 'red darken-2' });
+    });
+  }
+
+  /* ── DELETE ALL ── */
+  function deleteAll() {
+    if (!confirm('Delete ALL reports? This cannot be undone.')) return;
+    postJSON('/hr/reports/delete-all')
+    .then(data => {
+      if (data.success) location.reload();
+    })
+    .catch(err => {
+      console.error('Delete all failed:', err);
+      M.toast({ html: `Delete failed (${err.message})`, classes: 'red darken-2' });
+    });
+  }
+</script>
+{% endblock %}

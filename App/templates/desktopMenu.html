@@ -44,9 +44,8 @@
 
   {% elif current_user.role == "hr" %}
 
-    <li><a href="#"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
-    <li><a href="#"><i class="material-icons">assessment</i><span>Reports</span></a></li>
-    <li><a href="#"><i class="material-icons">archive</i><span>Archives</span></a></li>
+    <li><a href="{{ url_for('hr_views.hr_dashboard') }}"><i class="material-icons">dashboard</i><span>Dashboard</span></a></li>
+    <li><a href="{{ url_for('hr_views.hr_reports') }}"><i class="material-icons">assessment</i><span>Reports</span></a></li>
 
     <li><div class="divider-custom"></div></li>
 
