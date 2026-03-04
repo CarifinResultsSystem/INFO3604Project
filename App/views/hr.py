@@ -70,3 +70,18 @@ def hr_reports():
 def hr_report_preview():
     data = build_report_data()
     return jsonify(data)
+
+# GENERATE REPORT 
+@hr_views.route("/hr/reports/generate", methods=["POST"])
+@hr_required
+def hr_generate_report():
+    now = _local_now()
+    season = str(now.year)
+    filename = f"CariFinReport_{season}_{now.strftime('%Y%m%d%H%M%S')}.pdf"
+    report = create_report(
+        filename=filename,
+        generated_by=current_user.userID,
+        season=season,
+        filepath=None,
+    )
+    return jsonify({"success": True, "report_id": report.reportID, "filename": filename})
