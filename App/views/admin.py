@@ -11,6 +11,7 @@ from App.models import User, Event, Institution, PointsRules, Participant
 from App.database import db
 from App.controllers.admin import assignRole
 from App.controllers.event import create_event, delete_event, update_event
+from App.controllers.participant import create_participant 
 
 admin_views = Blueprint(
     "admin_views",
@@ -96,50 +97,36 @@ def admin_create_user():
 
     return redirect(url_for("admin_views.admin_users"))
 
-@admin_views.route("/admin/participants/create", methods=["POST"])
-@jwt_required()
+@admin_views.route('/admin/participants/create', methods=['POST'])
 def admin_participants_create():
-    first = (request.form.get("firstName") or "").strip()
-    last = (request.form.get("lastName") or "").strip()
-    gender = (request.form.get("gender") or "").strip()
-    dob = (request.form.get("dateOfBirth") or "").strip()
-    loc = (request.form.get("location") or "").strip()
-    inst_id = request.form.get("institutionID")
+    try:
+        participantID = str(uuid4())
 
-    event_ids = request.form.getlist("eventIDs")
+        firstName = request.form.get("firstName", "").strip()
+        lastName = request.form.get("lastName", "").strip()
+        gender = request.form.get("gender")
+        dateOfBirth = request.form.get("dateOfBirth")
+        location = request.form.get("location", "").strip()
+        institutionID = request.form.get("institutionID")
 
-    if not (first and last and gender and dob and loc and inst_id and event_ids):
-        flash("Please fill in all fields and select at least one event.", "error")
-        return redirect(url_for("admin_views.admin_institutions"))
+        # ✅ checkboxes -> list of strings
+        eventIDs = request.form.getlist("eventIDs")
 
-    inst = db.session.get(Institution, int(inst_id))
-    if not inst:
-        flash("Selected institution not found.", "error")
-        return redirect(url_for("admin_views.admin_institutions"))
+        create_participant(
+            participantID=participantID,
+            firstName=firstName,
+            lastName=lastName,
+            gender=gender,
+            dateOfBirth=dateOfBirth,
+            location=location,
+            institutionID=institutionID,
+            eventIDs=eventIDs
+        )
 
-    events = Event.query.filter(Event.eventID.in_([int(x) for x in event_ids])).all()
-    if not events:
-        flash("Selected events not found.", "error")
-        return redirect(url_for("admin_views.admin_institutions"))
+        flash("Participant added.", "success")
+    except Exception as e:
+        flash(str(e), "error")
 
-    pid = str(uuid4())
-
-    p = Participant(
-        participantID=pid,
-        firstName=first,
-        lastName=last,
-        gender=gender,
-        dateOfBirth=dob,
-        location=loc,
-        institutionID=int(inst_id),
-    )
-
-    p.events = events
-
-    db.session.add(p)
-    db.session.commit()
-
-    flash(f"Participant added: {first} {last}", "success")
     return redirect(url_for("admin_views.admin_institutions"))
 
 @admin_views.route("/admin/events")
