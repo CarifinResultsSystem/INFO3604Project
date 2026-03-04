@@ -126,3 +126,14 @@ def _stub_pdf(data, season):
         b"trailer<</Size 5/Root 1 0 R>>\n%%EOF"
     )
     return pdf_txt
+
+# SERVE SAVED REPORT FILE 
+@hr_views.route("/hr/reports/<int:report_id>/file")
+@hr_required
+def hr_report_file(report_id):
+    report = get_report(report_id)
+    if not report or report.generated_by != current_user.userID:
+        abort(404)
+    if not report.filepath:
+        abort(404)
+    return send_file(report.filepath, mimetype="application/pdf")
