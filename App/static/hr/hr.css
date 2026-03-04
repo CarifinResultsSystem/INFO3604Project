@@ -39,7 +39,6 @@
   margin: 0 0 12px 2px;
 }
 
-
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -52,11 +51,11 @@
 }
 
 .stat-card {
-  background: #fff;
+  background: #0f0f23 !important;
   border-radius: 16px;
   padding: 24px 22px 20px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 16px rgba(79, 70, 229, 0.12) !important;
+  border: 1px solid rgba(224, 231, 255, 0.15) !important;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -73,44 +72,44 @@
   border-radius: 16px 16px 0 0;
 }
 
-.stat-card.purple::before { background: linear-gradient(90deg, #7b1fa2, #ab47bc); }
-.stat-card.blue::before   { background: linear-gradient(90deg, #1565c0, #42a5f5); }
-.stat-card.green::before  { background: linear-gradient(90deg, #2e7d32, #66bb6a); }
+.stat-card.purple::before { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+.stat-card.blue::before   { background: linear-gradient(90deg, #22d3ee, #2563eb); }
+.stat-card.green::before  { background: linear-gradient(90deg, #34d399, #10b981); }
 
 .stat-card:hover {
-  box-shadow: 0 6px 28px rgba(0,0,0,0.11);
+  box-shadow: 0 10px 36px rgba(15, 15, 35, 0.3);
   transform: translateY(-2px);
 }
 
-.stat-label {
+.stat-card .stat-label {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: #888;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7) !important;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.stat-value {
+.stat-card .stat-value {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 3rem;
   line-height: 1;
-  color: #1a1a1a;
+  color: #ffffff !important;
   letter-spacing: 0.04em;
 }
 
-.stat-meta {
+.stat-card .stat-meta {
   font-size: 0.78rem;
-  color: #bbb;
+  color: rgba(255, 255, 255, 0.45) !important;
   margin-top: 2px;
 }
 
-.stat-icon {
+.stat-card .stat-icon {
   position: absolute;
   right: 20px;
   top: 20px;
-  opacity: 0.08;
+  opacity: 0.12 !important;
   font-size: 52px;
-  color: #7b1fa2;
+  color: #ffffff !important;
 }
 
 .chart-section {
@@ -149,7 +148,7 @@
 .legend-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: #7b1fa2;
+  background: #4f46e5;
   flex-shrink: 0;
 }
 
@@ -215,34 +214,32 @@
 
 .btn-outline {
   background: transparent;
-  border: 1.5px solid #7b1fa2;
-  color: #7b1fa2 !important;
+  border: 1.5px solid #4f46e5;
+  color: #4f46e5 !important;
 }
 
 .btn-outline:hover {
-  background: #f3e5f5;
-  box-shadow: 0 2px 10px rgba(123,31,162,0.15);
+  background: #eef2ff;
+  box-shadow: 0 2px 10px rgba(79,70,229,0.15);
   filter: none;
 }
 
-.btn-purple { background: linear-gradient(135deg, #7b1fa2, #9c27b0); }
-.btn-dark   { background: linear-gradient(135deg, #263238, #455a64); }
+.btn-purple { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.btn-dark   { background: linear-gradient(135deg, #1e1b4b, #312e81); }
 
 .modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(15, 15, 35, 0.7);
   z-index: 2000;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
   padding: 20px;
 }
 
-.modal-overlay.open {
-  display: flex;
-}
+.modal-overlay.open { display: flex; }
 
 .modal-box {
   background: white;
@@ -252,7 +249,7 @@
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+  box-shadow: 0 24px 80px rgba(15, 15, 35, 0.4);
   animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
 }
@@ -289,8 +286,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: #eef2ff;
+  color: #4f46e5;
   border-radius: 20px;
   padding: 3px 10px;
   font-size: 0.78rem;
@@ -308,11 +305,11 @@
   cursor: pointer;
   color: #555;
   font-size: 18px;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
   flex-shrink: 0;
 }
 
-.modal-close:hover { background: #eeeeee; }
+.modal-close:hover { background: #e0e7ff; color: #4f46e5; }
 
 .modal-body {
   overflow-y: auto;
@@ -320,19 +317,17 @@
   flex: 1;
 }
 
-.report-section {
-  margin-bottom: 28px;
-}
+.report-section { margin-bottom: 28px; }
 
 .report-section-title {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 0.95rem;
   letter-spacing: 0.15em;
-  color: #7b1fa2;
+  color: #4f46e5;
   text-transform: uppercase;
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 1.5px solid #f3e5f5;
+  border-bottom: 1.5px solid #e0e7ff;
 }
 
 .report-stat-row {
@@ -378,12 +373,12 @@
 .report-table thead th {
   text-align: left;
   padding: 9px 12px;
-  background: #f8f5fc;
-  color: #7b1fa2;
+  background: #eef2ff;
+  color: #4f46e5;
   font-family: 'Bebas Neue', sans-serif;
   letter-spacing: 0.1em;
   font-size: 0.8rem;
-  border-bottom: 2px solid #ede7f6;
+  border-bottom: 2px solid #c7d2fe;
 }
 
 .report-table tbody td {
@@ -393,7 +388,7 @@
 }
 
 .report-table tbody tr:last-child td { border-bottom: none; }
-.report-table tbody tr:hover td { background: #faf7fe; }
+.report-table tbody tr:hover td { background: #f5f3ff; }
 
 .award-badge {
   display: inline-flex;
@@ -438,7 +433,7 @@
 
 .error-bar-track {
   flex: 1;
-  background: #f5f5f5;
+  background: #e0e7ff;
   border-radius: 4px;
   height: 10px;
   overflow: hidden;
@@ -447,10 +442,10 @@
 .error-bar-fill {
   height: 100%;
   border-radius: 4px;
-  background: linear-gradient(90deg, #7b1fa2, #ab47bc);
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
 }
 
-.error-bar-count { font-size: 0.82rem; font-weight: 600; color: #7b1fa2; width: 30px; text-align: right; }
+.error-bar-count { font-size: 0.82rem; font-weight: 600; color: #4f46e5; width: 30px; text-align: right; }
 
 .modal-footer {
   padding: 16px 26px;
@@ -474,10 +469,7 @@
 
 .modal-footer-note i { font-size: 14px; }
 
-.modal-footer-actions {
-  display: flex;
-  gap: 10px;
-}
+.modal-footer-actions { display: flex; gap: 10px; }
 
 .spinner-wrap {
   display: flex;
@@ -488,8 +480,8 @@
 
 .spinner {
   width: 36px; height: 36px;
-  border: 3px solid #ede7f6;
-  border-top-color: #7b1fa2;
+  border: 3px solid #c7d2fe;
+  border-top-color: #4f46e5;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -503,7 +495,7 @@
 
 .generating-icon {
   font-size: 40px;
-  color: #7b1fa2;
+  color: #4f46e5;
   animation: pulse-icon 1.2s ease-in-out infinite;
 }
 
