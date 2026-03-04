@@ -1,0 +1,120 @@
+.awards-root{
+  max-width:1200px;
+  margin:0 auto;
+}
+
+/* ---------- Overall Podium ---------- */
+
+.awards-overall{
+  margin-bottom:30px;
+}
+
+.awards-panel{
+  padding:22px;
+}
+
+.awards-podium{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  gap:40px;
+  margin-top:24px;
+}
+
+.podium-place{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+.podium-name{
+  margin-top:10px;
+  font-weight:800;
+  color:#333;
+}
+
+
+.podium-medal{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:1.4rem;
+  color:white;
+}
+
+
+.gold{
+  background:linear-gradient(135deg,#ffd54f,#ffb300);
+}
+
+.silver{
+  background:linear-gradient(135deg,#e0e0e0,#9e9e9e);
+}
+
+.bronze{
+  background:linear-gradient(135deg,#d7a86e,#8d5a2b);
+}
+
+
+.first .podium-medal{
+  transform:scale(1.2);
+}
+
+.second{
+  transform:translateY(15px);
+}
+
+.third{
+  transform:translateY(25px);
+}
+
+/* ---------- Event Panels ---------- */
+
+.awards-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+}
+
+
+.awards-list{
+  margin-top:12px;
+  padding-left:20px;
+}
+
+.awards-list li{
+  margin:8px 0;
+  font-weight:700;
+}
+
+.awards-list li.gold{
+  color:#f9a825;
+}
+
+.awards-list li.silver{
+  color:#757575;
+}
+
+.awards-list li.bronze{
+  color:#8d5a2b;
+}
+
+
+@media (max-width:800px){
+
+  .awards-podium{
+    gap:20px;
+  }
+
+  .podium-medal{
+    width:56px;
+    height:56px;
+    font-size:1.1rem;
+  }
+
+}

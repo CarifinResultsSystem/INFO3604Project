@@ -1,13 +1,17 @@
 from datetime import date, timedelta
+from uuid import uuid4
 
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, request
 from flask_jwt_extended import jwt_required, current_user, verify_jwt_in_request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
+from werkzeug.security import generate_password_hash
 
-from App.models import User, Event, Institution, PointsRules
+from App.models import User, Event, Institution, PointsRules, Participant
 from App.database import db
 from App.controllers.admin import assignRole
 from App.controllers.event import create_event, delete_event, update_event
+from App.controllers.participant import create_participant 
 
 admin_views = Blueprint(
     "admin_views",
@@ -41,11 +45,11 @@ def admin_users():
     users = User.query.order_by(User.userID.asc()).all()
     return render_template("admin/users.html", user=current_user, users=users)
 
-
 @admin_views.route("/admin/users/<int:user_id>/role", methods=["POST"])
 @jwt_required()
 def admin_set_user_role(user_id):
-    role = request.form.get("role", "").strip()
+    role = (request.form.get("role") or "").strip().lower()
+
     updated = assignRole(user_id, role)
 
     if updated is None:
@@ -54,6 +58,76 @@ def admin_set_user_role(user_id):
         flash("Role updated successfully.", "success")
 
     return redirect(url_for("admin_views.admin_users"))
+
+@admin_views.route("/admin/users/create", methods=["POST"])
+@jwt_required()
+def admin_create_user():
+    username = (request.form.get("username") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    password = (request.form.get("password") or "").strip()
+    role = (request.form.get("role") or "user").strip().lower()
+
+    if not username or not email or not password:
+        flash("Username, email, and password are required.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    if role not in User.ALLOWED_ROLES:
+        flash("Invalid role selected.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+    
+    if User.query.filter_by(username=username).first():
+        flash("Username already exists.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    if User.query.filter_by(email=email).first():
+        flash("Email already exists.", "error")
+        return redirect(url_for("admin_views.admin_users"))
+
+    try:
+        new_user = User(username=username, role=role, email=email, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash("User created successfully.", "success")
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), "error")
+    except IntegrityError:
+        db.session.rollback()
+        flash("Could not create user (username/email must be unique).", "error")
+
+    return redirect(url_for("admin_views.admin_users"))
+
+@admin_views.route('/admin/participants/create', methods=['POST'])
+def admin_participants_create():
+    try:
+        participantID = str(uuid4())
+
+        firstName = request.form.get("firstName", "").strip()
+        lastName = request.form.get("lastName", "").strip()
+        gender = request.form.get("gender")
+        dateOfBirth = request.form.get("dateOfBirth")
+        location = request.form.get("location", "").strip()
+        institutionID = request.form.get("institutionID")
+
+        # ✅ checkboxes -> list of strings
+        eventIDs = request.form.getlist("eventIDs")
+
+        create_participant(
+            participantID=participantID,
+            firstName=firstName,
+            lastName=lastName,
+            gender=gender,
+            dateOfBirth=dateOfBirth,
+            location=location,
+            institutionID=institutionID,
+            eventIDs=eventIDs
+        )
+
+        flash("Participant added.", "success")
+    except Exception as e:
+        flash(str(e), "error")
+
+    return redirect(url_for("admin_views.admin_institutions"))
 
 @admin_views.route("/admin/events")
 @jwt_required()
@@ -105,10 +179,48 @@ def admin_events_update(event_id):
     return redirect(url_for("admin_views.admin_events"))
 
 
-@admin_views.route("/admin/institutions")
+@admin_views.route("/admin/institutions", methods=["GET", "POST"])
 @jwt_required()
 def admin_institutions():
-    return render_template("admin/institutions.html", user=current_user)
+    if request.method == "POST":
+        name = (request.form.get("institutionName") or "").strip()
+        loc  = (request.form.get("institutionLocation") or "").strip()
+
+        if not name or not loc:
+            flash("Institution name and location required.", "error")
+            return redirect(url_for("admin_views.admin_institutions"))
+
+        inst = Institution(name, loc)
+        
+        try:
+            db.session.add(inst)
+            db.session.commit()
+
+            flash("Institution added successfully.", "success")
+            return redirect(url_for("admin_views.admin_institutions"))
+
+            inst = Institution(name, loc)
+            inst.insName = name
+            inst.insLocation = loc
+
+        except IntegrityError:
+            db.session.rollback()
+            flash("Could not add institution (maybe it already exists).", "error")
+
+        return redirect(url_for("admin_views.admin_institutions"))
+
+    institutions = Institution.query.order_by(Institution.insName.asc()).all()
+    events = Event.query.order_by(Event.eventName.asc()).all()
+
+    return render_template(
+        "admin/institutions.html",
+        user=current_user,
+        institutions=institutions,
+        events=events,
+        participants=Participant.query.all(),
+        total_institutions=len(institutions),
+        total_participants=Participant.query.count(),
+    )
 
 
 @admin_views.route("/admin/awards")
@@ -123,7 +235,7 @@ def admin_institutions_series():
     days = int(request.args.get("days", 30))
     days = max(7, min(days, 365))
 
-    total = db.session.query(func.count(Institution.id)).scalar() or 0
+    total = db.session.query(func.count(Institution.institutionID)).scalar() or 0
 
     labels = []
     values = []

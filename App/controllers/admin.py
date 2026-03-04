@@ -8,7 +8,9 @@ def assignRole(userID, role):
     if not user:
         return None
 
-    allowed = getattr(User, "ALLOWED_ROLES", [])
+    role = (role or "").strip().lower()
+
+    allowed = getattr(User, "ALLOWED_ROLES", ["admin", "scoretaker", "judge", "hr", "user"])
     if role not in allowed:
         return None
 

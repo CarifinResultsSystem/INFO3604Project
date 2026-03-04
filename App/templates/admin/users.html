@@ -4,14 +4,16 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_users.css') }}">
 
 <div class="dash-root admin-root">
 
   <div class="dash-heading">
     <h1>Users</h1>
-    <span class="dash-subtitle">Assign roles and manage access.</span>
+    <span class="dash-subtitle">Assign Roles, Manage Access</span>
   </div>
 
+  {# ---- Toasts ---- #}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div id="toast-container">
@@ -21,7 +23,7 @@
               {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
             </i>
             <span>{{ message }}</span>
-            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+            <button class="toast-close" type="button" onclick="this.parentElement.remove()">✕</button>
           </div>
         {% endfor %}
       </div>
@@ -33,57 +35,80 @@
       <h2>All Users</h2>
 
       <div class="admin-controls">
-        <input id="userSearch" class="admin-search" type="text" placeholder="Search by username / id / role...">
-        <select id="roleFilter" class="admin-range">
+        <input id="userSearch" class="admin-search" type="text" placeholder="Search by Username, Email, or ID...">
+
+        <select id="roleFilter" class="browser-default admin-input" style="max-width:180px;">
           <option value="">All roles</option>
-          <option value="admin">admin</option>
-          <option value="scoretaker">scoretaker</option>
-          <option value="judge">judge</option>
-          <option value="hr">hr</option>
-          <option value="user">user</option>
+          <option value="Admin">Admin</option>
+          <option value="Scoretaker">Scoretaker</option>
+          <option value="Judge">Judge</option>
+          <option value="HR">HR</option>
+          <option value="Public User">Public User</option>
         </select>
       </div>
     </div>
 
     {% if users|length == 0 %}
       <div style="padding:12px; color:#9e9e9e; font-weight:600;">
-        No users found.
+        No Users Found.
       </div>
+
+      <div class="admin-footer-actions">
+        <button class="dash-card-btn btn-purple" type="button" onclick="openUserModal()">
+          <i class="material-icons" style="font-size:16px;">person_add</i>
+          Add New User
+        </button>
+      </div>
+
     {% else %}
 
-      <!-- Desktop table -->
+      {# ---- Desktop table ---- #}
       <div class="admin-table-wrap" id="usersTableWrap">
         <table class="admin-table" id="usersTable">
           <thead>
             <tr>
               <th style="width:90px;">ID</th>
               <th>Username</th>
+              <th>Email</th>
               <th style="width:160px;">Current Role</th>
-              <th style="width:260px;">Set Role</th>
+              <th style="width:340px;">Set Role</th>
             </tr>
           </thead>
           <tbody>
             {% for u in users %}
+              {% set cur = (u.role or 'user')|lower %}
               <tr class="user-row"
                   data-uid="{{ u.userID }}"
                   data-username="{{ (u.username or '')|lower }}"
-                  data-role="{{ (u.role or '')|lower }}">
+                  data-email="{{ (u.email or '')|lower }}"
+                  data-role="{{ cur }}">
+
                 <td>{{ u.userID }}</td>
-                <td style="font-weight:700;">{{ u.username }}</td>
-                <td>
-                  <span class="role-pill role-{{ (u.role or 'user')|lower }}">{{ u.role or 'user' }}</span>
+
+                <td style="font-weight:800;">
+                  {{ u.username }}
                 </td>
+
+                <td style="color:#666; font-weight:600;">
+                  {{ u.email }}
+                </td>
+
                 <td>
-                  <form method="POST" action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
-                        style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
-                    <select name="role" class="admin-input" style="max-width:160px;">
-                      {% set cur = (u.role or 'user') %}
-                      {% for r in ['admin','scoretaker','judge','hr','user'] %}
+                  <span class="role-pill role-{{ cur }}">{{ cur }}</span>
+                </td>
+
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
+                        class="set-role-form">
+
+                    <select name="role" class="set-role-select browser-default" required>
+                      {% for r in ['Admin','Scoretaker','Judge','HR','Public User'] %}
                         <option value="{{ r }}" {% if cur == r %}selected{% endif %}>{{ r }}</option>
                       {% endfor %}
                     </select>
 
-                    <button class="dash-card-btn btn-blue" type="submit" style="padding:10px 14px;">
+                    <button class="dash-card-btn btn-blue set-role-btn" type="submit">
                       Update
                     </button>
                   </form>
@@ -94,28 +119,33 @@
         </table>
       </div>
 
-      <!-- Mobile cards -->
+      {# ---- Mobile cards ---- #}
       <div id="usersCards" style="display:none;">
         {% for u in users %}
+          {% set cur = (u.role or 'user')|lower %}
           <div class="admin-panel user-card user-row"
                data-uid="{{ u.userID }}"
                data-username="{{ (u.username or '')|lower }}"
-               data-role="{{ (u.role or '')|lower }}"
+               data-email="{{ (u.email or '')|lower }}"
+               data-role="{{ cur }}"
                style="margin-top:12px;">
+
             <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
               <div>
-                <div style="font-weight:800; font-size:1.05rem;">{{ u.username }}</div>
-                <div style="color:#9e9e9e; font-weight:600; font-size:0.9rem;">ID: {{ u.userID }}</div>
+                <div style="font-weight:900; font-size:1.05rem;">{{ u.username }}</div>
+                <div style="color:#9e9e9e; font-weight:700; font-size:0.9rem;">ID: {{ u.userID }}</div>
+                <div style="color:#666; font-weight:600; font-size:0.9rem; margin-top:2px;">{{ u.email }}</div>
               </div>
-              <span class="role-pill role-{{ (u.role or 'user')|lower }}">{{ u.role or 'user' }}</span>
+              <span class="role-pill role-{{ cur }}">{{ cur }}</span>
             </div>
 
             <div style="margin-top:12px;">
-              <form method="POST" action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
+              <form method="POST"
+                    action="{{ url_for('admin_views.admin_set_user_role', user_id=u.userID) }}"
                     style="display:flex; gap:10px; align-items:center;">
-                <select name="role" class="admin-input" style="flex:1;">
-                  {% set cur = (u.role or 'user') %}
-                  {% for r in ['admin','scoretaker','judge','hr','user'] %}
+
+                <select name="role" class="browser-default admin-input" style="flex:1;" required>
+                  {% for r in ['Admin','Scoretaker','Judge','HR','Public User'] %}
                     <option value="{{ r }}" {% if cur == r %}selected{% endif %}>{{ r }}</option>
                   {% endfor %}
                 </select>
@@ -129,42 +159,121 @@
         {% endfor %}
       </div>
 
+      <div class="admin-footer-actions">
+        <button class="dash-card-btn btn-purple" type="button" onclick="openUserModal()">
+          <i class="material-icons" style="font-size:16px;">person_add</i>
+          Add New User
+        </button>
+      </div>
+
     {% endif %}
   </div>
 </div>
 
+{# ===================== ADD USER MODAL ===================== #}
+<div class="admin-modal" id="userModal" aria-hidden="true">
+  <div class="admin-modal-backdrop" onclick="closeUserModal()"></div>
+
+  <div class="admin-modal-card modal-sm">
+    <div class="admin-modal-header">
+      <div class="modal-title">
+        <i class="material-icons">person_add</i>
+        Add New User
+      </div>
+      <button class="admin-modal-close" type="button" onclick="closeUserModal()">✕</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_views.admin_create_user') }}">
+      <div class="admin-modal-content">
+
+        <div class="modal-field">
+          <label>Username</label>
+          <input name="username" required autocomplete="off" placeholder="e.g. jdoe">
+        </div>
+
+        <div class="modal-field">
+          <label>Email</label>
+          <input type="email" name="email" required autocomplete="off" placeholder="e.g. jdoe@example.com">
+        </div>
+
+        <div class="modal-field">
+          <label>Password</label>
+          <input type="password" name="password" required autocomplete="new-password" placeholder="Temporary password">
+        </div>
+
+        <div class="modal-field">
+          <label>Role</label>
+          <select name="role" class="browser-default modal-select" required>
+            <option value="User" selected>Public User</option>
+            <option value="Admin">Admin</option>
+            <option value="Scoretaker">Scoretaker</option>
+            <option value="Judge">Judge</option>
+            <option value="HR">HR</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="admin-modal-footer">
+        <button class="modal-btn modal-btn-secondary" type="button" onclick="closeUserModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" type="submit">Create User</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script>
-  // Auto-dismiss toasts
-  document.querySelectorAll('.toast').forEach(toast => {
-    setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  });
+  // ---------- Modal ----------
+  const userModal = document.getElementById('userModal');
 
-  const search = document.getElementById('userSearch');
-  const filter = document.getElementById('roleFilter');
-
-  function applyFilters(){
-    const q = (search?.value || '').trim().toLowerCase();
-    const role = (filter?.value || '').trim().toLowerCase();
-
-    document.querySelectorAll('.user-row').forEach(row => {
-      const uname = row.getAttribute('data-username') || '';
-      const uid = (row.getAttribute('data-uid') || '').toLowerCase();
-      const r = row.getAttribute('data-role') || '';
-
-      const matchesQuery = !q || uname.includes(q) || uid.includes(q) || r.includes(q);
-      const matchesRole = !role || r === role;
-
-      row.style.display = (matchesQuery && matchesRole) ? '' : 'none';
-    });
+  function openUserModal(){
+    userModal.classList.add('open');
+    userModal.setAttribute('aria-hidden', 'false');
   }
 
-  if (search) search.addEventListener('input', applyFilters);
-  if (filter) filter.addEventListener('change', applyFilters);
+  function closeUserModal(){
+    userModal.classList.remove('open');
+    userModal.setAttribute('aria-hidden', 'true');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeUserModal();
+  });
+
+  // ---------- Toasts + Filters ----------
+  document.addEventListener('DOMContentLoaded', () => {
+    // Auto-dismiss toasts
+    document.querySelectorAll('.toast').forEach(toast => {
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+      }, 4000);
+    });
+
+    const search = document.getElementById('userSearch');
+    const filter = document.getElementById('roleFilter');
+
+    function applyFilters(){
+      const q = (search?.value || '').trim().toLowerCase();
+      const role = (filter?.value || '').trim().toLowerCase();
+
+      document.querySelectorAll('.user-row').forEach(row => {
+        const uname = row.getAttribute('data-username') || '';
+        const email = row.getAttribute('data-email') || '';
+        const uid = (row.getAttribute('data-uid') || '').toLowerCase();
+        const r = row.getAttribute('data-role') || '';
+
+        const matchesQuery = !q || uname.includes(q) || email.includes(q) || uid.includes(q) || r.includes(q);
+        const matchesRole = !role || r === role;
+
+        row.style.display = (matchesQuery && matchesRole) ? '' : 'none';
+      });
+    }
+
+    if (search) search.addEventListener('input', applyFilters);
+    if (filter) filter.addEventListener('change', applyFilters);
+  });
 </script>
 
 {% endblock %}

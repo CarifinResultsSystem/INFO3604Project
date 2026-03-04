@@ -4,12 +4,13 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_events.css') }}">
 
-<div class="dash-root admin-root">
+<div class="dash-root admin-root events-wrap">
 
   <div class="dash-heading">
     <h1>Events</h1>
-    <span class="dash-subtitle">Create, edit, and manage events.</span>
+    <span class="dash-subtitle">Create, Edit, Manage Events</span>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -28,159 +29,215 @@
     {% endif %}
   {% endwith %}
 
-  <p class="section-label">Add New Event</p>
+  <!-- ================= Create Event ================= -->
+  <p class="section-label" id="createEvent">Add New Event</p>
   <div class="admin-panel">
-    <form class="admin-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
-      <div class="admin-form-grid">
+    <form class="events-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
 
-        <div class="admin-form-row">
+      <div class="events-form-grid">
+        <div class="events-field">
           <label>Event Name</label>
-          <input name="eventName" required placeholder="e.g. Football">
+          <input class="admin-input" name="eventName" required placeholder="e.g. Football">
         </div>
 
-        <div class="admin-form-row">
+        <div class="events-field">
           <label>Location</label>
-          <input name="eventLocation" required placeholder="e.g. Hasely Crawford Stadium">
+          <input class="admin-input" name="eventLocation" required placeholder="e.g. Hasely Crawford Stadium">
         </div>
 
-        <div class="admin-form-row">
+        <div class="events-field">
           <label>Date</label>
-          <input type="date" name="eventDate" required>
+          <input class="admin-input" type="date" name="eventDate" required>
         </div>
 
-        <div class="admin-form-row">
+        <div class="events-field">
           <label>Time</label>
-          <input type="time" name="eventTime" required>
+          <input class="admin-input" type="time" name="eventTime" required>
         </div>
-
       </div>
 
-      <div class="admin-form-actions">
+      <div class="events-form-actions">
         <button class="dash-card-btn btn-purple" type="submit">
           <i class="material-icons" style="font-size:16px">add</i>
           Create Event
         </button>
       </div>
+
     </form>
   </div>
 
+  <!-- ================= Existing Events ================= -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
-  <div class="admin-panel">
 
-    <div class="admin-panel-head split">
-      <h2>Events</h2>
+  <div class="events-card">
 
-      <div class="admin-controls">
-        <input id="eventSearch" class="admin-search" type="text" placeholder="Search...">
+    <div class="events-card-head">
+      <div>
+        <div class="events-card-title">Events</div>
+        <div class="events-card-sub">Search, sort, and manage events.</div>
+      </div>
+
+      <div class="events-controls">
+        <input id="eventSearch" class="events-search" type="text" placeholder="Search events...">
+
+        <div class="events-sortbox">
+          <span class="events-sortlabel">Sort</span>
+          <select id="eventSort" class="events-select">
+            <option value="az" selected>Alphabetical</option>
+            <option value="date">Date</option>
+          </select>
+        </div>
       </div>
     </div>
 
     {% if events|length == 0 %}
-      <div style="padding:12px; color:#9e9e9e; font-weight:600;">
+      <div class="events-empty">
         No events found. Create one above to get started.
       </div>
     {% else %}
-      <div class="admin-list" id="eventList">
-        {% for e in events %}
-          <div class="admin-list-row" data-name="{{ e.eventName|lower }}">
-            <div class="alr-name">
-              {{ e.eventName }}
-              <div class="alr-meta">
-                {{ e.eventDate }} · {{ e.time.strftime('%H:%M') }} · {{ e.location }}
-              </div>
-            </div>
+      <div class="events-table-wrap">
+        <table class="events-table" id="eventTable">
+          <thead>
+            <tr>
+              <th style="width:320px;">Event</th>
+              <th style="width:140px;">Date</th>
+              <th style="width:120px;">Time</th>
+              <th>Location</th>
+              <th style="width:140px; text-align:right;">Actions</th>
+            </tr>
+          </thead>
 
-            <div class="alr-actions">
-              <button class="link" type="button"
-                onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">
-                Edit
-              </button>
+          <tbody id="eventTbody">
+            {% for e in events %}
+              <tr class="event-row"
+                  data-name="{{ e.eventName|lower }}"
+                  data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}">
+                <td class="event-name">
+                  {{ e.eventName }}
+                </td>
 
-              <form method="POST"
-                action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
-                style="display:inline;">
-                <button class="link danger" type="submit" onclick="return confirm('Remove this event?')">
-                  Remove
-                </button>
-              </form>
-            </div>
-          </div>
-        {% endfor %}
+                <td>
+                  <span class="event-chip">
+                    {{ e.eventDate }}
+                  </span>
+                </td>
+
+                <td>
+                  <span class="event-chip event-chip-blue">
+                    {{ e.time.strftime('%H:%M') }}
+                  </span>
+                </td>
+
+                <td class="event-loc">
+                  {{ e.location }}
+                </td>
+
+                <td style="text-align:right;">
+                  <button class="link" type="button"
+                          onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">
+                    Edit
+                  </button>
+
+                  <form method="POST"
+                        action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
+                        style="display:inline;">
+                    <button class="link danger" type="submit"
+                            onclick="return confirm('Remove this event?')">
+                      Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
       </div>
     {% endif %}
   </div>
 
-</div>
+  <!-- ================= Modal ================= -->
 
-<div class="admin-modal" id="eventModal" aria-hidden="true">
-  <div class="admin-modal-backdrop" onclick="closeModal()"></div>
+  <div class="admin-modal" id="eventModal" aria-hidden="true">
+    <div class="admin-modal-backdrop" onclick="closeModal()"></div>
 
-  <div class="admin-modal-card">
-    <div class="admin-modal-top">
-      <input id="modalEventName" class="admin-modal-title" value="" />
-      <button class="admin-modal-close" type="button" onclick="closeModal()">✕</button>
-    </div>
+    <div class="admin-modal-card event-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalEventName">
 
-    <div class="admin-modal-body">
-
-      <div class="admin-modal-section">
-        <div class="admin-modal-section-title">INDIVIDUAL POINTS</div>
-
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th style="width:160px">Placement</th>
-                <th>Award</th>
-                <th style="width:140px">Points</th>
-                <th style="width:90px">Edit</th>
-              </tr>
-            </thead>
-            <tbody id="individualTable"></tbody>
-          </table>
-        </div>
-
-        <div id="individualEmpty" style="display:none; padding:10px; color:#9e9e9e; font-weight:600;">
-          No individual point rules yet.
-        </div>
+      <!-- TOP: editable event name + close -->
+      <div class="event-modal-top">
+        <input id="modalEventName"
+              class="event-modal-title"
+              value=""
+              placeholder="Event name" />
+        <button class="event-modal-close" type="button" onclick="closeModal()" aria-label="Close">✕</button>
       </div>
 
-      <div class="admin-modal-section">
-        <div class="admin-modal-section-title">TEAM POINTS</div>
+      <!-- BODY: scrollable -->
+      <div class="event-modal-body">
 
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th style="width:240px">Category</th>
-                <th>Awarded For</th>
-                <th style="width:140px">Points</th>
-                <th style="width:90px">Edit</th>
-              </tr>
-            </thead>
-            <tbody id="teamTable"></tbody>
-          </table>
+        <!-- INDIVIDUAL -->
+        <div class="event-modal-section">
+          <div class="event-modal-section-title">INDIVIDUAL POINTS</div>
+
+          <div class="event-table-wrap">
+            <table class="event-table">
+              <thead>
+                <tr>
+                  <th style="width:160px;">Placement</th>
+                  <th>Award</th>
+                  <th style="width:140px;">Points</th>
+                  <th style="width:100px;">Edit Points</th>
+                </tr>
+              </thead>
+              <tbody id="individualTable"></tbody>
+            </table>
+          </div>
+
+          <div id="individualEmpty" class="event-empty" style="display:none;">
+            No individual point rules yet.
+          </div>
         </div>
 
-        <div id="teamEmpty" style="display:none; padding:10px; color:#9e9e9e; font-weight:600;">
-          No team point rules yet.
+        <!-- TEAM -->
+        <div class="event-modal-section">
+          <div class="event-modal-section-title">TEAM POINTS</div>
+
+          <div class="event-table-wrap">
+            <table class="event-table">
+              <thead>
+                <tr>
+                  <th style="width:240px;">Category</th>
+                  <th>Awarded For</th>
+                  <th style="width:140px;">Points</th>
+                  <th style="width:100px;">Edit Points</th>
+                </tr>
+              </thead>
+              <tbody id="teamTable"></tbody>
+            </table>
+          </div>
+
+          <div id="teamEmpty" class="event-empty" style="display:none;">
+            No team point rules yet.
+          </div>
         </div>
+
       </div>
 
-    </div>
+      <!-- FOOTER: actions -->
+      <div class="event-modal-actions">
+        <button class="event-btn event-btn-primary" type="button" onclick="saveRules()">
+          Save Changes
+        </button>
+        <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
+          Discard Changes
+        </button>
+      </div>
 
-    <div class="admin-modal-actions">
-      <button class="dash-card-btn btn-blue" type="button" onclick="saveRules()">
-        Save Changes
-      </button>
-      <button class="dash-card-btn btn-red" type="button" onclick="closeModal()">
-        Discard Changes
-      </button>
     </div>
   </div>
-</div>
 
 <script>
+  // ---------- Toasts ----------
   document.querySelectorAll('.toast').forEach(toast => {
     setTimeout(() => {
       toast.style.transition = 'opacity 0.4s';
@@ -189,16 +246,39 @@
     }, 4000);
   });
 
+  // ---------- Search ----------
   const eventSearch = document.getElementById('eventSearch');
-  if (eventSearch) {
-    eventSearch.addEventListener('input', (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      document.querySelectorAll('#eventList .admin-list-row').forEach(row => {
-        const name = row.getAttribute('data-name') || '';
-        row.style.display = name.includes(q) ? '' : 'none';
-      });
+  function applySearch(){
+    const q = (eventSearch?.value || '').trim().toLowerCase();
+    document.querySelectorAll('#eventTbody .event-row').forEach(row => {
+      const name = row.getAttribute('data-name') || '';
+      row.style.display = !q || name.includes(q) ? '' : 'none';
     });
   }
+  if (eventSearch) eventSearch.addEventListener('input', applySearch);
+
+  // ---------- Sort ----------
+  const eventSort = document.getElementById('eventSort');
+  function applySort(){
+    const mode = eventSort?.value || 'az';
+    const body = document.getElementById('eventTbody');
+    if (!body) return;
+
+    const rows = Array.from(body.querySelectorAll('.event-row'));
+    rows.sort((a,b) => {
+      if (mode === 'date'){
+        const ad = a.getAttribute('data-date') || '';
+        const bd = b.getAttribute('data-date') || '';
+        return ad.localeCompare(bd);
+      }
+      const an = a.getAttribute('data-name') || '';
+      const bn = b.getAttribute('data-name') || '';
+      return an.localeCompare(bn);
+    });
+
+    rows.forEach(r => body.appendChild(r));
+  }
+  if (eventSort) eventSort.addEventListener('change', applySort);
 
   // ---- Modal + rules ----
   const modal = document.getElementById('eventModal');
@@ -216,11 +296,13 @@
   function openModal() {
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
   }
 
   function closeModal() {
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
 
     activeEventId = null;
     individualRules = [];
@@ -358,6 +440,12 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeModal();
   });
+
+  document.addEventListener('DOMContentLoaded', function () {
+  const selects = document.querySelectorAll('select');
+  if (window.M && M.FormSelect) M.FormSelect.init(selects);
+});
+
 </script>
 
 {% endblock %}

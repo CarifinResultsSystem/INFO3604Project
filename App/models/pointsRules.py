@@ -17,7 +17,7 @@ class PointsRules(db.Model):
     label = db.Column(db.String(150), nullable=True)             # (award text / awarded_for)
 
     seasonID = db.Column(db.Integer, db.ForeignKey("seasons.seasonID"), nullable=False)
-    eventID = db.Column(db.Integer, db.ForeignKey("event.eventID"), nullable=False)
+    eventID = db.Column(db.Integer, db.ForeignKey("events.eventID"), nullable=False)
     event = db.relationship("Event", backref=db.backref("points_rules", lazy=True, cascade="all, delete-orphan"))
 
     seasonID = db.Column(
