@@ -211,12 +211,14 @@ def admin_institutions():
 
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
     events = Event.query.order_by(Event.eventName.asc()).all()
+    seasons = Season.query.order_by(Season.year.asc()).all()  # ← add this
 
     return render_template(
         "admin/institutions.html",
         user=current_user,
         institutions=institutions,
         events=events,
+        seasons=seasons,  # ← add this
         participants=Participant.query.all(),
         total_institutions=len(institutions),
         total_participants=Participant.query.count(),
@@ -257,29 +259,40 @@ def admin_event_rules(event_id):
 
     rules = PointsRules.query.filter_by(eventID=event_id).all()
 
-    individual = []
-    team = []
-
+    individual, team_map, team_order = [], {}, []
     for r in rules:
-        if r.conditionType == "placement":
+        if r.ruleType == "individual":
             individual.append({
-                "pointsID": r.pointsID,
-                "placement": r.conditionValue,
-                "label": r.label or "",
-                "points": float(r.points),
+                "pointsID":  r.pointsID,
+                "placement": r.placement,
+                "label":     r.label or "",
+                "points":    float(r.points),
             })
         else:
-            team.append({
+            cat = r.category or "Uncategorised"
+            if cat not in team_map:
+                team_map[cat] = []
+                team_order.append(cat)
+            team_map[cat].append({
                 "pointsID": r.pointsID,
-                "conditionType": r.conditionType,
-                "label": r.label or "",
-                "lowerLimit": r.lowerLimit,
-                "upperLimit": r.upperLimit,
-                "points": float(r.points),
+                "label":    r.label or "",
+                "points":   float(r.points),
             })
 
-    individual.sort(key=lambda x: x["placement"])
-    return jsonify({"eventID": ev.eventID, "eventName": ev.eventName, "individual": individual, "team": team})
+    individual.sort(key=lambda x: x["placement"] or 0)
+
+    team = [
+        {"category": cat, "rows": team_map[cat]}
+        for cat in team_order
+    ]
+
+    return jsonify({
+        "eventID":    ev.eventID,
+        "eventName":  ev.eventName,
+        "individual": individual,
+        "team":       team,
+    })
+
 
 @admin_views.route("/admin/events/<int:event_id>/rules", methods=["POST"])
 @jwt_required()
@@ -289,33 +302,53 @@ def admin_event_rules_save(event_id):
         return jsonify({"error": "Event not found"}), 404
 
     payload = request.get_json(silent=True) or {}
-    ind = payload.get("individual", [])
-    team = payload.get("team", [])
 
-    def update_rule(item, kind):
-        rid = int(item.get("pointsID"))
-        r = db.session.get(PointsRules, rid)
-        if not r or getattr(r, "eventID", None) != event_id:
-            return
+    try:
+        # Individual rules
+        for item in payload.get("individual", []):
+            rid = item.get("pointsID")
+            if rid:
+                r = db.session.get(PointsRules, int(rid))
+                if not r or r.eventID != event_id:
+                    continue
+                r.placement = int(item.get("placement", 0))
+                r.label     = (item.get("label") or "").strip()
+                r.points    = float(item.get("points") or 0)
+            else:
+                r = PointsRules(
+                    eventID   = event_id,
+                    seasonID  = ev.seasonID,
+                    ruleType  = "individual",
+                    placement = int(item.get("placement", 0)),
+                    label     = (item.get("label") or "").strip(),
+                    points    = float(item.get("points") or 0),
+                )
+                db.session.add(r)
 
-        r.label = (item.get("label") or "").strip()
-        r.points = float(item.get("points") or 0)
+        # Team rules — each row in a category is its own DB record
+        for item in payload.get("team", []):
+            rid = item.get("pointsID")
+            if rid:
+                r = db.session.get(PointsRules, int(rid))
+                if not r or r.eventID != event_id:
+                    continue
+                r.category = (item.get("conditionType") or "").strip()
+                r.label    = (item.get("label") or "").strip()
+                r.points   = float(item.get("points") or 0)
+            else:
+                r = PointsRules(
+                    eventID  = event_id,
+                    seasonID = ev.seasonID,
+                    ruleType = "team",
+                    category = (item.get("conditionType") or "").strip(),
+                    label    = (item.get("label") or "").strip(),
+                    points   = float(item.get("points") or 0),
+                )
+                db.session.add(r)
 
-        if kind == "placement":
-            r.conditionType = "placement"
-            r.conditionValue = int(item.get("placement"))
-            r.lowerLimit = None
-            r.upperLimit = None
-        else:
-            r.conditionType = (item.get("conditionType") or "").strip()
-            r.lowerLimit = int(item.get("lowerLimit") or 0)
-            r.upperLimit = int(item.get("upperLimit") or 0)
-            r.conditionValue = None
+        db.session.commit()
+        return jsonify({"success": True})
 
-    for item in ind:
-        update_rule(item, "placement")
-    for item in team:
-        update_rule(item, "team")
-
-    db.session.commit()
-    return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500

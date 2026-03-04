@@ -601,101 +601,101 @@ def create_app(overrides={}):
 
 #--------------------- POINTS RULES CLI TESTS --------------------
 
-    # Create Points Rule (flask points-rule-create <eventType> <conditionType> <conditionValue> <upperLimit> <lowerLimit> <seasonID>)
-    @app.cli.command("points-rule-create")
-    @click.argument("eventType")
-    @click.argument("conditionType")
-    @click.argument("conditionValue")
-    @click.argument("upperLimit")
-    @click.argument("lowerLimit")
-    @click.argument("seasonID")
+    # Add Individual Rule (flask rule-add-individual <event_id> <season_id> <placement> <label> <points>)
+    @app.cli.command("rule-add-individual")
+    @click.argument("event_id", type=int)
+    @click.argument("season_id", type=int)
+    @click.argument("placement", type=int)
+    @click.argument("label")
+    @click.argument("points", type=float)
     @with_appcontext
-    def points_rule_create_command(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
+    def rule_add_individual(event_id, season_id, placement, label, points):
         try:
-            rule = create_points_rule(eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID)
-            click.echo("Created points rule:")
-            click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
+            r = create_individual_rule(event_id, season_id, placement, label, points)
+            click.echo(f"Created: {r.get_json()}")
         except ValueError as e:
             click.echo(f"Error: {e}")
-            
-    # Get Points Rule by ID (flask points-rule-get <pointsID>)
-    @app.cli.command("points-rule-get")
-    @click.argument("pointsID", type=int)
-    @with_appcontext
-    def points_rule_get_command(pointsID):
-        rule = get_points_rule(pointsID)
-        if not rule:
-            click.echo("Points rule not found.")
-            return
-        click.echo(rule.get_json() if hasattr(rule, "get_json") else str(rule))
 
-    # List Points Rules by Season (flask points-rules-by-season <seasonID>)
-    @app.cli.command("points-rules-by-season")
-    @click.argument("seasonID", type=int)
+    # Add Team Rule (flask rule-add-team <event_id> <season_id> <category> <label> <points>)
+    @app.cli.command("rule-add-team")
+    @click.argument("event_id", type=int)
+    @click.argument("season_id", type=int)
+    @click.argument("category")
+    @click.argument("label")
+    @click.argument("points", type=float)
     @with_appcontext
-    def points_rules_by_season_command(seasonID):
-        rules = get_points_rules_by_season(seasonID)
+    def rule_add_team(event_id, season_id, category, label, points):
+        try:
+            r = create_team_rule(event_id, season_id, category, label, points)
+            click.echo(f"Created: {r.get_json()}")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
+
+    # Get Rule by ID (flask rule-get <points_id>)
+    @app.cli.command("rule-get")
+    @click.argument("points_id", type=int)
+    @with_appcontext
+    def rule_get(points_id):
+        r = get_points_rule(points_id)
+        click.echo(r.get_json() if r else "Rule not found.")
+
+    # List Rules by Event (flask rule-list-event <event_id>)
+    @app.cli.command("rule-list-event")
+    @click.argument("event_id", type=int)
+    @with_appcontext
+    def rule_list_event(event_id):
+        rules = get_rules_by_event(event_id)
         if not rules:
-            click.echo("No points rules found for that season.")
+            click.echo("No rules found.")
             return
         for r in rules:
-            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
+            click.echo(r.get_json())
 
-    # List All Points Rules (objects) (flask points-rules-list)
-    @app.cli.command("points-rules-list")
+    # List Rules by Season (flask rule-list-season <season_id>)
+    @app.cli.command("rule-list-season")
+    @click.argument("season_id", type=int)
     @with_appcontext
-    def points_rules_list_command():
+    def rule_list_season(season_id):
+        rules = get_rules_by_season(season_id)
+        if not rules:
+            click.echo("No rules found.")
+            return
+        for r in rules:
+            click.echo(r.get_json())
+
+    # List All Rules (flask rule-list)
+    @app.cli.command("rule-list")
+    @with_appcontext
+    def rule_list():
         rules = get_all_points_rules()
         if not rules:
-            click.echo("No points rules found.")
+            click.echo("No rules found.")
             return
         for r in rules:
-            click.echo(r.get_json() if hasattr(r, "get_json") else str(r))
-            
-    # List All Points Rules json format (flask points-rules-list-json)
-    @app.cli.command("points-rules-list-json")
-    @with_appcontext
-    def points_rules_list_json_command():
-        rules = get_all_points_rules_json()
-        if not rules:
-            click.echo("No points rules found.")
-            return
-        for r in rules:
-            click.echo(r)
-    
-    # Update Points Rule
-    # (flask points-rule-update 3 --eventType "Track" --conditionType "place" --conditionValue 1 --upperLimit 10 --lowerLimit 1 --seasonID 2)
-    @app.cli.command("points-rule-update")
-    @click.argument("pointsID", type=int)
-    @click.option("--eventType", default=None)
-    @click.option("--conditionType", default=None)
-    @click.option("--conditionValue", default=None, type=int)
-    @click.option("--upperLimit", default=None, type=int)
-    @click.option("--lowerLimit", default=None, type=int)
-    @click.option("--seasonID", default=None, type=int)
-    @with_appcontext
-    def points_rule_update_command(pointsID, eventType, conditionType, conditionValue, upperLimit, lowerLimit, seasonID):
-        try:
-            ok = update_points_rule(
-                pointsID,
-                eventType=eventType.strip() if isinstance(eventType, str) else eventType,
-                conditionType=conditionType.strip() if isinstance(conditionType, str) else conditionType,
-                conditionValue=conditionValue,
-                upperLimit=upperLimit,
-                lowerLimit=lowerLimit,
-                seasonID=seasonID
-            )
-            click.echo("Points rule updated." if ok else "Points rule not found.")
-        except ValueError as e:
-            click.echo(f"Error: {e}")
+            click.echo(r.get_json())
 
-    # Delete Points Rule (flask points-rule-delete <pointsID>)
-    @app.cli.command("points-rule-delete")
-    @click.argument("pointsID", type=int)
+    # Update Rule (flask rule-update <points_id> --label "..." --points 20 --placement 1 --category "...")
+    @app.cli.command("rule-update")
+    @click.argument("points_id", type=int)
+    @click.option("--label",     default=None)
+    @click.option("--points",    default=None, type=float)
+    @click.option("--placement", default=None, type=int)
+    @click.option("--category",  default=None)
     @with_appcontext
-    def points_rule_delete_command(pointsID):
-        ok = delete_points_rule(pointsID)
-        click.echo("Points rule deleted." if ok else "Points rule not found.")
+    def rule_update(points_id, label, points, placement, category):
+        ok = update_points_rule(
+            points_id, label=label, points=points,
+            placement=placement, category=category
+        )
+        click.echo("Updated." if ok else "Rule not found.")
+
+    # Delete Rule (flask rule-delete <points_id>)
+    @app.cli.command("rule-delete")
+    @click.argument("points_id", type=int)
+    @with_appcontext
+    def rule_delete(points_id):
+        ok = delete_points_rule(points_id)
+        click.echo("Deleted." if ok else "Rule not found.")
 
 #------------------ AUTOMATED RESULTS CLI TESTS ------------------
 

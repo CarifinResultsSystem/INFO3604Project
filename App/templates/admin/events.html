@@ -10,7 +10,7 @@
 
   <div class="dash-heading">
     <h1>Events</h1>
-    <span class="dash-subtitle">Create, Edit, Manage Events</span>
+    <span class="dash-subtitle">Create, Edit &amp; Manage Events</span>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -29,20 +29,60 @@
     {% endif %}
   {% endwith %}
 
+<<<<<<< Updated upstream
   <!-- ================= Create Event ================= -->
   <p class="section-label" id="createEvent">Add New Event</p>
   <div class="admin-panel">
     <form class="events-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
+=======
+  {# ── Build lookups ── #}
+  {% set season_year_map = {} %}
+  {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
+  {% set valid_years = seasons | map(attribute='year') | list | sort %}
+  {% set all_locations = [] %}
+  {% for e in events %}
+    {% if e.location and e.location not in all_locations %}
+      {% if all_locations.append(e.location) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set all_locations = all_locations | sort %}
+
+  <!-- Seasons -->
+  <p class="section-label">Seasons</p>
+  <div class="admin-panel" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% for s in seasons %}
+          <span style="display:inline-flex;align-items:center;padding:4px 14px;
+                       background:#f3e5f5;border:1px solid #ce93d8;border-radius:20px;
+                       font-size:13px;font-weight:600;color:#7b1fa2;">{{ s.year }}</span>
+        {% else %}
+          <span style="color:#999;font-size:13px;">No seasons yet.</span>
+        {% endfor %}
+      </div>
+      <button class="dash-card-btn btn-purple" type="button" onclick="openSeasonModal()"
+              style="display:inline-flex;align-items:center;gap:6px;">
+        <i class="material-icons" style="font-size:16px;">add</i> Add Season
+      </button>
+    </div>
+  </div>
+
+  <!-- Create Event -->
+  <p class="section-label">Add New Event</p>
+  <div class="admin-panel">
+    <form method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
+      <div class="events-form-grid">
+>>>>>>> Stashed changes
 
       <div class="events-form-grid">
         <div class="events-field">
           <label>Event Name</label>
-          <input class="admin-input" name="eventName" required placeholder="e.g. Football">
+          <input class="admin-input" name="eventName" required placeholder="e.g. One Lap Savannah">
         </div>
 
         <div class="events-field">
           <label>Location</label>
-          <input class="admin-input" name="eventLocation" required placeholder="e.g. Hasely Crawford Stadium">
+          <input class="admin-input" name="eventLocation" required placeholder="e.g. Queen's Park Savannah">
         </div>
 
         <div class="events-field">
@@ -54,29 +94,52 @@
           <label>Time</label>
           <input class="admin-input" type="time" name="eventTime" required>
         </div>
+<<<<<<< Updated upstream
+=======
+
+        <div class="events-field">
+          <label>Season</label>
+          <select name="seasonID" id="seasonSelect" required
+                  style="display:block;width:100%;height:40px;padding:0 10px;
+                         background:#fff;border:1px solid #ccc;border-radius:6px;
+                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;">
+            {% for s in seasons %}
+              <option value="{{ s.seasonID }}"
+                {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+>>>>>>> Stashed changes
       </div>
 
       <div class="events-form-actions">
         <button class="dash-card-btn btn-purple" type="submit">
-          <i class="material-icons" style="font-size:16px">add</i>
-          Create Event
+          <i class="material-icons" style="font-size:16px;">add</i> Create Event
         </button>
       </div>
 
     </form>
   </div>
 
-  <!-- ================= Existing Events ================= -->
+  <!--  Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
   <div class="events-card">
 
     <div class="events-card-head">
       <div>
         <div class="events-card-title">Events</div>
-        <div class="events-card-sub">Search, sort, and manage events.</div>
+        <div class="events-card-sub">Search, filter and manage events.</div>
       </div>
+      <div class="events-filters">
+        <input id="eventSearch" type="text" placeholder="Search events…"
+               class="ef-input" style="min-width:160px;">
 
+<<<<<<< Updated upstream
       <div class="events-controls">
         <input id="eventSearch" class="events-search" type="text" placeholder="Search events...">
 
@@ -95,20 +158,52 @@
         No events found. Create one above to get started.
       </div>
     {% else %}
+=======
+        <select id="locationFilter" class="ef-select" style="min-width:130px;">
+          <option value="">All Locations</option>
+          {% for loc in all_locations %}
+            <option value="{{ loc|lower }}">{{ loc }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="year-stepper">
+          <button type="button" id="yearPrev">&#8249;</button>
+          <span id="yearLabel">—</span>
+          <button type="button" id="yearNext">&#8250;</button>
+        </div>
+
+        <select id="eventSort" class="ef-select">
+          <option value="az" selected>A → Z</option>
+          <option value="date">By Date</option>
+        </select>
+      </div>
+    </div>
+
+    {% if events %}
+>>>>>>> Stashed changes
       <div class="events-table-wrap">
         <table class="events-table" id="eventTable">
           <thead>
             <tr>
+<<<<<<< Updated upstream
               <th style="width:320px;">Event</th>
               <th style="width:140px;">Date</th>
               <th style="width:120px;">Time</th>
               <th>Location</th>
               <th style="width:140px; text-align:right;">Actions</th>
+=======
+              <th>Event</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Location</th>
+              <th style="text-align:right;">Actions</th>
+>>>>>>> Stashed changes
             </tr>
           </thead>
 
           <tbody id="eventTbody">
             {% for e in events %}
+<<<<<<< Updated upstream
               <tr class="event-row"
                   data-name="{{ e.eventName|lower }}"
                   data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}">
@@ -148,11 +243,40 @@
                   </form>
                 </td>
               </tr>
+=======
+            {% set _year = season_year_map.get(e.seasonID, '') %}
+            <tr class="event-row"
+                data-name="{{ e.eventName|lower }}"
+                data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
+                data-location="{{ e.location|lower if e.location else '' }}"
+                data-year="{{ _year }}"
+                data-has-season="{{ 'true' if e.seasonID else 'false' }}"
+                data-id="{{ e.eventID }}"
+                data-ename="{{ e.eventName|e }}"
+                data-edate="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
+                data-etime="{{ e.time.strftime('%H:%M') if e.time else '' }}"
+                data-eloc="{{ e.location|e if e.location else '' }}">
+              <td class="event-name">{{ e.eventName }}</td>
+              <td><span class="event-chip">{{ e.eventDate }}</span></td>
+              <td><span class="event-chip event-chip-blue">{{ e.time.strftime('%H:%M') if e.time else '—' }}</span></td>
+              <td class="event-loc">{{ e.location or '—' }}</td>
+              <td style="text-align:right;white-space:nowrap;">
+                <button class="link" type="button" onclick="openEditFromRow(this)">Edit</button>
+                <form method="POST"
+                      action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
+                      style="display:inline;">
+                  <button class="link danger" type="submit"
+                          onclick="return confirm('Remove this event?')">Remove</button>
+                </form>
+              </td>
+            </tr>
+>>>>>>> Stashed changes
             {% endfor %}
           </tbody>
 
         </table>
       </div>
+<<<<<<< Updated upstream
     {% endif %}
   </div>
 
@@ -231,11 +355,151 @@
         <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
           Discard Changes
         </button>
+=======
+      <div id="noResultsMsg" class="events-no-results">No events match your filters.</div>
+    {% else %}
+      <div class="events-empty">No events yet. Create one above.</div>
+    {% endif %}
+  </div>
+
+  <!-- Season Modal -->
+  <div id="seasonModal" class="season-modal" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeSeasonModal()"></div>
+    <div class="season-modal-card">
+      <h3 style="margin:0 0 6px;font-size:17px;font-weight:800;">Add New Season</h3>
+      <p style="margin:0 0 18px;color:#666;font-size:13px;">Enter the year for the new season.</p>
+      <form method="POST" action="{{ url_for('admin_views.admin_seasons_create') }}">
+        <div class="sf-field">
+          <label class="sf-label">Year</label>
+          <input class="admin-input" name="seasonYear" type="number" required
+                 placeholder="e.g. 2027" min="2000" max="2100"
+                 style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+          <button type="button" class="ev-btn ev-btn-ghost" onclick="closeSeasonModal()">Cancel</button>
+          <button type="submit" class="dash-card-btn btn-purple">Create Season</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Edit Modal -->
+  <div id="eventModal" class="admin-modal" aria-hidden="true">
+    <div class="event-modal-card" role="dialog" aria-modal="true">
+
+      <!-- Header -->
+      <div class="event-modal-header">
+        <span id="modalHeaderName" class="event-modal-header-name">Edit Event</span>
+        <button class="event-modal-close" type="button" onclick="closeModal()">✕</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="event-modal-tabs">
+        <button type="button" id="tabDetailsBtn" class="modal-tab active" onclick="switchTab('details')">
+          <i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
+          Event Details
+        </button>
+        <button type="button" id="tabRulesBtn" class="modal-tab" onclick="switchTab('rules')">
+          <i class="material-icons" style="font-size:14px;vertical-align:-2px;">stars</i>
+          Points Rules
+        </button>
+      </div>
+
+      <!-- Tab: Details -->
+      <div id="tabDetails" class="event-modal-body">
+        <div class="detail-grid">
+          <div class="events-field">
+            <label class="sf-label">Event Name</label>
+            <input id="detailName" class="admin-input" type="text" placeholder="e.g. Green Mile">
+          </div>
+          <div class="events-field">
+            <label class="sf-label">Location</label>
+            <input id="detailLocation" class="admin-input" type="text" placeholder="e.g. Queen's Park Savannah">
+          </div>
+          <div class="events-field">
+            <label class="sf-label">Date</label>
+            <input id="detailDate" class="admin-input" type="date">
+          </div>
+          <div class="events-field">
+            <label class="sf-label">Time</label>
+            <input id="detailTime" class="admin-input" type="time">
+          </div>
+        </div>
+        <div class="event-modal-footer" style="border-top:none;background:none;padding:16px 0 0;">
+          <button class="ev-btn ev-btn-ghost" type="button" onclick="closeModal()">Cancel</button>
+          <button class="ev-btn ev-btn-primary" type="button" onclick="saveDetails()">
+            <i class="material-icons" style="font-size:15px;">save</i> Save Details
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab: Rules -->
+      <div id="tabRules" class="event-modal-body" style="display:none;">
+
+        <!-- Individual Points -->
+        <div class="rules-section">
+          <div class="rules-section-head">
+            <div class="rules-section-title">Individual Points</div>
+            <button type="button" class="rules-add-btn" onclick="openIndividualModal(null)">
+              <i class="material-icons" style="font-size:13px;">add</i> Add Rule
+            </button>
+          </div>
+          <div id="indTableWrap" class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th style="width:130px;">Placement</th>
+                  <th>Award</th>
+                  <th style="width:90px;">Points</th>
+                  <th style="width:80px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="indTableBody"></tbody>
+            </table>
+          </div>
+          <div id="indEmpty" class="rules-empty" style="display:none;">
+            No individual rules yet. Click "Add Rule" to create one.
+          </div>
+        </div>
+
+        <!-- Team Points -->
+        <div class="rules-section">
+          <div class="rules-section-head">
+            <div class="rules-section-title">Team Points</div>
+            <button type="button" class="rules-add-btn" onclick="openTeamModal(null)">
+              <i class="material-icons" style="font-size:13px;">add</i> Add Category
+            </button>
+          </div>
+          <div id="teamTableWrap" class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th style="width:200px;">Category</th>
+                  <th>Conditions</th>
+                  <th style="width:80px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="teamTableBody"></tbody>
+            </table>
+          </div>
+          <div id="teamEmpty" class="rules-empty" style="display:none;">
+            No team categories yet. Click "Add Category" to create one.
+          </div>
+        </div>
+
+        <div class="event-modal-footer" style="border-top:2px solid #eee;margin-top:8px;">
+          <button class="ev-btn ev-btn-ghost" type="button" onclick="closeModal()">Cancel</button>
+          <button class="ev-btn ev-btn-primary" type="button" onclick="saveRules()">
+            <i class="material-icons" style="font-size:15px;">save</i> Save All Rules
+          </button>
+        </div>
+>>>>>>> Stashed changes
       </div>
 
     </div>
   </div>
 
+<<<<<<< Updated upstream
 <script>
   // ---------- Toasts ----------
   document.querySelectorAll('.toast').forEach(toast => {
@@ -447,5 +711,100 @@
 });
 
 </script>
+=======
+  <!-- Individual Rule Sub-Modal -->
+  <div id="indModal" class="sub-modal-overlay" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeIndividualModal()"></div>
+    <div class="sub-modal-card" role="dialog">
+      <div class="sub-modal-header">
+        <span id="indModalTitle" class="sub-modal-header-title">Individual Point Rule</span>
+        <button type="button" class="event-modal-close" onclick="closeIndividualModal()">✕</button>
+      </div>
+      <div class="sub-modal-body">
+        <input type="hidden" id="indIdx">
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label">Place <span class="req">*</span></label>
+            <input id="indPlace" class="admin-input" type="number" min="1" max="100"
+                   placeholder="1" style="width:100%;box-sizing:border-box;">
+            <span class="sf-hint">1 = 1st, 2 = 2nd, 3 = 3rd…</span>
+          </div>
+          <div class="sf-field">
+            <label class="sf-label">Points <span class="req">*</span></label>
+            <input id="indPts" class="admin-input" type="number" step="0.01" min="0"
+                   placeholder="e.g. 15" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Award Name <span class="req">*</span></label>
+          <input id="indAward" class="admin-input" type="text"
+                 placeholder="e.g. Gold, Silver, Bronze"
+                 style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">Award name given for this placement</span>
+        </div>
+      </div>
+      <div class="sub-modal-footer">
+        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeIndividualModal()">Cancel</button>
+        <button type="button" class="ev-btn ev-btn-primary" onclick="saveIndividualRule()">
+          <i class="material-icons" style="font-size:14px;">check</i> Save Rule
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Rule Sub-Modal  -->
+  <div id="teamModal" class="sub-modal-overlay" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeTeamModal()"></div>
+    <div class="sub-modal-card sub-modal-card-wide" role="dialog">
+      <div class="sub-modal-header">
+        <span id="teamModalTitle" class="sub-modal-header-title">Team Point Category</span>
+        <button type="button" class="event-modal-close" onclick="closeTeamModal()">✕</button>
+      </div>
+      <div class="sub-modal-body">
+        <input type="hidden" id="teamIdx">
+        <div class="sf-field">
+          <label class="sf-label">Category Name <span class="req">*</span></label>
+          <input id="teamCat" class="admin-input" type="text"
+                 placeholder="e.g. Senior Management, Team Turnout"
+                 style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">The overall category name for this group of conditions</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="sf-label" style="margin-bottom:0;">
+            Awarded For <span class="req">*</span>
+            <span style="font-weight:400;color:#aaa;font-size:11px;"> — one row per condition</span>
+          </label>
+          <button type="button" class="rules-add-btn rules-add-btn-sm" onclick="addAFRow()">
+            <i class="material-icons" style="font-size:12px;">add</i> Add Row
+          </button>
+        </div>
+        <div class="af-table-wrap">
+          <table class="af-table">
+            <thead>
+              <tr>
+                <th>Condition Description</th>
+                <th style="width:100px;">Points</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="afBody"></tbody>
+          </table>
+        </div>
+        <div id="afEmpty" class="af-empty">No conditions yet. Click "Add Row".</div>
+      </div>
+      <div class="sub-modal-footer">
+        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeTeamModal()">Cancel</button>
+        <button type="button" class="ev-btn ev-btn-primary" onclick="saveTeamRule()">
+          <i class="material-icons" style="font-size:14px;">check</i> Save Category
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.events-wrap -->
+
+<script>var VALID_YEARS = {{ valid_years | tojson }};</script>
+<script src="{{ url_for('static', filename='admin/admin_event.js') }}"></script>
+>>>>>>> Stashed changes
 
 {% endblock %}
