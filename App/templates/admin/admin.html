@@ -12,6 +12,23 @@
     <span class="dash-subtitle">Welcome, {{ user.username }} (Admin).</span>
   </div>
 
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
   <p class="section-label">Quick Actions</p>
 
   <div class="cards-grid admin-cards-3">
@@ -72,8 +89,8 @@
 
   </div>
 
-  <div class="admin-public-link modern">
-    <a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')" class="admin-link">
+  <div class="admin-public-link modern">  
+    <a href="{{ url_for('index_views.index_page') }}" class="admin-link">
       Go to Public Dashboard
     </a>
   </div>

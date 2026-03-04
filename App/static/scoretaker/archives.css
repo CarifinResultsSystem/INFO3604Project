@@ -2,7 +2,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-/* ── Page shell ── */
+/* Page shell */
 .dash-root {
   max-width: 1100px;
   margin: 0 auto;
@@ -11,7 +11,7 @@
   color: #1a0030;
 }
 
-/* ── Heading ── */
+/* Heading */
 .dash-heading {
   margin-bottom: 28px;
 }
@@ -35,7 +35,7 @@
 
 .dash-subtitle i { font-size: 16px; }
 
-/* ── Controls bar ── */
+/* Controls bar */
 .lb-controls {
   display: flex;
   align-items: center;
@@ -151,7 +151,7 @@
 
 .arc-upload-btn i { font-size: 18px; }
 
-/* ── Table wrapper ── */
+/* Table wrapper */
 .lb-table-wrap {
   background: #fff;
   border: 1px solid #ede7f6;
@@ -162,7 +162,7 @@
 
 .arc-table-wrap { overflow-x: auto; }
 
-/* ── Table ── */
+/* Table */
 .lb-table {
   width: 100%;
   border-collapse: collapse;
@@ -213,7 +213,7 @@
 .col-date    { width: 26%; }
 .col-actions { width: 14%; white-space: nowrap; text-align: right; }
 
-/* ── Filename cell ── */
+/* Filename cell */
 .arc-fname-cell {
   display: flex;
   align-items: center;
@@ -230,7 +230,7 @@
   font-size: 0.9rem;
 }
 
-/* ── Extension badge ── */
+/* Extension badge */
 .arc-ext {
   display: inline-flex;
   align-items: center;
@@ -250,7 +250,7 @@
 .ext-csv              { background: #f3e5f5; color: #6a1b9a; }
 .ext-ods              { background: #fff3e0; color: #e65100; }
 
-/* ── Action buttons ── */
+/* Action buttons */
 .arc-inline-form { display: inline; }
 
 .arc-action-btn {
@@ -274,7 +274,7 @@
 .btn-delete       { background: #fce4ec; color: #b71c1c; }
 .btn-delete:hover { background: #f8bbd0; transform: scale(1.08); }
 
-/* ── Empty / no-results ── */
+/* Empty / no-results */
 .arc-empty {
   text-align: center;
   padding: 60px 20px;
@@ -295,7 +295,7 @@
 .arc-no-results i { font-size: 44px; opacity: 0.35; }
 .arc-no-results p { margin: 0; font-size: 0.92rem; }
 
-/* ── Pagination ── */
+/* Pagination */
 .arc-pagination {
   display: flex;
   align-items: center;
@@ -339,7 +339,7 @@
 
 .arc-page-btn:disabled { opacity: 0.3; cursor: default; }
 
-/* ── Preview overlay ── */
+/* Preview overlay */
 .arc-preview-overlay {
   position: fixed;
   inset: 0;
@@ -503,7 +503,7 @@
 .arc-preview-fallback i { font-size: 50px; opacity: 0.3; }
 .arc-preview-fallback p { margin: 0; font-size: 0.93rem; }
 
-/* ── Responsive ── */
+/* Responsive */
 @media (max-width: 700px) {
   .dash-root   { padding: 24px 16px 60px; }
   .lb-controls { flex-direction: column; align-items: stretch; }

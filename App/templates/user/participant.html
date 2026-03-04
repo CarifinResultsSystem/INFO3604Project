@@ -7,17 +7,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='user/participant.css') }}">
 
-<style>
-  .p-table-footer {
-    padding: 10px 18px;
-    border-top: 1px solid #f0f0f0;
-    background: #fafafa;
-    font-size: 0.82rem;
-    color: #aaa;
-    text-align: right;
-  }
-</style>
-
 <div class="dash-root">
 
   <!-- PAGE HEADING -->
@@ -29,205 +18,213 @@
     </span>
   </div>
 
-  <!-- CONTROLS -->
-  <div class="p-controls">
-
-    <!-- Season -->
-    <div class="p-select">
-      <i class="material-icons">calendar_today</i>
-      <span>Season:</span>
-      <select id="seasonSelect" onchange="changeSeason(this.value)">
-        <option value="2025" selected>2025</option>
-        <option value="2024">2024</option>
-        <option value="2023">2023</option>
-        <option value="2022">2022</option>
-      </select>
-    </div>
-
-    <!-- Location filter -->
-    <div class="p-select">
-      <i class="material-icons">place</i>
-      <span>Location:</span>
-      <select id="locationFilter" onchange="applyFilters()">
-        <option value="all">All</option>
-        <option value="Trinidad">Trinidad</option>
-        <option value="Tobago">Tobago</option>
-        <option value="Barbados">Barbados</option>
-        <option value="Jamaica">Jamaica</option>
-        <option value="Guyana">Guyana</option>
-        <option value="St. Lucia">St. Lucia</option>
-      </select>
-    </div>
-
-    <!-- Event filter -->
-    <div class="p-select">
-      <i class="material-icons">emoji_events</i>
-      <span>Event:</span>
-      <select id="eventFilter" onchange="applyFilters()">
-        <option value="all">All Events</option>
-        <option value="100m Sprint">100m Sprint</option>
-        <option value="Long Jump">Long Jump</option>
-        <option value="4×400m Relay">4×400m Relay</option>
-        <option value="110m Hurdles">110m Hurdles</option>
-        <option value="Shot Put">Shot Put</option>
-      </select>
-    </div>
-
-    <!-- Search -->
-    <div class="p-search">
-      <i class="material-icons">search</i>
-      <input type="text" id="searchInput" placeholder="Search by name…" oninput="applyFilters()">
-    </div>
-
-    <span class="p-count" id="resultCount"></span>
-  </div>
-
-  <!-- PARTICIPANT TABLE -->
+  <!-- PARTICIPANT TABLE CARD -->
   <p class="section-label">Registered Participants</p>
-  <div class="lb-table-wrap">
-    <table class="lb-table" id="participantTable">
-      <thead>
-        <tr>
-          <th onclick="sortTable(this, 0)">Name</th>
-          <th onclick="sortTable(this, 1)">Event</th>
-          <th onclick="sortTable(this, 2)">Location</th>
-          <th onclick="sortTable(this, 3)">Institution</th>
-        </tr>
-      </thead>
-      <tbody id="participantBody">
+  <div class="dir-card">
 
-        <tr data-name="Tobias Pemberton" data-event="100m Sprint" data-location="Trinidad" data-institution="UWI St. Augustine">
-          <td><div class="p-name-cell"><span class="p-avatar">TP</span><span class="participant-name">Tobias Pemberton</span></div></td>
-          <td><span class="event-tag">100m Sprint</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
-          <td><span class="institution-tag">UWI St. Augustine</span></td>
-        </tr>
+    <!-- CARD HEADER -->
+    <div class="dir-card-head">
+      <div>
+        <div class="dir-card-title">Participant Directory</div>
+        <div class="dir-card-sub" id="resultCount"></div>
+      </div>
 
-        <tr data-name="Marcus Baptiste" data-event="Long Jump" data-location="Barbados" data-institution="UTT">
-          <td><div class="p-name-cell"><span class="p-avatar">MB</span><span class="participant-name">Marcus Baptiste</span></div></td>
-          <td><span class="event-tag">Long Jump</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Barbados</span></td>
-          <td><span class="institution-tag">UTT</span></td>
-        </tr>
+      <div class="dir-controls">
 
-        <tr data-name="Carla Alleyne" data-event="4×400m Relay" data-location="Barbados" data-institution="COSTAATT">
-          <td><div class="p-name-cell"><span class="p-avatar">CA</span><span class="participant-name">Carla Alleyne</span></div></td>
-          <td><span class="event-tag">4×400m Relay</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Barbados</span></td>
-          <td><span class="institution-tag">COSTAATT</span></td>
-        </tr>
+        <!-- Season -->
+        <div class="dir-sortbox">
+          <i class="material-icons" style="font-size:18px;color:#7b1fa2">calendar_today</i>
+          <span class="dir-sortlabel">Season:</span>
+          <select class="dir-select browser-default" id="seasonSelect">
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+        </div>
 
-        <tr data-name="Janelle Williams" data-event="110m Hurdles" data-location="Jamaica" data-institution="NALIS Academy">
-          <td><div class="p-name-cell"><span class="p-avatar">JW</span><span class="participant-name">Janelle Williams</span></div></td>
-          <td><span class="event-tag">110m Hurdles</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Jamaica</span></td>
-          <td><span class="institution-tag">NALIS Academy</span></td>
-        </tr>
+        <!-- Location -->
+        <div class="dir-sortbox">
+          <i class="material-icons" style="font-size:18px;color:#7b1fa2">place</i>
+          <span class="dir-sortlabel">Location:</span>
+          <select class="dir-select browser-default" id="locationFilter">
+            <option value="all">All</option>
+          </select>
+        </div>
 
-        <tr data-name="Devon Charles" data-event="Shot Put" data-location="Trinidad" data-institution="TCC">
-          <td><div class="p-name-cell"><span class="p-avatar">DC</span><span class="participant-name">Devon Charles</span></div></td>
-          <td><span class="event-tag">Shot Put</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
-          <td><span class="institution-tag">TCC</span></td>
-        </tr>
+        <!-- Event -->
+        <div class="dir-sortbox">
+          <i class="material-icons" style="font-size:18px;color:#7b1fa2">emoji_events</i>
+          <span class="dir-sortlabel">Event:</span>
+          <select class="dir-select browser-default" id="eventFilter">
+            <option value="all">All Events</option>
+          </select>
+        </div>
 
-        <tr data-name="Aisha Mohammed" data-event="100m Sprint" data-location="Trinidad" data-institution="SBCS">
-          <td><div class="p-name-cell"><span class="p-avatar">AM</span><span class="participant-name">Aisha Mohammed</span></div></td>
-          <td><span class="event-tag">100m Sprint</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
-          <td><span class="institution-tag">SBCS</span></td>
-        </tr>
+        <!-- Institution -->
+        <div class="dir-sortbox">
+          <i class="material-icons" style="font-size:18px;color:#7b1fa2">apartment</i>
+          <span class="dir-sortlabel">Institution:</span>
+          <select class="dir-select browser-default" id="institutionFilter">
+            <option value="all">All</option>
+          </select>
+        </div>
 
-        <tr data-name="Ryan Joseph" data-event="Long Jump" data-location="Guyana" data-institution="UTT">
-          <td><div class="p-name-cell"><span class="p-avatar">RJ</span><span class="participant-name">Ryan Joseph</span></div></td>
-          <td><span class="event-tag">Long Jump</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Guyana</span></td>
-          <td><span class="institution-tag">UTT</span></td>
-        </tr>
+        <!-- Search -->
+        <input
+          type="text"
+          class="dir-search"
+          id="searchInput"
+          placeholder="Search by name…"
+          oninput="applyFilters()"
+        >
 
-        <tr data-name="Simone Clarke" data-event="4×400m Relay" data-location="Jamaica" data-institution="UWI St. Augustine">
-          <td><div class="p-name-cell"><span class="p-avatar">SC</span><span class="participant-name">Simone Clarke</span></div></td>
-          <td><span class="event-tag">4×400m Relay</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Jamaica</span></td>
-          <td><span class="institution-tag">UWI St. Augustine</span></td>
-        </tr>
-
-        <tr data-name="Nathan Boodoo" data-event="110m Hurdles" data-location="Trinidad" data-institution="COSTAATT">
-          <td><div class="p-name-cell"><span class="p-avatar">NB</span><span class="participant-name">Nathan Boodoo</span></div></td>
-          <td><span class="event-tag">110m Hurdles</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
-          <td><span class="institution-tag">COSTAATT</span></td>
-        </tr>
-
-        <tr data-name="Priya Rampersad" data-event="Shot Put" data-location="Trinidad" data-institution="UWI St. Augustine">
-          <td><div class="p-name-cell"><span class="p-avatar">PR</span><span class="participant-name">Priya Rampersad</span></div></td>
-          <td><span class="event-tag">Shot Put</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Trinidad</span></td>
-          <td><span class="institution-tag">UWI St. Augustine</span></td>
-        </tr>
-
-        <tr data-name="Leon Fontaine" data-event="100m Sprint" data-location="St. Lucia" data-institution="TCC">
-          <td><div class="p-name-cell"><span class="p-avatar">LF</span><span class="participant-name">Leon Fontaine</span></div></td>
-          <td><span class="event-tag">100m Sprint</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>St. Lucia</span></td>
-          <td><span class="institution-tag">TCC</span></td>
-        </tr>
-
-        <tr data-name="Kezia Holder" data-event="Long Jump" data-location="Tobago" data-institution="SBCS">
-          <td><div class="p-name-cell"><span class="p-avatar">KH</span><span class="participant-name">Kezia Holder</span></div></td>
-          <td><span class="event-tag">Long Jump</span></td>
-          <td><span class="location-pill"><i class="material-icons">place</i>Tobago</span></td>
-          <td><span class="institution-tag">SBCS</span></td>
-        </tr>
-
-      </tbody>
-    </table>
-
-    <div class="empty-state" id="emptyState" style="display:none;">
-      <i class="material-icons">person_search</i>
-      No participants match your filters.
+      </div>
     </div>
 
+    <!-- TABLE -->
+    <div class="dir-table-wrap">
+      <table class="lb-table" id="participantTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(this, 0)">Name</th>
+            <th onclick="sortTable(this, 1)">Event</th>
+            <th onclick="sortTable(this, 2)">Location</th>
+            <th onclick="sortTable(this, 3)">Institution</th>
+            <th onclick="sortTable(this, 4)">Season</th>
+          </tr>
+        </thead>
+        <tbody id="participantBody">
+
+          {% for p in participants %}
+          {% set full_name = p.firstName ~ ' ' ~ p.lastName %}
+          {% set initials = p.firstName[0] ~ p.lastName[0] %}
+          {% set inst_name = p.institution.insName if p.institution else 'N/A' %}
+          {% for event in p.events %}
+          <tr
+            data-name="{{ full_name }}"
+            data-event="{{ event.eventName }}"
+            data-location="{{ p.location }}"
+            data-institution="{{ inst_name }}"
+          >
+            <td>
+              <div class="p-name-cell">
+                <span class="p-avatar">{{ initials | upper }}</span>
+                <span class="participant-name">{{ full_name }}</span>
+              </div>
+            </td>
+            <td><span class="event-tag">{{ event.eventName }}</span></td>
+            <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
+            <td><span class="institution-tag">{{ inst_name }}</span></td>
+            <td></td>
+          </tr>
+          {% else %}
+          <tr
+            data-name="{{ full_name }}"
+            data-event=""
+            data-location="{{ p.location }}"
+            data-institution="{{ inst_name }}"
+          >
+            <td>
+              <div class="p-name-cell">
+                <span class="p-avatar">{{ initials | upper }}</span>
+                <span class="participant-name">{{ full_name }}</span>
+              </div>
+            </td>
+            <td><span class="event-tag">—</span></td>
+            <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
+            <td><span class="institution-tag">{{ inst_name }}</span></td>
+            <td></td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          {% endfor %}
+
+        </tbody>
+      </table>
+
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <i class="material-icons">person_search</i>
+        No participants match your filters.
+      </div>
+    </div>
+
+    <!-- FOOTER -->
     <div class="p-table-footer" id="tableFooter"></div>
 
-  </div>
+  </div><!-- /.dir-card -->
 
 </div>
 
 <script>
-  /* FILTERS */
+  /* HELPERS */
   function normalize(str) {
     return (str || '').trim().toLowerCase()
-      .replace(/\u00d7/g, 'x')  // × → x
+      .replace(/\u00d7/g, 'x')
       .replace(/\s+/g, ' ');
   }
 
+  /* POPULATE DROPDOWNS FROM ROW DATA */
+  function buildDropdowns() {
+    const rows = document.querySelectorAll('#participantBody tr');
+
+    const locations    = new Set();
+    const events       = new Set();
+    const institutions = new Set();
+
+    rows.forEach(row => {
+      const loc  = (row.dataset.location    || '').trim();
+      const evt  = (row.dataset.event       || '').trim();
+      const inst = (row.dataset.institution || '').trim();
+      if (loc)                    locations.add(loc);
+      if (evt)                    events.add(evt);
+      if (inst && inst !== 'N/A') institutions.add(inst);
+    });
+
+    function populate(selectId, values) {
+      const sel = document.getElementById(selectId);
+      [...values].sort().forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = val;
+        sel.appendChild(opt);
+      });
+    }
+
+    populate('locationFilter',    locations);
+    populate('eventFilter',       events);
+    populate('institutionFilter', institutions);
+  }
+
+  /* FILTERS */
   function applyFilters() {
     const search      = normalize(document.getElementById('searchInput').value);
     const location    = document.getElementById('locationFilter').value.trim();
     const eventFilter = normalize(document.getElementById('eventFilter').value);
+    const instFilter  = document.getElementById('institutionFilter').value.trim();
     const rows        = document.querySelectorAll('#participantBody tr');
     let visible = 0;
 
     rows.forEach(row => {
       const name = normalize(row.dataset.name);
-      const loc  = (row.dataset.location || '').trim();
+      const loc  = (row.dataset.location    || '').trim();
       const evt  = normalize(row.dataset.event);
+      const inst = (row.dataset.institution || '').trim();
 
-      const matchSearch   = !search            || name.includes(search);
-      const matchLocation = location === 'all' || loc === location;
-      const matchEvent    = eventFilter === 'all' || evt === eventFilter;
+      const matchSearch      = !search               || name.includes(search);
+      const matchLocation    = location === 'all'    || loc  === location;
+      const matchEvent       = eventFilter === 'all' || evt  === eventFilter;
+      const matchInstitution = instFilter  === 'all' || inst === instFilter;
 
-      const show = matchSearch && matchLocation && matchEvent;
+      const show = matchSearch && matchLocation && matchEvent && matchInstitution;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
 
+    const label = visible === 1 ? '1 participant' : `${visible} participants`;
     document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
-    document.getElementById('resultCount').textContent =
-      visible === 1 ? '1 participant' : `${visible} participants`;
-    document.getElementById('tableFooter').textContent =
-      visible === 1 ? '1 participant' : `${visible} participants`;
+    document.getElementById('resultCount').textContent  = label;
+    document.getElementById('tableFooter').textContent  = label;
   }
 
   /* TABLE SORTING */
@@ -240,8 +237,7 @@
     headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
     th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
 
-    // Map column index to data attribute for reliable sorting
-    const dataKeys = ['name', 'event', 'location', 'institution'];
+    const dataKeys = ['name', 'event', 'location', 'institution', 'season'];
     const key = dataKeys[colIndex];
 
     rows.sort((a, b) => {
@@ -253,19 +249,22 @@
     rows.forEach(r => tbody.appendChild(r));
   }
 
-  /* SEASON */
-  function changeSeason(year) {
-    document.querySelector('.dash-subtitle').innerHTML =
-      `<i class="material-icons">groups</i> ${year} Season`;
-    // In production: fetch participant data for this year
-  }
-
-  /* INIT COUNT */
+  /* INIT */
   document.addEventListener('DOMContentLoaded', () => {
+    // Build dynamic dropdown options from the actual row data
+    buildDropdowns();
+
+    // Set initial count
     const total = document.querySelectorAll('#participantBody tr').length;
     const label = `${total} participants`;
     document.getElementById('resultCount').textContent = label;
     document.getElementById('tableFooter').textContent = label;
+
+    // Wire selects — browser-default keeps native behaviour, Materialize stays away
+    document.getElementById('seasonSelect')     .addEventListener('change', e => changeSeason(e.target.value));
+    document.getElementById('locationFilter')   .addEventListener('change', applyFilters);
+    document.getElementById('eventFilter')      .addEventListener('change', applyFilters);
+    document.getElementById('institutionFilter').addEventListener('change', applyFilters);
   });
 </script>
 

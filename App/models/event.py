@@ -1,6 +1,7 @@
 from App.database import db
 
 class Event(db.Model):
+    __tablename__ = "events"
     eventID = db.Column(db.Integer, primary_key=True)
     eventName = db.Column(db.String(256), nullable=False)
     eventDate = db.Column(db.Date, nullable=False)
