@@ -542,6 +542,8 @@
 
 .event-btn-danger:hover{
   background: rgba(198,40,40,0.08);
+}
+
 @media (max-width: 860px) {
   .events-form-grid { grid-template-columns: 1fr; }
   .detail-grid      { grid-template-columns: 1fr; }

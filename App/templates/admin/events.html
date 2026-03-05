@@ -29,34 +29,42 @@
     {% endif %}
   {% endwith %}
 
-  <!-- ================= Seasons ================= -->
+  {# ── Build lookups ── #}
+  {% set season_year_map = {} %}
+  {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
+  {% set valid_years = seasons | map(attribute='year') | list | sort %}
+  {% set all_locations = [] %}
+  {% for e in events %}
+    {% if e.location and e.location not in all_locations %}
+      {% if all_locations.append(e.location) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set all_locations = all_locations | sort %}
+
+  <!-- Seasons -->
   <p class="section-label">Seasons</p>
   <div class="admin-panel" style="margin-bottom:18px;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         {% for s in seasons %}
-          <span style="display:inline-flex;align-items:center;gap:6px;background:#f3f0ff;
-                       border:1px solid #c4b5fd;border-radius:20px;padding:4px 14px;
-                       font-size:13px;font-weight:600;color:#6d28d9;">
-            {{ s.year }}
-          </span>
-        {% endfor %}
-        {% if not seasons %}
+          <span style="display:inline-flex;align-items:center;padding:4px 14px;
+                       background:#f3e5f5;border:1px solid #ce93d8;border-radius:20px;
+                       font-size:13px;font-weight:600;color:#7b1fa2;">{{ s.year }}</span>
+        {% else %}
           <span style="color:#999;font-size:13px;">No seasons yet.</span>
-        {% endif %}
+        {% endfor %}
       </div>
       <button class="dash-card-btn btn-purple" type="button" onclick="openSeasonModal()"
               style="display:inline-flex;align-items:center;gap:6px;">
-        <i class="material-icons" style="font-size:16px;">add</i>
-        Add Season
+        <i class="material-icons" style="font-size:16px;">add</i> Add Season
       </button>
     </div>
   </div>
 
-  <!-- ================= Create Event ================= -->
-  <p class="section-label" id="createEvent">Add New Event</p>
+  <!-- Create Event -->
+  <p class="section-label">Add New Event</p>
   <div class="admin-panel">
-    <form class="events-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
+    <form method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
       <div class="events-form-grid">
 
         <div class="events-field">
@@ -81,15 +89,13 @@
 
         <div class="events-field">
           <label>Season</label>
-          <select class="admin-input" name="seasonID" id="seasonSelect" required
+          <select name="seasonID" id="seasonSelect" required
                   style="display:block;width:100%;height:40px;padding:0 10px;
                          background:#fff;border:1px solid #ccc;border-radius:6px;
                          font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;">
             {% for s in seasons %}
               <option value="{{ s.seasonID }}"
-                {% if s.seasonID == current_season_id %}selected{% endif %}>
-                {{ s.year }}
-              </option>
+                {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
             {% endfor %}
           </select>
         </div>
@@ -105,108 +111,68 @@
 
   <!--  Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
-
-  {% set season_year_map = {} %}
-  {% for s in seasons %}
-    {% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}
-  {% endfor %}
-
-  {% set valid_years = seasons | map(attribute='year') | list | sort %}
-
-  {% set all_locations = [] %}
-  {% for e in events %}
-    {% if e.location and e.location not in all_locations %}
-      {% if all_locations.append(e.location) %}{% endif %}
-    {% endif %}
-  {% endfor %}
-  {% set all_locations = all_locations | sort %}
-
   <div class="events-card">
     <div class="events-card-head">
       <div>
         <div class="events-card-title">Events</div>
         <div class="events-card-sub">Search, filter and manage events.</div>
       </div>
+      <div class="events-filters">
+        <input id="eventSearch" type="text" placeholder="Search events…"
+               class="ef-input" style="min-width:160px;">
 
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;">
+        <select id="locationFilter" class="ef-select" style="min-width:130px;">
+          <option value="">All Locations</option>
+          {% for loc in all_locations %}
+            <option value="{{ loc|lower }}">{{ loc }}</option>
+          {% endfor %}
+        </select>
 
-        <input id="eventSearch" type="text" placeholder="Search events..."
-               style="height:36px;padding:0 10px;border:1px solid #ccc;border-radius:6px;
-                      font-size:13px;min-width:160px;outline:none;">
-
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:13px;color:#555;white-space:nowrap;">Location</span>
-          <select id="locationFilter"
-                  style="height:36px;padding:0 8px;border:1px solid #ccc;border-radius:6px;
-                         font-size:13px;background:#fff;appearance:auto;-webkit-appearance:auto;min-width:140px;">
-            <option value="">All</option>
-            {% for loc in all_locations %}
-              <option value="{{ loc|lower }}">{{ loc }}</option>
-            {% endfor %}
-          </select>
+        <div class="year-stepper">
+          <button type="button" id="yearPrev">&#8249;</button>
+          <span id="yearLabel">—</span>
+          <button type="button" id="yearNext">&#8250;</button>
         </div>
 
-        <div style="display:flex;align-items:center;gap:0;border:1px solid #ccc;border-radius:6px;
-                    background:#fff;height:36px;padding:0 6px;">
-          <button type="button" id="yearPrev"
-                  style="background:none;border:none;cursor:pointer;font-size:22px;
-                         line-height:1;padding:0 4px;color:#444;">&#8249;</button>
-          <span id="yearLabel"
-                style="font-weight:600;min-width:48px;text-align:center;font-size:14px;color:#222;">—</span>
-          <button type="button" id="yearNext"
-                  style="background:none;border:none;cursor:pointer;font-size:22px;
-                         line-height:1;padding:0 4px;color:#444;">&#8250;</button>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:13px;color:#555;white-space:nowrap;">Sort By:</span>
-          <select id="eventSort"
-                  style="height:36px;padding:0 8px;border:1px solid #ccc;border-radius:6px;
-                         font-size:13px;background:#fff;appearance:auto;-webkit-appearance:auto;">
-            <option value="az" selected>Alphabetical</option>
-            <option value="date">Date</option>
-          </select>
-        </div>
-
+        <select id="eventSort" class="ef-select">
+          <option value="az" selected>A → Z</option>
+          <option value="date">By Date</option>
+        </select>
       </div>
     </div>
 
-    {% if events|length == 0 %}
-      <div class="events-empty">No events found. Create one above to get started.</div>
-    {% else %}
+    {% if events %}
       <div class="events-table-wrap">
         <table class="events-table">
           <thead>
             <tr>
-              <th style="width:280px;">Event</th>
-              <th style="width:140px;">Date</th>
-              <th style="width:110px;">Time</th>
+              <th>Event</th>
+              <th>Date</th>
+              <th>Time</th>
               <th>Location</th>
-              <th style="width:140px;text-align:right;">Actions</th>
+              <th style="text-align:right;">Actions</th>
             </tr>
           </thead>
           <tbody id="eventTbody">
             {% for e in events %}
-            {% set row_season_year = season_year_map.get(e.seasonID, '') %}
+            {% set _year = season_year_map.get(e.seasonID, '') %}
             <tr class="event-row"
                 data-name="{{ e.eventName|lower }}"
                 data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
                 data-location="{{ e.location|lower if e.location else '' }}"
-                data-year="{{ row_season_year }}"
-                data-has-season="{{ 'true' if e.seasonID else 'false' }}">
+                data-year="{{ _year }}"
+                data-has-season="{{ 'true' if e.seasonID else 'false' }}"
+                data-id="{{ e.eventID }}"
+                data-ename="{{ e.eventName|e }}"
+                data-edate="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
+                data-etime="{{ e.time.strftime('%H:%M') if e.time else '' }}"
+                data-eloc="{{ e.location|e if e.location else '' }}">
               <td class="event-name">{{ e.eventName }}</td>
               <td><span class="event-chip">{{ e.eventDate }}</span></td>
-              <td><span class="event-chip event-chip-blue">{{ e.time.strftime('%H:%M') }}</span></td>
-              <td class="event-loc">{{ e.location }}</td>
-              <td style="text-align:right;">
-                <button class="link" type="button"
-                        onclick="openEdit(
-                          {{ e.eventID }},
-                          '{{ e.eventName|e }}',
-                          '{{ e.eventDate.isoformat() if e.eventDate else '' }}',
-                          '{{ e.time.strftime('%H:%M') if e.time else '' }}',
-                          '{{ (e.location or '')|e }}'
-                        )">Edit</button>
+              <td><span class="event-chip event-chip-blue">{{ e.time.strftime('%H:%M') if e.time else '—' }}</span></td>
+              <td class="event-loc">{{ e.location or '—' }}</td>
+              <td style="text-align:right;white-space:nowrap;">
+                <button class="link" type="button" onclick="openEditFromRow(this)">Edit</button>
                 <form method="POST"
                       action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
                       style="display:inline;">
@@ -219,159 +185,184 @@
           </tbody>
         </table>
       </div>
-      <div id="noResultsMsg"
-           style="display:none;padding:28px;text-align:center;color:#888;font-size:14px;">
-        No events match your filters.
-      </div>
+      <div id="noResultsMsg" class="events-no-results">No events match your filters.</div>
+    {% else %}
+      <div class="events-empty">No events yet. Create one above.</div>
     {% endif %}
   </div>
 
-  <!-- ================= Add Season Modal ================= -->
-  <div id="seasonModal"
-       style="display:none;position:fixed;inset:0;z-index:2000;
-              align-items:center;justify-content:center;">
-    <div onclick="closeSeasonModal()"
-         style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
-    <div style="position:relative;background:#fff;border-radius:12px;padding:32px 28px;
-                width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1;">
-      <h3 style="margin:0 0 6px;font-size:18px;font-weight:700;">Add New Season</h3>
-      <p style="margin:0 0 20px;color:#666;font-size:13px;">Enter the year for the new season.</p>
+  <!-- Season Modal -->
+  <div id="seasonModal" class="season-modal" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeSeasonModal()"></div>
+    <div class="season-modal-card">
+      <h3 style="margin:0 0 6px;font-size:17px;font-weight:800;">Add New Season</h3>
+      <p style="margin:0 0 18px;color:#666;font-size:13px;">Enter the year for the new season.</p>
       <form method="POST" action="{{ url_for('admin_views.admin_seasons_create') }}">
-        <div style="margin-bottom:16px;">
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Year</label>
+        <div class="sf-field">
+          <label class="sf-label">Year</label>
           <input class="admin-input" name="seasonYear" type="number" required
                  placeholder="e.g. 2027" min="2000" max="2100"
-                 style="width:100%;height:40px;padding:0 12px;border:1px solid #ccc;
-                        border-radius:6px;font-size:14px;box-sizing:border-box;">
+                 style="width:100%;box-sizing:border-box;">
         </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button type="button" onclick="closeSeasonModal()"
-                  style="padding:8px 18px;border:1px solid #ccc;border-radius:6px;
-                         background:#fff;font-size:13px;cursor:pointer;">Cancel</button>
-          <button type="submit" class="dash-card-btn btn-purple"
-                  style="padding:8px 18px;">Create Season</button>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+          <button type="button" class="ev-btn ev-btn-ghost" onclick="closeSeasonModal()">Cancel</button>
+          <button type="submit" class="dash-card-btn btn-purple">Create Season</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ================= Edit Modal (tabbed) ================= -->
-  <div class="admin-modal" id="eventModal" aria-hidden="true">
-    <div class="admin-modal-backdrop" onclick="closeModal()"></div>
-    <div class="admin-modal-card event-modal-card" role="dialog" aria-modal="true">
+  <!-- Main Edit Modal -->
+  <div id="eventModal" class="admin-modal" aria-hidden="true">
+    <div class="event-modal-card" role="dialog" aria-modal="true">
 
-      <!-- Header + tabs -->
-      <div class="event-modal-top" style="padding-bottom:0;border-bottom:none;">
-
-        <!-- Title row -->
-        <div style="display:flex;align-items:center;justify-content:space-between;
-                    padding:16px 18px 12px;">
-          <span id="modalHeaderName"
-                style="font-weight:800;font-size:17px;color:#222;">Edit Event</span>
-          <button class="event-modal-close" type="button" onclick="closeModal()">✕</button>
-        </div>
-
-        <!-- Tab strip -->
-        <div style="display:flex;padding:0 18px;border-bottom:2px solid #111;gap:4px;">
-          <button type="button" id="tabDetailsBtn" onclick="switchTab('details')"
-                  class="modal-tab modal-tab-active">
-            <i class="material-icons" style="font-size:15px;vertical-align:-3px;">edit</i>
-            Event Details
-          </button>
-          <button type="button" id="tabRulesBtn" onclick="switchTab('rules')"
-                  class="modal-tab">
-            <i class="material-icons" style="font-size:15px;vertical-align:-3px;">stars</i>
-            Points Rules
-          </button>
-        </div>
+      <!-- Header -->
+      <div class="event-modal-header">
+        <span id="modalHeaderName" class="event-modal-header-name">Edit Event</span>
+        <button class="event-modal-close" type="button" onclick="closeModal()">✕</button>
       </div>
 
-      <!-- ── Tab 1: Event Details ── -->
+      <!-- Tabs -->
+      <div class="event-modal-tabs">
+        <button type="button" id="tabDetailsBtn" class="modal-tab active" onclick="switchTab('details')">
+          <i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
+          Event Details
+        </button>
+        <button type="button" id="tabRulesBtn" class="modal-tab" onclick="switchTab('rules')">
+          <i class="material-icons" style="font-size:14px;vertical-align:-2px;">stars</i>
+          Points Rules
+        </button>
+      </div>
+
+      <!-- Tab: Details -->
       <div id="tabDetails" class="event-modal-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
-
+        <div class="detail-grid">
           <div class="events-field">
-            <label style="font-weight:700;font-size:13px;color:#333;">Event Name</label>
-            <input id="detailName" class="admin-input" type="text"
-                   placeholder="e.g. Football">
+            <label class="sf-label">Event Name</label>
+            <input id="detailName" class="admin-input" type="text" placeholder="e.g. Green Mile">
           </div>
-
           <div class="events-field">
-            <label style="font-weight:700;font-size:13px;color:#333;">Location</label>
-            <input id="detailLocation" class="admin-input" type="text"
-                   placeholder="e.g. Hasely Crawford Stadium">
+            <label class="sf-label">Location</label>
+            <input id="detailLocation" class="admin-input" type="text" placeholder="e.g. Queen's Park Savannah">
           </div>
-
           <div class="events-field">
-            <label style="font-weight:700;font-size:13px;color:#333;">Date</label>
+            <label class="sf-label">Date</label>
             <input id="detailDate" class="admin-input" type="date">
           </div>
-
           <div class="events-field">
-            <label style="font-weight:700;font-size:13px;color:#333;">Time</label>
+            <label class="sf-label">Time</label>
             <input id="detailTime" class="admin-input" type="time">
           </div>
-
         </div>
-
-        <div class="event-modal-actions">
-          <button class="event-btn event-btn-primary" type="button" onclick="saveDetails()">
-            Save Details
-          </button>
-          <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
-            Cancel
+        <div class="event-modal-footer" style="border-top:none;background:none;padding:16px 0 0;">
+          <button class="ev-btn ev-btn-ghost" type="button" onclick="closeModal()">Cancel</button>
+          <button class="ev-btn ev-btn-primary" type="button" onclick="saveDetails()">
+            <i class="material-icons" style="font-size:15px;">save</i> Save Details
           </button>
         </div>
       </div>
 
-      <!-- ── Tab 2: Points Rules ── -->
+      <!-- Tab: Rules -->
       <div id="tabRules" class="event-modal-body" style="display:none;">
 
-        <div class="event-modal-section">
-          <div class="event-modal-section-title">INDIVIDUAL POINTS</div>
-          <div class="event-table-wrap">
-            <table class="event-table">
-              <thead><tr>
-                <th style="width:160px;">Placement</th>
-                <th>Award</th>
-                <th style="width:140px;">Points</th>
-                <th style="width:60px;"></th>
-              </tr></thead>
-              <tbody id="individualTable"></tbody>
+        <!-- Individual Points -->
+        <div class="rules-section">
+          <div class="rules-section-head">
+            <div class="rules-section-title">Individual Points</div>
+            <button type="button" class="rules-add-btn" onclick="openIndividualModal(null)">
+              <i class="material-icons" style="font-size:13px;">add</i> Add Rule
+            </button>
+          </div>
+          <div id="indTableWrap" class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th style="width:130px;">Placement</th>
+                  <th>Award</th>
+                  <th style="width:90px;">Points</th>
+                  <th style="width:80px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="indTableBody"></tbody>
             </table>
           </div>
-          <div id="individualEmpty" class="event-empty" style="display:none;">
-            No individual point rules yet.
+          <div id="indEmpty" class="rules-empty" style="display:none;">
+            No individual rules yet. Click "Add Rule" to create one.
           </div>
         </div>
 
-        <div class="event-modal-section">
-          <div class="event-modal-section-title">TEAM POINTS</div>
-          <div class="event-table-wrap">
-            <table class="event-table">
-              <thead><tr>
-                <th style="width:240px;">Category</th>
-                <th>Awarded For</th>
-                <th style="width:140px;">Points</th>
-                <th style="width:60px;"></th>
-              </tr></thead>
-              <tbody id="teamTable"></tbody>
+        <!-- Team Points -->
+        <div class="rules-section">
+          <div class="rules-section-head">
+            <div class="rules-section-title">Team Points</div>
+            <button type="button" class="rules-add-btn" onclick="openTeamModal(null)">
+              <i class="material-icons" style="font-size:13px;">add</i> Add Category
+            </button>
+          </div>
+          <div id="teamTableWrap" class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th style="width:200px;">Category</th>
+                  <th>Conditions</th>
+                  <th style="width:80px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="teamTableBody"></tbody>
             </table>
           </div>
-          <div id="teamEmpty" class="event-empty" style="display:none;">
-            No team point rules yet.
+          <div id="teamEmpty" class="rules-empty" style="display:none;">
+            No team categories yet. Click "Add Category" to create one.
           </div>
         </div>
 
-        <div class="event-modal-actions">
-          <button class="event-btn event-btn-primary" type="button" onclick="saveRules()">
-            Save Rules
-          </button>
-          <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
-            Cancel
+        <div class="event-modal-footer" style="border-top:2px solid #eee;margin-top:8px;">
+          <button class="ev-btn ev-btn-ghost" type="button" onclick="closeModal()">Cancel</button>
+          <button class="ev-btn ev-btn-primary" type="button" onclick="saveRules()">
+            <i class="material-icons" style="font-size:15px;">save</i> Save All Rules
           </button>
         </div>
+      </div>
 
+    </div>
+  </div>
+
+  <!-- Individual Rule Sub-Modal -->
+  <div id="indModal" class="sub-modal-overlay" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeIndividualModal()"></div>
+    <div class="sub-modal-card" role="dialog">
+      <div class="sub-modal-header">
+        <span id="indModalTitle" class="sub-modal-header-title">Individual Point Rule</span>
+        <button type="button" class="event-modal-close" onclick="closeIndividualModal()">✕</button>
+      </div>
+      <div class="sub-modal-body">
+        <input type="hidden" id="indIdx">
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label">Place <span class="req">*</span></label>
+            <input id="indPlace" class="admin-input" type="number" min="1" max="100"
+                   placeholder="1" style="width:100%;box-sizing:border-box;">
+            <span class="sf-hint">1 = 1st, 2 = 2nd, 3 = 3rd…</span>
+          </div>
+          <div class="sf-field">
+            <label class="sf-label">Points <span class="req">*</span></label>
+            <input id="indPts" class="admin-input" type="number" step="0.01" min="0"
+                   placeholder="e.g. 15" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Award Name <span class="req">*</span></label>
+          <input id="indAward" class="admin-input" type="text"
+                 placeholder="e.g. Gold, Silver, Bronze"
+                 style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">Award name given for this placement</span>
+        </div>
+      </div>
+      <div class="sub-modal-footer">
+        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeIndividualModal()">Cancel</button>
+        <button type="button" class="ev-btn ev-btn-primary" onclick="saveIndividualRule()">
+          <i class="material-icons" style="font-size:14px;">check</i> Save Rule
+        </button>
       </div>
     </div>
   </div>
@@ -425,350 +416,9 @@
     </div>
   </div>
 
-</div><!-- /.dash-root -->
+</div><!-- /.events-wrap -->
 
-<style>
-/* Tab buttons */
-.modal-tab {
-  padding: 9px 18px;
-  font-weight: 800;
-  font-size: 13px;
-  cursor: pointer;
-  border: 2px solid #111;
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  background: #fff;
-  color: #555;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background .15s, color .15s;
-}
-.modal-tab-active {
-  background: #111;
-  color: #fff;
-}
-.modal-tab:not(.modal-tab-active):hover {
-  background: #f5f5f5;
-  color: #111;
-}
-</style>
-
-<script>
-// ─── Data from server ─────────────────────────────────────────────
-var VALID_YEARS = {{ valid_years | tojson }};
-
-// ─── Season modal ─────────────────────────────────────────────────
-function openSeasonModal()  { document.getElementById('seasonModal').style.display = 'flex'; }
-function closeSeasonModal() { document.getElementById('seasonModal').style.display = 'none'; }
-
-// ─── Tab switching ────────────────────────────────────────────────
-function switchTab(tab) {
-  var isDetails = tab === 'details';
-  document.getElementById('tabDetails').style.display  = isDetails ? 'block' : 'none';
-  document.getElementById('tabRules').style.display    = isDetails ? 'none'  : 'block';
-
-  var dBtn = document.getElementById('tabDetailsBtn');
-  var rBtn = document.getElementById('tabRulesBtn');
-  if (isDetails) {
-    dBtn.classList.add('modal-tab-active');
-    rBtn.classList.remove('modal-tab-active');
-  } else {
-    rBtn.classList.add('modal-tab-active');
-    dBtn.classList.remove('modal-tab-active');
-  }
-}
-
-// ─── Year stepper state ───────────────────────────────────────────
-var yearIndex = (function() {
-  var cal = new Date().getFullYear();
-  var i   = VALID_YEARS.indexOf(cal);
-  return i >= 0 ? i : Math.max(0, VALID_YEARS.length - 1);
-})();
-
-function getActiveYear() {
-  return VALID_YEARS.length ? VALID_YEARS[yearIndex] : null;
-}
-
-// ─── Core filter + sort ───────────────────────────────────────────
-function refreshTable() {
-  var searchEl  = document.getElementById('eventSearch');
-  var locEl     = document.getElementById('locationFilter');
-  var sortEl    = document.getElementById('eventSort');
-  var tbody     = document.getElementById('eventTbody');
-  var noResults = document.getElementById('noResultsMsg');
-
-  if (!tbody) return;
-
-  var q    = searchEl ? searchEl.value.trim().toLowerCase() : '';
-  var loc  = locEl    ? locEl.value.trim().toLowerCase()    : '';
-  var mode = sortEl   ? sortEl.value                        : 'az';
-  var y    = getActiveYear();
-
-  var rows = Array.from(tbody.querySelectorAll('tr.event-row'));
-  rows.sort(function(a, b) {
-    if (mode === 'date') {
-      var ad = a.getAttribute('data-date') || '';
-      var bd = b.getAttribute('data-date') || '';
-      return ad < bd ? -1 : ad > bd ? 1 : 0;
-    }
-    var an = a.getAttribute('data-name') || '';
-    var bn = b.getAttribute('data-name') || '';
-    return an < bn ? -1 : an > bn ? 1 : 0;
-  });
-  rows.forEach(function(r) { tbody.appendChild(r); });
-
-  var visible = 0;
-  rows.forEach(function(row) {
-    var name      = row.getAttribute('data-name')       || '';
-    var location  = row.getAttribute('data-location')   || '';
-    var rowYear   = row.getAttribute('data-year')       || '';
-    var hasSeason = row.getAttribute('data-has-season') === 'true';
-
-    var nameOk = !q   || name.includes(q);
-    var locOk  = !loc || location === loc;
-    var yearOk = hasSeason && (y === null || rowYear === String(y));
-
-    var show = nameOk && locOk && yearOk;
-    row.style.display = show ? '' : 'none';
-    if (show) visible++;
-  });
-
-  if (noResults) noResults.style.display = visible === 0 ? 'block' : 'none';
-}
-
-function updateYearUI() {
-  var y    = getActiveYear();
-  var lbl  = document.getElementById('yearLabel');
-  var prev = document.getElementById('yearPrev');
-  var next = document.getElementById('yearNext');
-  if (lbl)  lbl.textContent    = y !== null ? y : '—';
-  if (prev) prev.style.opacity = yearIndex <= 0 ? '0.3' : '1';
-  if (next) next.style.opacity = yearIndex >= VALID_YEARS.length - 1 ? '0.3' : '1';
-  refreshTable();
-}
-
-// ─── Wire up once DOM ready ───────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-
-  document.querySelectorAll('.toast').forEach(function(t) {
-    setTimeout(function() {
-      t.style.transition = 'opacity 0.4s';
-      t.style.opacity    = '0';
-      setTimeout(function() { t.remove(); }, 400);
-    }, 4000);
-  });
-
-  var dateInput    = document.getElementById('eventDateInput');
-  var seasonSelect = document.getElementById('seasonSelect');
-  if (dateInput && seasonSelect) {
-    dateInput.addEventListener('change', function() {
-      var yr = this.value ? String(new Date(this.value).getUTCFullYear()) : null;
-      if (!yr) return;
-      Array.from(seasonSelect.options).forEach(function(o) {
-        if (o.text.trim() === yr) o.selected = true;
-      });
-    });
-  }
-
-  var prevBtn = document.getElementById('yearPrev');
-  var nextBtn = document.getElementById('yearNext');
-  if (prevBtn) prevBtn.addEventListener('click', function() {
-    if (yearIndex > 0) { yearIndex--; updateYearUI(); }
-  });
-  if (nextBtn) nextBtn.addEventListener('click', function() {
-    if (yearIndex < VALID_YEARS.length - 1) { yearIndex++; updateYearUI(); }
-  });
-
-  var searchEl = document.getElementById('eventSearch');
-  var locEl    = document.getElementById('locationFilter');
-  var sortEl   = document.getElementById('eventSort');
-  if (searchEl) searchEl.addEventListener('input',  refreshTable);
-  if (locEl)    locEl.addEventListener('change',    refreshTable);
-  if (sortEl)   sortEl.addEventListener('change',   refreshTable);
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeModal(); closeSeasonModal(); }
-  });
-
-  if (window.M && M.FormSelect) {
-    M.FormSelect.init(
-      document.querySelectorAll('select:not(#seasonSelect):not(#eventSort):not(#locationFilter)')
-    );
-    ['locationFilter', 'eventSort'].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) {
-        try { var inst = M.FormSelect.getInstance(el); if (inst) inst.destroy(); } catch(e) {}
-      }
-    });
-  }
-
-  updateYearUI();
-});
-
-// ─── Modal open / close ───────────────────────────────────────────
-var _activeEventId   = null;
-var _individualRules = [];
-var _teamRules       = [];
-
-function openModal() {
-  var m = document.getElementById('eventModal');
-  m.classList.add('open');
-  m.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-}
-
-function closeModal() {
-  var m = document.getElementById('eventModal');
-  m.classList.remove('open');
-  m.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-  _activeEventId = null;
-  _individualRules = [];
-  _teamRules = [];
-  document.getElementById('individualTable').innerHTML = '';
-  document.getElementById('teamTable').innerHTML       = '';
-  document.getElementById('individualEmpty').style.display = 'none';
-  document.getElementById('teamEmpty').style.display       = 'none';
-  switchTab('details');
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────
-function _placementText(n) {
-  var num = Number(n);
-  if (num === 1) return '1st Place';
-  if (num === 2) return '2nd Place';
-  if (num === 3) return '3rd Place';
-  return num + 'th Place';
-}
-
-function _esc(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-function _renderTables() {
-  var iBody = document.getElementById('individualTable');
-  var tBody = document.getElementById('teamTable');
-  var iMpty = document.getElementById('individualEmpty');
-  var tMpty = document.getElementById('teamEmpty');
-  iBody.innerHTML = ''; tBody.innerHTML = '';
-
-  if (!_individualRules.length) {
-    iMpty.style.display = 'block';
-  } else {
-    iMpty.style.display = 'none';
-    _individualRules.forEach(function(r, idx) {
-      iBody.innerHTML += '<tr>'
-        + '<td>' + _placementText(r.placement) + '</td>'
-        + '<td><input class="admin-input" value="' + _esc(r.label||'') + '"'
-        + ' oninput="_individualRules['+idx+'].label=this.value"></td>'
-        + '<td><input class="admin-input" type="number" step="0.01" value="' + Number(r.points||0) + '"'
-        + ' oninput="_individualRules['+idx+'].points=this.value"></td>'
-        + '<td></td></tr>';
-    });
-  }
-
-  if (!_teamRules.length) {
-    tMpty.style.display = 'block';
-  } else {
-    tMpty.style.display = 'none';
-    _teamRules.forEach(function(r, idx) {
-      tBody.innerHTML += '<tr>'
-        + '<td><input class="admin-input" value="' + _esc(r.conditionType||'') + '"'
-        + ' oninput="_teamRules['+idx+'].conditionType=this.value"></td>'
-        + '<td><input class="admin-input" value="' + _esc(r.label||'') + '"'
-        + ' oninput="_teamRules['+idx+'].label=this.value"></td>'
-        + '<td><input class="admin-input" type="number" step="0.01" value="' + Number(r.points||0) + '"'
-        + ' oninput="_teamRules['+idx+'].points=this.value"></td>'
-        + '<td></td></tr>';
-    });
-  }
-}
-
-// ─── Open edit (accepts all 5 args from onclick) ──────────────────
-async function openEdit(eventId, eventName, eventDate, eventTime, eventLocation) {
-  _activeEventId = eventId;
-
-  // Populate details tab
-  document.getElementById('modalHeaderName').textContent  = eventName     || 'Edit Event';
-  document.getElementById('detailName').value             = eventName     || '';
-  document.getElementById('detailDate').value             = eventDate     || '';
-  document.getElementById('detailTime').value             = eventTime     || '';
-  document.getElementById('detailLocation').value         = eventLocation || '';
-
-  // Load rules
-  var res = await fetch('/admin/events/' + eventId + '/rules', { credentials: 'same-origin' });
-  if (!res.ok) { alert('Failed to load rules.'); return; }
-  var data = await res.json();
-  _individualRules = data.individual || [];
-  _teamRules       = data.team       || [];
-  _renderTables();
-
-  switchTab('details');
-  openModal();
-}
-
-// ─── Save details via update endpoint ────────────────────────────
-async function saveDetails() {
-  if (!_activeEventId) return;
-
-  var name     = document.getElementById('detailName').value.trim();
-  var date     = document.getElementById('detailDate').value;
-  var time     = document.getElementById('detailTime').value;
-  var location = document.getElementById('detailLocation').value.trim();
-
-  if (!name || !date || !time || !location) {
-    alert('All fields are required.');
-    return;
-  }
-
-  var form = new FormData();
-  form.append('eventName',     name);
-  form.append('eventDate',     date);
-  form.append('eventTime',     time);
-  form.append('eventLocation', location);
-  // seasonID intentionally omitted — backend will preserve existing
-
-  var res = await fetch('/admin/events/' + _activeEventId + '/update', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Accept': 'application/json' },
-    body: form
-  });
-
-  var data = await res.json().catch(function() { return {}; });
-  if (!res.ok || data.success === false) {
-    alert('Failed to save: ' + (data.error || 'Unknown error'));
-    return;
-  }
-  window.location.reload();
-}
-
-// ─── Save rules ───────────────────────────────────────────────────
-async function saveRules() {
-  if (!_activeEventId) return;
-  var payload = {
-    individual: _individualRules.map(function(r) {
-      return { pointsID: r.pointsID, placement: Number(r.placement),
-               label: (r.label||'').trim(), points: Number(r.points||0) };
-    }),
-    team: _teamRules.map(function(r) {
-      return { pointsID: r.pointsID, conditionType: (r.conditionType||'').trim(),
-               label: (r.label||'').trim(),
-               lowerLimit: r.lowerLimit ?? 0, upperLimit: r.upperLimit ?? 0,
-               points: Number(r.points||0) };
-    })
-  };
-  var res = await fetch('/admin/events/' + _activeEventId + '/rules', {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) { alert('Failed to save rules.'); return; }
-  window.location.reload();
-}
-</script>
+<script>var VALID_YEARS = {{ valid_years | tojson }};</script>
+<script src="{{ url_for('static', filename='admin/admin_event.js') }}"></script>
 
 {% endblock %}
