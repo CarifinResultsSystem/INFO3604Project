@@ -23,7 +23,21 @@ def init_db(app):
 def seed_db():
     from App.models import User
     if not User.query.filter_by(username='bob').first():
-        admin = User(username='bob', role='admin', email='bob@example.com', password='bobpass')
+        admin = User(username='bob', role='admin', email='bob@mail.com', password='bobpass')
         db.session.add(admin)
         db.session.commit()
-        print('Admin user bob created.')
+
+    if not User.query.filter_by(username='alice').first():
+        user = User(username='alice', role='judge', email='alice@mail.com', password='alicepass')
+        db.session.add(user)
+        db.session.commit()
+
+    if not User.query.filter_by(username='john').first():
+        admin = User(username='john', role='scoretaker', email='john@mail.com', password='johnpass')
+        db.session.add(admin)
+        db.session.commit()
+
+    if not User.query.filter_by(username='eve').first():
+        user = User(username='eve', role='hr', email='eve@mail.com', password='evepass')
+        db.session.add(user)
+        db.session.commit()
