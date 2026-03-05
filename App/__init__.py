@@ -789,4 +789,5 @@ def create_app(overrides={}):
 
     
     app.app_context().push()
+    db.create_all()
     return app
