@@ -11,4 +11,10 @@ def create_db():
     db.create_all()
     
 def init_db(app):
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if uri.startswith('postgres://'):
+        app.config['SQLALCHEMY_DATABASE_URI'] = uri.replace('postgres://', 'postgresql://', 1)
+    
     db.init_app(app)
+    with app.app_context():
+        db.create_all()
