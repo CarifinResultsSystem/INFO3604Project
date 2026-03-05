@@ -396,25 +396,6 @@
 }
 
 /* Responsive */
-<<<<<<< Updated upstream
-@media (max-width: 900px){
-  .events-card-head{
-    flex-direction:column;
-    align-items:stretch;
-  }
-  .events-search{ width:100%; }
-}
-
-@media (max-width: 850px){
-  .events-form-grid{
-    grid-template-columns: 1fr;
-    gap:14px;
-  }
-}
-/* ================
-   EVENT MODAL (wireframe look)
-================ */
-
 .event-modal-card{
   width: min(980px, calc(100% - 48px));
   margin: 18px auto;
@@ -561,11 +542,35 @@
 
 .event-btn-danger:hover{
   background: rgba(198,40,40,0.08);
-=======
 @media (max-width: 860px) {
   .events-form-grid { grid-template-columns: 1fr; }
   .detail-grid      { grid-template-columns: 1fr; }
   .sf-row           { grid-template-columns: 1fr; }
   .events-card-head { flex-direction: column; }
->>>>>>> Stashed changes
+}
+
+/* ── Prevent Materialize from hiding/replacing filter & sort selects ── */
+#locationFilter,
+#eventSort {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  pointer-events: auto !important;
+  height: 36px !important;
+  padding: 0 8px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  background: #fff !important;
+  color: #333 !important;
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  min-width: 120px;
+}
+
+/* Hide the Materialize-generated wrapper dropdown if it sneaks through */
+.select-wrapper:has(#locationFilter),
+.select-wrapper:has(#eventSort) {
+  display: none !important;
 }

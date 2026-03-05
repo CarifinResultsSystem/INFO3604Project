@@ -17,6 +17,7 @@ from App.controllers.season import *
 from App.controllers.pointsRules import *
 from App.controllers.automatedResult import *
 from App.controllers.participant import *
+from App.controllers.hr import *
 
 from .views import views
 from .config import load_config

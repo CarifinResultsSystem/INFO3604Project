@@ -7,28 +7,51 @@
     <li><a href="{{ url_for('admin_views.admin_institutions') }}"><i class="material-icons">groups</i>Institutions & Participants</a></li>
     <li><a href="{{ url_for('admin_views.admin_events') }}"><i class="material-icons">event</i>Events</a></li>
     <li><a href="{{ url_for('admin_views.admin_awards') }}"><i class="material-icons">emoji_events</i>Awards</a></li>
-    <li><a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+    <li><div class="divider-custom"></div></li>
+
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+    <li><a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}"><i class="material-icons">leaderboard</i><span>Leaderboard</span></a></li>
+    <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i><span>Schedule</span></a></li>
+    <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i><span>Participants</span></a></li>
 
   {% elif current_user.role == "scoretaker" %}
 
     <li><a href="{{ url_for('scoretaker_views.scoretaker_dashboard') }}"><i class="material-icons">dashboard</i>Dashboard</a></li>
     <li><a href="{{ url_for('scoretaker_views.upload_scores') }}"><i class="material-icons">upload</i>Upload Scores</a></li>
     <li><a href="{{ url_for('scoretaker_views.archives') }}"><i class="material-icons">archive</i>Archives</a></li>
-    <li><a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+    <li><div class="divider-custom"></div></li>
+
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+    <li><a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}"><i class="material-icons">leaderboard</i><span>Leaderboard</span></a></li>
+    <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i><span>Schedule</span></a></li>
+    <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i><span>Participants</span></a></li>
 
   {% elif current_user.role == "judge" %}
 
     <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
     <li><a href="#"><i class="material-icons">rate_review</i>Review Scores</a></li>
     <li><a href="#"><i class="material-icons">archive</i>Archives</a></li>
-    <li><a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+
+    <li><div class="divider-custom"></div></li>
+
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+    <li><a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}"><i class="material-icons">leaderboard</i><span>Leaderboard</span></a></li>
+    <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i><span>Schedule</span></a></li>
+    <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i><span>Participants</span></a></li>
 
   {% elif current_user.role == "hr" %}
 
-    <li><a href="#"><i class="material-icons">dashboard</i>Dashboard</a></li>
-    <li><a href="#"><i class="material-icons">assessment</i>Reports</a></li>
-    <li><a href="#"><i class="material-icons">archive</i>Archives</a></li>
-    <li><a href="{{ url_for('auth_views.logout_to_public') }}" onclick="return confirm('You will be logged out to view the Public Dashboard. Continue?')"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+    <li><a href="{{ url_for('hr_views.hr_dashboard') }}"><i class="material-icons">dashboard</i>Dashboard</a></li>
+    <li><a href="{{ url_for('hr_views.hr_reports') }}"><i class="material-icons">assessment</i>Reports</a></li>
+
+    <li><div class="divider-custom"></div></li>
+
+    <li><a href="{{ url_for('index_views.index_page') }}"><i class="material-icons">public</i><span>Public Viewer Dashboard</span></a></li>
+    <li><a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}"><i class="material-icons">leaderboard</i><span>Leaderboard</span></a></li>
+    <li><a href="{{ url_for('schedule_views.get_schedule_page') }}"><i class="material-icons">event</i><span>Schedule</span></a></li>
+    <li><a href="{{ url_for('participant_views.get_participants_page') }}"><i class="material-icons">groups</i><span>Participants</span></a></li>
 
   {% elif current_user.role == "user" %}
 

@@ -1,0 +1,167 @@
+:root {
+  --purple:  #4f46e5;
+  --blue:    #4f46e5;
+  --red:     #dc2626;
+  --green:   #059669;
+  --border:  #e0e7ff;
+  --shadow:  0 2px 16px rgba(79,70,229,0.08);
+  --shadow-hover: 0 6px 28px rgba(79,70,229,0.18);
+}
+
+/* Sidebar */
+.sidenav, .sidenav-fixed,
+#mobile-sidenav {
+  background: linear-gradient(180deg, #0f0f23 0%, #1e1b4b 100%) !important;
+}
+.top-nav { background: #0f0f23 !important; }
+
+/* Login */
+.login-left-bg             { background: linear-gradient(160deg, #0f0f23 0%, #4f46e5 40%, #06b6d4 100%) !important; }
+.auth-tab.active           { color: #4f46e5 !important; }
+.auth-tab::after           { background: #4f46e5 !important; }
+.form-field input:focus    { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important; }
+.forgot-link               { color: #4f46e5 !important; }
+.auth-submit-btn           { background: linear-gradient(135deg, #4f46e5, #0f0f23) !important; box-shadow: 0 4px 16px rgba(79,70,229,0.28) !important; }
+.auth-submit-btn:hover     { box-shadow: 0 6px 22px rgba(79,70,229,0.40) !important; }
+.login-mobile-brand i      { color: #4f46e5 !important; }
+
+/* Settings */
+.settings-tab.active             { color: #4f46e5 !important; }
+.settings-card-title             { color: #4f46e5 !important; background: linear-gradient(90deg, #eef2ff, #f5f3ff) !important; border-bottom-color: #c7d2fe !important; }
+.settings-card:hover             { box-shadow: 0 6px 28px rgba(79,70,229,0.09) !important; }
+.toggle-switch.on                { background: #4f46e5 !important; }
+.setting-select:focus            { border-color: #4f46e5 !important; }
+.settings-save-btn               { background: #4f46e5 !important; box-shadow: 0 4px 18px rgba(79,70,229,0.3) !important; }
+.settings-save-btn:hover         { background: #4338ca !important; box-shadow: 0 8px 28px rgba(79,70,229,0.4) !important; }
+.settings-save-btn.saved         { background: #059669 !important; }
+.about-hero                      { background: linear-gradient(135deg, #0f0f23 0%, #4f46e5 55%, #6366f1 100%) !important; }
+.about-stat:hover                { box-shadow: 0 8px 24px rgba(79,70,229,0.13) !important; }
+.about-stat-num                  { color: #4f46e5 !important; }
+.team-card:hover                 { box-shadow: 0 12px 36px rgba(79,70,229,0.15) !important; }
+.team-card-role                  { color: #4f46e5 !important; }
+.about-mission::before           { background: linear-gradient(180deg, #4f46e5, #0f0f23) !important; }
+
+/* Leaderboard */
+.lb-season-select i              { color: #4f46e5 !important; }
+.lb-view-btn.active              { color: #4f46e5 !important; }
+.event-tab:hover                 { border-color: #4f46e5 !important; color: #4f46e5 !important; }
+.event-tab.active                { background: #4f46e5 !important; border-color: #4f46e5 !important; }
+.lb-table thead                  { background: #eef2ff !important; }
+.lb-table thead th               { color: #4f46e5 !important; border-bottom-color: #a5b4fc !important; }
+.lb-table thead th:hover         { background: #e0e7ff !important; }
+.lb-table tbody tr:hover         { background: #f5f3ff !important; }
+.points-val                      { color: #4f46e5 !important; }
+.event-tag                       { background: #e0e7ff !important; color: #4f46e5 !important; }
+.bar-fill.rank-1                 { background: linear-gradient(90deg, #4f46e5, #818cf8) !important; }
+.bar-fill.rank-2                 { background: linear-gradient(90deg, #4338ca, #6366f1) !important; }
+.bar-fill.rank-3                 { background: linear-gradient(90deg, #0f0f23, #4f46e5) !important; }
+.gallery-dot.active              { background: #4f46e5 !important; }
+
+/* Participant */
+.p-avatar                        { background: linear-gradient(135deg, #4f46e5, #818cf8) !important; }
+.dir-search:focus                { border-color: rgba(79,70,229,0.55) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+
+/* Index */
+.icon-standings                  { background: linear-gradient(135deg, #4f46e5, #818cf8) !important; }
+.icon-results                    { background: linear-gradient(135deg, #0f0f23, #4f46e5) !important; }
+.standing-pts                    { color: #4f46e5 !important; }
+.btn-purple                      { background: #4f46e5 !important; }
+.btn-blue                        { background: #0f0f23 !important; }
+
+/* Admin */
+.admin-search:focus              { border-color: rgba(79,70,229,0.55) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+.admin-btn.primary               { background: #4f46e5 !important; border-color: #4f46e5 !important; }
+.admin-link                      { color: #4f46e5 !important; }
+.link                            { color: #4f46e5 !important; }
+.admin-modal-title:focus         { border-color: rgba(79,70,229,0.55) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+
+/* Admin events */
+.events-table thead              { background: #eef2ff !important; }
+.events-table thead th           { color: #4f46e5 !important; border-bottom-color: #a5b4fc !important; }
+.events-table tbody tr:hover     { background: #f5f3ff !important; }
+.event-chip                      { background: #e0e7ff !important; color: #4f46e5 !important; }
+.events-search:focus             { border-color: rgba(79,70,229,0.55) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+.event-modal-title:focus         { border-color: #4f46e5 !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+
+/* Admin institutions */
+.acc-item.open .acc-head         { background: rgba(79,70,229,0.06) !important; }
+.dir-table thead                 { background: #eef2ff !important; }
+.dir-table thead th              { color: #4f46e5 !important; border-bottom-color: #a5b4fc !important; }
+.dir-table tbody tr:hover        { background: #f5f3ff !important; }
+.dir-chip-purple                 { background: #e0e7ff !important; color: #4f46e5 !important; }
+.dir-search:focus                { border-color: rgba(79,70,229,0.55) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+.participant-btn                 { background: linear-gradient(135deg, #4f46e5, #6366f1) !important; }
+.participant-btn:hover           { background: linear-gradient(135deg, #4338ca, #4f46e5) !important; }
+.event-checkbox:hover            { border-color: #4f46e5 !important; background: #eef2ff !important; }
+.event-checkbox input            { accent-color: #4f46e5 !important; }
+
+/* Admin users */
+.modal-title i                   { color: #4f46e5 !important; }
+.modal-field input:focus,
+.modal-select:focus              { border-color: rgba(79,70,229,0.5) !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.1) !important; }
+.modal-btn-primary               { background: #4f46e5 !important; }
+.role-admin                      { border-color: rgba(79,70,229,0.25) !important; background: rgba(79,70,229,0.08) !important; color: #0f0f23 !important; }
+
+/* HR */
+.stat-card.purple::before        { background: linear-gradient(90deg, #4f46e5, #818cf8) !important; }
+.stat-card.blue::before          { background: linear-gradient(90deg, #0f0f23, #4f46e5) !important; }
+.stat-card.green::before         { background: linear-gradient(90deg, #059669, #34d399) !important; }
+.stat-icon                       { color: #4f46e5 !important; }
+.legend-dot                      { background: #4f46e5 !important; }
+.btn-outline                     { border-color: #4f46e5 !important; color: #4f46e5 !important; }
+.btn-outline:hover               { background: #eef2ff !important; }
+.btn-purple                      { background: linear-gradient(135deg, #4f46e5, #6366f1) !important; }
+.modal-year-badge                { background: #e0e7ff !important; color: #4f46e5 !important; }
+.report-section-title            { color: #4f46e5 !important; border-bottom-color: #e0e7ff !important; }
+.report-table thead th           { background: #eef2ff !important; color: #4f46e5 !important; border-bottom-color: #a5b4fc !important; }
+.report-table tbody tr:hover td  { background: #f5f3ff !important; }
+.error-bar-fill                  { background: linear-gradient(90deg, #4f46e5, #818cf8) !important; }
+.error-bar-count                 { color: #4f46e5 !important; }
+.spinner                         { border-color: #c7d2fe !important; border-top-color: #4f46e5 !important; }
+.generating-icon                 { color: #4f46e5 !important; }
+
+/* Reports */
+.reports-table thead             { background: #eef2ff !important; }
+.reports-table thead th          { color: #4f46e5 !important; border-bottom-color: #a5b4fc !important; }
+.reports-table tbody tr:hover    { background: #f5f3ff !important; }
+.file-icon                       { background: #e0e7ff !important; }
+.file-icon i                     { color: #4f46e5 !important; }
+.unread-dot                      { background: #4f46e5 !important; }
+.link-view                       { color: #4f46e5 !important; }
+
+/* Archives */
+.arc-search-wrap:focus-within    { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,0.1) !important; }
+.lb-season-select                { color: #0f0f23 !important; }
+.lb-season-select i              { color: #6366f1 !important; }
+.arc-upload-btn                  { background: linear-gradient(135deg, #0f0f23, #4f46e5) !important; box-shadow: 0 3px 12px rgba(79,70,229,0.3) !important; }
+.lb-table thead tr               { background: #eef2ff !important; }
+.lb-table th                     { color: #6366f1 !important; border-bottom-color: #a5b4fc !important; }
+.lb-table tbody tr:hover td      { background: #f5f3ff !important; }
+.btn-view                        { background: #e0e7ff !important; color: #4f46e5 !important; }
+.btn-view:hover                  { background: #c7d2fe !important; }
+.arc-page-btn                    { color: #0f0f23 !important; border-color: #a5b4fc !important; }
+.arc-page-btn:hover:not(:disabled) { background: #eef2ff !important; border-color: #818cf8 !important; }
+.arc-page-btn.active             { background: #4f46e5 !important; border-color: #4f46e5 !important; }
+.arc-preview-header              { background: #eef2ff !important; border-bottom-color: #e0e7ff !important; }
+.arc-dl-btn                      { background: #4f46e5 !important; }
+.arc-dl-btn:hover                { background: #0f0f23 !important; }
+.arc-spinner                     { border-color: #c7d2fe !important; border-top-color: #4f46e5 !important; }
+.arc-preview-overlay             { background: rgba(15,15,35,0.6) !important; }
+
+/* Upload scores */
+.upload-root                     { background: #eef2ff !important; }
+.upload-card-header              { background: linear-gradient(135deg, #0f0f23 0%, #4f46e5 60%, #6366f1 100%) !important; }
+.drop-zone                       { border-color: #a5b4fc !important; background: #f5f3ff !important; }
+.drop-zone:hover                 { border-color: #4f46e5 !important; background: #eef2ff !important; }
+.drop-zone.dragover              { border-color: #0f0f23 !important; background: #e0e7ff !important; box-shadow: 0 0 0 4px rgba(79,70,229,0.12) !important; }
+.drop-zone-icon                  { background: linear-gradient(135deg, #c7d2fe, #a5b4fc) !important; }
+.drop-zone-icon i                { color: #0f0f23 !important; }
+.drop-zone-title                 { color: #0f0f23 !important; }
+.drop-zone-sub                   { color: #6366f1 !important; }
+.drop-zone-sub span              { color: #4f46e5 !important; }
+.file-item                       { background: #f5f3ff !important; border-color: #c7d2fe !important; color: #0f0f23 !important; }
+.file-item-size                  { color: #6366f1 !important; }
+.btn-upload-confirm              { background: linear-gradient(135deg, #4f46e5, #6366f1) !important; box-shadow: 0 4px 14px rgba(79,70,229,0.35) !important; }
+.btn-upload-confirm:hover        { background: linear-gradient(135deg, #4338ca, #4f46e5) !important; }
+.btn-upload-cancel               { border-color: #c7d2fe !important; color: #4f46e5 !important; }
+.btn-upload-cancel:hover         { background: #eef2ff !important; border-color: #a5b4fc !important; color: #0f0f23 !important; }

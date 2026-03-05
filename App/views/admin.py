@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from uuid import uuid4
 
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, request
@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
-from App.models import User, Event, Institution, PointsRules, Participant
+from App.models import User, Event, Institution, PointsRules, Participant, Season
 from App.database import db
 from App.controllers.admin import assignRole
 from App.controllers.event import create_event, delete_event, update_event
@@ -132,25 +132,113 @@ def admin_participants_create():
 @admin_views.route("/admin/events")
 @jwt_required()
 def admin_events():
-    events = Event.query.order_by(Event.eventName.asc()).all()
-    print("EVENT COUNT:", len(events))
-    return render_template("admin/events.html", user=current_user, events=events)
+    events  = Event.query.order_by(Event.eventName.asc()).all()
+    seasons = Season.query.order_by(Season.year.desc()).all()
+
+    current_year = datetime.now().year
+
+    # get ONLY ONE season for the current year
+    current_season = Season.query.filter_by(year=current_year).first()
+
+    return render_template(
+        "admin/events.html",
+        user=current_user,
+        events=events,
+        seasons=seasons,
+        current_season_id=current_season.seasonID if current_season else None
+    )
 
 
 @admin_views.route("/admin/events/create", methods=["POST"])
 @jwt_required()
 def admin_events_create():
-    eventName = request.form.get("eventName", "")
-    eventDate = request.form.get("eventDate", "")
-    eventTime = request.form.get("eventTime", "")
+    eventName     = request.form.get("eventName", "").strip()
+    eventDate     = request.form.get("eventDate", "")
+    eventTime     = request.form.get("eventTime", "")
     eventLocation = request.form.get("eventLocation", "")
+    seasonID      = request.form.get("seasonID", "")
 
-    ev, err = create_event(eventName, eventDate, eventTime, eventLocation)
+    # Check for duplicate name within the same season
+    if seasonID:
+        duplicate = Event.query.filter(
+            func.lower(Event.eventName) == eventName.lower(),
+            Event.seasonID == int(seasonID)
+        ).first()
+        if duplicate:
+            flash(f'An event named "{eventName}" already exists in this season.', "error")
+            return redirect(url_for("admin_views.admin_events"))
+
+    ev, err = create_event(eventName, eventDate, eventTime, eventLocation, seasonID)
     if err:
         flash(err, "error")
-    else:
-        flash(f"Event created: {ev.eventName}", "success")
+        return redirect(url_for("admin_views.admin_events"))
 
+    flash(f"Event created: {ev.eventName}", "success")
+
+    # Auto-duplicate into every future season 
+    try:
+        current_season = db.session.get(Season, int(seasonID))
+        if not current_season or not ev.eventDate:
+            return redirect(url_for("admin_views.admin_events"))
+
+        future_seasons = Season.query.filter(
+            Season.year > current_season.year
+        ).order_by(Season.year.asc()).all()
+
+        for next_season in future_seasons:
+            # Skip if a same-named event already exists in that season
+            already_exists = Event.query.filter(
+                func.lower(Event.eventName) == eventName.lower(),
+                Event.seasonID == next_season.seasonID
+            ).first()
+            if already_exists:
+                continue
+
+            year_diff = next_season.year - current_season.year
+            try:
+                next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff)
+            except ValueError:
+                next_date = ev.eventDate.replace(
+                    year=ev.eventDate.year + year_diff, day=28
+                )
+
+            time_str = ev.time.strftime("%H:%M") if ev.time else "00:00"
+            dup, dup_err = create_event(
+                ev.eventName,
+                next_date.isoformat(),
+                time_str,
+                ev.location or "",
+                str(next_season.seasonID)
+            )
+            if dup_err:
+                flash(f"Could not duplicate into season {next_season.year}: {dup_err}", "error")
+            else:
+                flash(f"Duplicated into season {next_season.year}.", "success")
+
+    except Exception as e:
+        flash(f"Duplication error: {str(e)}", "error")
+
+    return redirect(url_for("admin_views.admin_events"))
+
+
+@admin_views.route("/admin/seasons/create", methods=["POST"])
+@jwt_required()
+def admin_seasons_create():
+    year = request.form.get("seasonYear", "").strip()
+    if not year or not year.isdigit():
+        flash("A valid year is required.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+    if Season.query.filter_by(year=int(year)).first():
+        flash(f"Season {year} already exists.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+    try:
+        s = Season(year=int(year))
+        db.session.add(s)
+        db.session.commit()
+        flash(f"Season {year} created.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), "error")
     return redirect(url_for("admin_views.admin_events"))
 
 
@@ -165,18 +253,23 @@ def admin_events_delete(event_id):
 @admin_views.route("/admin/events/<int:event_id>/update", methods=["POST"])
 @jwt_required()
 def admin_events_update(event_id):
-    eventName = request.form.get("eventName", "")
-    eventDate = request.form.get("eventDate", "")
-    eventTime = request.form.get("eventTime", "")
-    eventLocation = request.form.get("eventLocation", "")
+    eventName     = request.form.get("eventName", "").strip()
+    eventDate     = request.form.get("eventDate", "").strip()
+    eventTime     = request.form.get("eventTime", "").strip()
+    eventLocation = request.form.get("eventLocation", "").strip()
+    seasonID      = request.form.get("seasonID", "").strip()
 
-    ev, err = update_event(event_id, eventName, eventDate, eventTime, eventLocation)
+    # If no seasonID passed, preserve the existing one
+    if not seasonID:
+        existing = db.session.get(Event, event_id)
+        if existing and existing.seasonID:
+            seasonID = str(existing.seasonID)
+
+    ev, err = update_event(event_id, eventName, eventDate, eventTime, eventLocation, seasonID)
+
     if err:
-        flash(err, "error")
-    else:
-        flash("Event updated.", "success")
-
-    return redirect(url_for("admin_views.admin_events"))
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True})
 
 
 @admin_views.route("/admin/institutions", methods=["GET", "POST"])
