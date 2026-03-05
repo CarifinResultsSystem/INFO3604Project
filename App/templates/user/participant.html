@@ -101,10 +101,11 @@
           {% set full_name = p.firstName ~ ' ' ~ p.lastName %}
           {% set initials = p.firstName[0] ~ p.lastName[0] %}
           {% set inst_name = p.institution.insName if p.institution else 'N/A' %}
-          {% for event in p.events %}
+          {% set ev_names = p.events | map(attribute='eventName') | list %}
+
           <tr
             data-name="{{ full_name }}"
-            data-event="{{ event.eventName }}"
+            data-event="{{ ev_names | join(', ') }}"
             data-location="{{ p.location }}"
             data-institution="{{ inst_name }}"
           >
@@ -114,30 +115,19 @@
                 <span class="participant-name">{{ full_name }}</span>
               </div>
             </td>
-            <td><span class="event-tag">{{ event.eventName }}</span></td>
-            <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
-            <td><span class="institution-tag">{{ inst_name }}</span></td>
-            <td></td>
-          </tr>
-          {% else %}
-          <tr
-            data-name="{{ full_name }}"
-            data-event=""
-            data-location="{{ p.location }}"
-            data-institution="{{ inst_name }}"
-          >
             <td>
-              <div class="p-name-cell">
-                <span class="p-avatar">{{ initials | upper }}</span>
-                <span class="participant-name">{{ full_name }}</span>
-              </div>
+              {% if ev_names %}
+                {% for name in ev_names %}
+                  <span class="event-tag">{{ name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="event-tag">—</span>
+              {% endif %}
             </td>
-            <td><span class="event-tag">—</span></td>
             <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
             <td><span class="institution-tag">{{ inst_name }}</span></td>
             <td></td>
           </tr>
-          {% endfor %}
           {% else %}
           {% endfor %}
 
@@ -213,7 +203,7 @@
 
       const matchSearch      = !search               || name.includes(search);
       const matchLocation    = location === 'all'    || loc  === location;
-      const matchEvent       = eventFilter === 'all' || evt  === eventFilter;
+      const matchEvent       = eventFilter === 'all' || evt.split(', ').some(e => normalize(e) === eventFilter);
       const matchInstitution = instFilter  === 'all' || inst === instFilter;
 
       const show = matchSearch && matchLocation && matchEvent && matchInstitution;
