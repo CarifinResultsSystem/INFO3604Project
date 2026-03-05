@@ -18,3 +18,12 @@ def init_db(app):
     db.init_app(app)
     with app.app_context():
         db.create_all()
+        seed_db()
+
+def seed_db():
+    from App.models import User
+    if not User.query.filter_by(username='bob').first():
+        admin = User(username='bob', role='admin', email='bob@example.com', password='bobpass')
+        db.session.add(admin)
+        db.session.commit()
+        print('Admin user bob created.')
