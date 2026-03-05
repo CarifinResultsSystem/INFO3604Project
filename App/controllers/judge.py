@@ -39,6 +39,9 @@ def confirm_score(judgeID, resultID):
     db.session.commit()
     return True
 
+# Get Score Documents
+def get_all_score_documents():
+    return db.session.scalars(db.select(ScoreDocument)).all()
 
 # View Automated Results
 def get_automated_result(resultID):

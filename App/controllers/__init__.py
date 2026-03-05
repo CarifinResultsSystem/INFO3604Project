@@ -9,3 +9,4 @@ from .institution import *
 from .season import *
 from .pointsRules import *
 from .hr import *
+from .judge import *
