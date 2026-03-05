@@ -29,12 +29,6 @@
     {% endif %}
   {% endwith %}
 
-<<<<<<< Updated upstream
-  <!-- ================= Create Event ================= -->
-  <p class="section-label" id="createEvent">Add New Event</p>
-  <div class="admin-panel">
-    <form class="events-form" method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
-=======
   {# ── Build lookups ── #}
   {% set season_year_map = {} %}
   {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
@@ -72,7 +66,6 @@
   <div class="admin-panel">
     <form method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
       <div class="events-form-grid">
->>>>>>> Stashed changes
 
       <div class="events-form-grid">
         <div class="events-field">
@@ -94,8 +87,6 @@
           <label>Time</label>
           <input class="admin-input" type="time" name="eventTime" required>
         </div>
-<<<<<<< Updated upstream
-=======
 
         <div class="events-field">
           <label>Season</label>
@@ -110,7 +101,6 @@
           </select>
         </div>
 
->>>>>>> Stashed changes
       </div>
 
       <div class="events-form-actions">
@@ -124,10 +114,6 @@
 
   <!--  Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
   <div class="events-card">
 
     <div class="events-card-head">
@@ -139,26 +125,6 @@
         <input id="eventSearch" type="text" placeholder="Search events…"
                class="ef-input" style="min-width:160px;">
 
-<<<<<<< Updated upstream
-      <div class="events-controls">
-        <input id="eventSearch" class="events-search" type="text" placeholder="Search events...">
-
-        <div class="events-sortbox">
-          <span class="events-sortlabel">Sort</span>
-          <select id="eventSort" class="events-select">
-            <option value="az" selected>Alphabetical</option>
-            <option value="date">Date</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    {% if events|length == 0 %}
-      <div class="events-empty">
-        No events found. Create one above to get started.
-      </div>
-    {% else %}
-=======
         <select id="locationFilter" class="ef-select" style="min-width:130px;">
           <option value="">All Locations</option>
           {% for loc in all_locations %}
@@ -180,70 +146,20 @@
     </div>
 
     {% if events %}
->>>>>>> Stashed changes
       <div class="events-table-wrap">
         <table class="events-table" id="eventTable">
           <thead>
             <tr>
-<<<<<<< Updated upstream
-              <th style="width:320px;">Event</th>
-              <th style="width:140px;">Date</th>
-              <th style="width:120px;">Time</th>
-              <th>Location</th>
-              <th style="width:140px; text-align:right;">Actions</th>
-=======
               <th>Event</th>
               <th>Date</th>
               <th>Time</th>
               <th>Location</th>
               <th style="text-align:right;">Actions</th>
->>>>>>> Stashed changes
             </tr>
           </thead>
 
           <tbody id="eventTbody">
             {% for e in events %}
-<<<<<<< Updated upstream
-              <tr class="event-row"
-                  data-name="{{ e.eventName|lower }}"
-                  data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}">
-                <td class="event-name">
-                  {{ e.eventName }}
-                </td>
-
-                <td>
-                  <span class="event-chip">
-                    {{ e.eventDate }}
-                  </span>
-                </td>
-
-                <td>
-                  <span class="event-chip event-chip-blue">
-                    {{ e.time.strftime('%H:%M') }}
-                  </span>
-                </td>
-
-                <td class="event-loc">
-                  {{ e.location }}
-                </td>
-
-                <td style="text-align:right;">
-                  <button class="link" type="button"
-                          onclick="openEdit({{ e.eventID }}, '{{ e.eventName|e }}')">
-                    Edit
-                  </button>
-
-                  <form method="POST"
-                        action="{{ url_for('admin_views.admin_events_delete', event_id=e.eventID) }}"
-                        style="display:inline;">
-                    <button class="link danger" type="submit"
-                            onclick="return confirm('Remove this event?')">
-                      Remove
-                    </button>
-                  </form>
-                </td>
-              </tr>
-=======
             {% set _year = season_year_map.get(e.seasonID, '') %}
             <tr class="event-row"
                 data-name="{{ e.eventName|lower }}"
@@ -270,92 +186,11 @@
                 </form>
               </td>
             </tr>
->>>>>>> Stashed changes
             {% endfor %}
           </tbody>
 
         </table>
       </div>
-<<<<<<< Updated upstream
-    {% endif %}
-  </div>
-
-  <!-- ================= Modal ================= -->
-
-  <div class="admin-modal" id="eventModal" aria-hidden="true">
-    <div class="admin-modal-backdrop" onclick="closeModal()"></div>
-
-    <div class="admin-modal-card event-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalEventName">
-
-      <!-- TOP: editable event name + close -->
-      <div class="event-modal-top">
-        <input id="modalEventName"
-              class="event-modal-title"
-              value=""
-              placeholder="Event name" />
-        <button class="event-modal-close" type="button" onclick="closeModal()" aria-label="Close">✕</button>
-      </div>
-
-      <!-- BODY: scrollable -->
-      <div class="event-modal-body">
-
-        <!-- INDIVIDUAL -->
-        <div class="event-modal-section">
-          <div class="event-modal-section-title">INDIVIDUAL POINTS</div>
-
-          <div class="event-table-wrap">
-            <table class="event-table">
-              <thead>
-                <tr>
-                  <th style="width:160px;">Placement</th>
-                  <th>Award</th>
-                  <th style="width:140px;">Points</th>
-                  <th style="width:100px;">Edit Points</th>
-                </tr>
-              </thead>
-              <tbody id="individualTable"></tbody>
-            </table>
-          </div>
-
-          <div id="individualEmpty" class="event-empty" style="display:none;">
-            No individual point rules yet.
-          </div>
-        </div>
-
-        <!-- TEAM -->
-        <div class="event-modal-section">
-          <div class="event-modal-section-title">TEAM POINTS</div>
-
-          <div class="event-table-wrap">
-            <table class="event-table">
-              <thead>
-                <tr>
-                  <th style="width:240px;">Category</th>
-                  <th>Awarded For</th>
-                  <th style="width:140px;">Points</th>
-                  <th style="width:100px;">Edit Points</th>
-                </tr>
-              </thead>
-              <tbody id="teamTable"></tbody>
-            </table>
-          </div>
-
-          <div id="teamEmpty" class="event-empty" style="display:none;">
-            No team point rules yet.
-          </div>
-        </div>
-
-      </div>
-
-      <!-- FOOTER: actions -->
-      <div class="event-modal-actions">
-        <button class="event-btn event-btn-primary" type="button" onclick="saveRules()">
-          Save Changes
-        </button>
-        <button class="event-btn event-btn-danger" type="button" onclick="closeModal()">
-          Discard Changes
-        </button>
-=======
       <div id="noResultsMsg" class="events-no-results">No events match your filters.</div>
     {% else %}
       <div class="events-empty">No events yet. Create one above.</div>
@@ -493,225 +328,11 @@
             <i class="material-icons" style="font-size:15px;">save</i> Save All Rules
           </button>
         </div>
->>>>>>> Stashed changes
       </div>
 
     </div>
   </div>
 
-<<<<<<< Updated upstream
-<script>
-  // ---------- Toasts ----------
-  document.querySelectorAll('.toast').forEach(toast => {
-    setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  });
-
-  // ---------- Search ----------
-  const eventSearch = document.getElementById('eventSearch');
-  function applySearch(){
-    const q = (eventSearch?.value || '').trim().toLowerCase();
-    document.querySelectorAll('#eventTbody .event-row').forEach(row => {
-      const name = row.getAttribute('data-name') || '';
-      row.style.display = !q || name.includes(q) ? '' : 'none';
-    });
-  }
-  if (eventSearch) eventSearch.addEventListener('input', applySearch);
-
-  // ---------- Sort ----------
-  const eventSort = document.getElementById('eventSort');
-  function applySort(){
-    const mode = eventSort?.value || 'az';
-    const body = document.getElementById('eventTbody');
-    if (!body) return;
-
-    const rows = Array.from(body.querySelectorAll('.event-row'));
-    rows.sort((a,b) => {
-      if (mode === 'date'){
-        const ad = a.getAttribute('data-date') || '';
-        const bd = b.getAttribute('data-date') || '';
-        return ad.localeCompare(bd);
-      }
-      const an = a.getAttribute('data-name') || '';
-      const bn = b.getAttribute('data-name') || '';
-      return an.localeCompare(bn);
-    });
-
-    rows.forEach(r => body.appendChild(r));
-  }
-  if (eventSort) eventSort.addEventListener('change', applySort);
-
-  // ---- Modal + rules ----
-  const modal = document.getElementById('eventModal');
-  const nameInput = document.getElementById('modalEventName');
-  const individualTable = document.getElementById('individualTable');
-  const teamTable = document.getElementById('teamTable');
-
-  const individualEmpty = document.getElementById('individualEmpty');
-  const teamEmpty = document.getElementById('teamEmpty');
-
-  let activeEventId = null;
-  let individualRules = [];
-  let teamRules = [];
-
-  function openModal() {
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-  }
-
-  function closeModal() {
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
-
-    activeEventId = null;
-    individualRules = [];
-    teamRules = [];
-    individualTable.innerHTML = "";
-    teamTable.innerHTML = "";
-
-    individualEmpty.style.display = "none";
-    teamEmpty.style.display = "none";
-  }
-
-  function placementText(n) {
-    const num = Number(n);
-    if (num === 1) return "1st Place";
-    if (num === 2) return "2nd Place";
-    if (num === 3) return "3rd Place";
-    return `${num}th Place`;
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function renderTables() {
-    individualTable.innerHTML = "";
-    teamTable.innerHTML = "";
-
-    if (!individualRules.length) {
-      individualEmpty.style.display = "block";
-    } else {
-      individualEmpty.style.display = "none";
-      individualRules.forEach((r, idx) => {
-        individualTable.innerHTML += `
-          <tr>
-            <td>${placementText(r.placement)}</td>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.label || "")}"
-                     oninput="individualRules[${idx}].label=this.value">
-            </td>
-            <td>
-              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
-                     oninput="individualRules[${idx}].points=this.value">
-            </td>
-            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
-          </tr>
-        `;
-      });
-    }
-
-    if (!teamRules.length) {
-      teamEmpty.style.display = "block";
-    } else {
-      teamEmpty.style.display = "none";
-      teamRules.forEach((r, idx) => {
-        teamTable.innerHTML += `
-          <tr>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.conditionType || "")}"
-                     oninput="teamRules[${idx}].conditionType=this.value">
-            </td>
-            <td>
-              <input class="admin-input" value="${escapeHtml(r.label || "")}"
-                     oninput="teamRules[${idx}].label=this.value">
-            </td>
-            <td>
-              <input class="admin-input" type="number" step="0.01" value="${Number(r.points || 0)}"
-                     oninput="teamRules[${idx}].points=this.value">
-            </td>
-            <td><span class="link" style="text-decoration:none; color:#777;">Edit</span></td>
-          </tr>
-        `;
-      });
-    }
-  }
-
-  async function openEdit(eventId, eventName) {
-    activeEventId = eventId;
-    nameInput.value = eventName || "";
-
-    const res = await fetch(`/admin/events/${eventId}/rules`, { credentials: "same-origin" });
-    if (!res.ok) {
-      alert("Failed to load rules. Check your server logs.");
-      return;
-    }
-    const data = await res.json();
-
-    individualRules = data.individual || [];
-    teamRules = data.team || [];
-
-    renderTables();
-    openModal();
-  }
-
-  async function saveRules() {
-    if (!activeEventId) return;
-
-    const payload = {
-      eventName: nameInput.value.trim(),
-      individual: individualRules.map(r => ({
-        pointsID: r.pointsID,
-        placement: Number(r.placement),
-        label: (r.label || "").trim(),
-        points: Number(r.points || 0)
-      })),
-      team: teamRules.map(r => ({
-        pointsID: r.pointsID,
-        conditionType: (r.conditionType || "").trim(),
-        label: (r.label || "").trim(),
-        lowerLimit: r.lowerLimit ?? 0,
-        upperLimit: r.upperLimit ?? 0,
-        points: Number(r.points || 0)
-      }))
-    };
-
-    const res = await fetch(`/admin/events/${activeEventId}/rules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      alert("Failed to save changes. Check your server logs.");
-      return;
-    }
-
-    window.location.reload();
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
-  });
-
-  document.addEventListener('DOMContentLoaded', function () {
-  const selects = document.querySelectorAll('select');
-  if (window.M && M.FormSelect) M.FormSelect.init(selects);
-});
-
-</script>
-=======
   <!-- Individual Rule Sub-Modal -->
   <div id="indModal" class="sub-modal-overlay" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeIndividualModal()"></div>
@@ -805,6 +426,5 @@
 
 <script>var VALID_YEARS = {{ valid_years | tojson }};</script>
 <script src="{{ url_for('static', filename='admin/admin_event.js') }}"></script>
->>>>>>> Stashed changes
 
 {% endblock %}
