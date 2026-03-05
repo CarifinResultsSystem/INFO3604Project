@@ -120,20 +120,30 @@
             </select>
           </div>
 
-          <div class="admin-form-row events-checkbox-group">
-            <label>REGISTER FOR EVENTS</label>
-
-            <div class="events-checkbox-grid">
-
-              {% for e in events %}
-              <label class="event-checkbox">
-                <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
-                <span>{{ e.eventName }}</span>
-              </label>
+          <div class="admin-form-row">
+            <label>Season</label>
+            <select id="seasonEventFilter" class="admin-input browser-default"
+                    onchange="filterEventsBySeason(this.value)">
+              <option value="" selected disabled>Select a season</option>
+              {% for s in seasons %}
+                <option value="{{ s.seasonID }}">{{ s.year }}</option>
               {% endfor %}
+            </select>
+          </div>
 
+          <div class="admin-form-row events-checkbox-group">
+            <label>Register for Events</label>
+            <div id="eventsCheckboxGrid" class="events-checkbox-grid">
+              {% for e in events %}
+                <label class="event-checkbox" data-season="{{ e.seasonID }}" style="display:none;">
+                  <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
+                  <span>{{ e.eventName }}</span>
+                </label>
+              {% endfor %}
+              <span id="eventsPlaceholder" style="color:#aaa;font-size:13px;">
+                Select a season to see events.
+              </span>
             </div>
-
           </div>
 
           <div class="admin-form-row">
@@ -272,9 +282,36 @@
 
   // ---------- Materialize selects ----------
   document.addEventListener('DOMContentLoaded', function () {
-    const selects = document.querySelectorAll('select:not(.browser-default)');
-    if (window.M && M.FormSelect) M.FormSelect.init(selects);
+    // Destroy Materialize on selects that need native behaviour
+    if (window.M && M.FormSelect) {
+      ['seasonEventFilter'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        try { var inst = M.FormSelect.getInstance(el); if (inst) inst.destroy(); } catch(e) {}
+      });
+      // Init Materialize only on selects that don't need native behaviour
+      var selects = document.querySelectorAll('select:not(.browser-default):not(#seasonEventFilter)');
+      M.FormSelect.init(selects);
+    }
   });
+  // ---------- Participant form: Filter events by season ----------
+  function filterEventsBySeason(seasonId) {
+    const labels = document.querySelectorAll('#eventsCheckboxGrid .event-checkbox');
+    const placeholder = document.getElementById('eventsPlaceholder');
+    let visible = 0;
+
+    labels.forEach(function(label) {
+      const match = label.getAttribute('data-season') === String(seasonId);
+      label.style.display = match ? '' : 'none';
+      if (!match) label.querySelector('input[type="checkbox"]').checked = false;
+      if (match) visible++;
+    });
+
+    placeholder.style.display = visible === 0 ? 'block' : 'none';
+    placeholder.textContent = visible === 0
+      ? (seasonId ? 'No events for this season.' : 'Select a season to see events.')
+      : '';
+  }
 
   // ---------- Directory table search/filter/sort ----------
   const dirSearch = document.getElementById('dirSearch');
@@ -323,6 +360,9 @@
   if (dirInstFilter) dirInstFilter.addEventListener('change', applyDirFilters);
   if (dirEventFilter) dirEventFilter.addEventListener('change', applyDirFilters);
   if (dirSort) dirSort.addEventListener('change', applyDirSort);
+
+
+  
 </script>
 
 {% endblock %}

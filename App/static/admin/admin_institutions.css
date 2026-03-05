@@ -199,6 +199,20 @@ select.admin-input {
   box-shadow: 0 10px 30px rgba(0,0,0,.16);
 }
 
+/* Season Filter */
+#seasonEventFilter {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  pointer-events: auto !important;
+  height: 40px !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  background: #fff !important;
+  color: #333 !important;
+}
+.select-wrapper:has(#seasonEventFilter) { display: none !important; }
 
 /* Institution Layout */
 

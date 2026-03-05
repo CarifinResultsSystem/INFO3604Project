@@ -10,7 +10,7 @@
 
   <div class="dash-heading">
     <h1>Events</h1>
-    <span class="dash-subtitle">Create, Edit, Manage Events</span>
+    <span class="dash-subtitle">Create, Edit &amp; Manage Events</span>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -61,12 +61,12 @@
 
         <div class="events-field">
           <label>Event Name</label>
-          <input class="admin-input" name="eventName" required placeholder="e.g. Football">
+          <input class="admin-input" name="eventName" required placeholder="e.g. One Lap Savannah">
         </div>
 
         <div class="events-field">
           <label>Location</label>
-          <input class="admin-input" name="eventLocation" required placeholder="e.g. Hasely Crawford Stadium">
+          <input class="admin-input" name="eventLocation" required placeholder="e.g. Queen's Park Savannah">
         </div>
 
         <div class="events-field">
@@ -97,14 +97,13 @@
       </div>
       <div class="events-form-actions">
         <button class="dash-card-btn btn-purple" type="submit">
-          <i class="material-icons" style="font-size:16px">add</i>
-          Create Event
+          <i class="material-icons" style="font-size:16px;">add</i> Create Event
         </button>
       </div>
     </form>
   </div>
 
-  <!-- ================= Existing Events ================= -->
+  <!--  Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
 
   {% set season_year_map = {} %}
@@ -126,7 +125,7 @@
     <div class="events-card-head">
       <div>
         <div class="events-card-title">Events</div>
-        <div class="events-card-sub">Search, sort, and manage events.</div>
+        <div class="events-card-sub">Search, filter and manage events.</div>
       </div>
 
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;">
@@ -374,7 +373,55 @@
         </div>
 
       </div>
+    </div>
+  </div>
 
+  <!-- Team Rule Sub-Modal  -->
+  <div id="teamModal" class="sub-modal-overlay" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeTeamModal()"></div>
+    <div class="sub-modal-card sub-modal-card-wide" role="dialog">
+      <div class="sub-modal-header">
+        <span id="teamModalTitle" class="sub-modal-header-title">Team Point Category</span>
+        <button type="button" class="event-modal-close" onclick="closeTeamModal()">✕</button>
+      </div>
+      <div class="sub-modal-body">
+        <input type="hidden" id="teamIdx">
+        <div class="sf-field">
+          <label class="sf-label">Category Name <span class="req">*</span></label>
+          <input id="teamCat" class="admin-input" type="text"
+                 placeholder="e.g. Senior Management, Team Turnout"
+                 style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">The overall category name for this group of conditions</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="sf-label" style="margin-bottom:0;">
+            Awarded For <span class="req">*</span>
+            <span style="font-weight:400;color:#aaa;font-size:11px;"> — one row per condition</span>
+          </label>
+          <button type="button" class="rules-add-btn rules-add-btn-sm" onclick="addAFRow()">
+            <i class="material-icons" style="font-size:12px;">add</i> Add Row
+          </button>
+        </div>
+        <div class="af-table-wrap">
+          <table class="af-table">
+            <thead>
+              <tr>
+                <th>Condition Description</th>
+                <th style="width:100px;">Points</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="afBody"></tbody>
+          </table>
+        </div>
+        <div id="afEmpty" class="af-empty">No conditions yet. Click "Add Row".</div>
+      </div>
+      <div class="sub-modal-footer">
+        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeTeamModal()">Cancel</button>
+        <button type="button" class="ev-btn ev-btn-primary" onclick="saveTeamRule()">
+          <i class="material-icons" style="font-size:14px;">check</i> Save Category
+        </button>
+      </div>
     </div>
   </div>
 
