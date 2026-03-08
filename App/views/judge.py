@@ -10,6 +10,11 @@ judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 def judge_dashboard():
     return render_template('judge/judge.html', user=current_user)
 
+@judge_views.route('/judge/review')
+@jwt_required()
+def review_scores():
+    return render_template('judge/review.html')
+
 #modified from scoretaker archives
 @judge_views.route('/judge/archives')
 @jwt_required()
