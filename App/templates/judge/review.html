@@ -4,12 +4,88 @@
 {% block content %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='judge/judge.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
 
 <div class="dashboard-root">
 
     <div class="dashboard-header">
         <h1>Review Scores</h1>
     </div>
+
+        <div class="lb-table-wrap arc-table-wrap" id="arcTableWrap">
+        <table class="lb-table arc-table" id="arcTable">
+        <thead>
+            <tr>
+            <th class="col-name" onclick="sortTable(this, 0)">
+                Filename <i class="material-icons sort-icon">unfold_more</i>
+            </th>
+            <th class="col-type" onclick="sortTable(this, 1)">
+                Type <i class="material-icons sort-icon">unfold_more</i>
+            </th>
+            <th class="col-date" onclick="sortTable(this, 2)">
+                Uploaded <i class="material-icons sort-icon">unfold_more</i>
+            </th>
+            <th class="col-actions">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="arcBody">
+            {% for doc in documents %}
+            <tr
+            class="arc-row"
+            data-name="{{ doc.filename | lower }}"
+            data-type="{{ doc.fileType }}"
+            data-date="{{ doc.uploadedAtRaw }}"
+            >
+            <!-- Filename -->
+            <td class="col-name">
+                <div class="arc-fname-cell">
+                <span class="arc-ext ext-{{ doc.fileType | lower }}">{{ doc.fileType }}</span>
+                <span class="arc-fname" title="{{ doc.filename }}">{{ doc.filename }}</span>
+                </div>
+            </td>
+
+            <!-- Date -->
+            <td class="col-date">{{ doc.uploadedAt }}</td>
+
+
+            <!-- Actions -->
+            <td class="col-actions">
+                <button
+                class="arc-action-btn btn-view"
+                title="View / Download"
+                onclick="openPreview('{{ doc.id }}','{{ doc.filename }}','{{ doc.viewUrl }}','{{ doc.fileType }}')"
+                >
+                <i class="material-icons">visibility</i>
+                </button>
+                <form method="POST" action="{{ doc.deleteUrl }}" class="arc-inline-form"
+                    onsubmit="return confirm('Delete \'{{ doc.filename }}\'? This cannot be undone.')">
+                <button type="submit" class="arc-action-btn btn-delete" title="Delete">
+                    <i class="material-icons">delete_outline</i>
+                </button>
+                </form>
+            </td>
+            </tr>
+            {% else %}
+            <tr>
+            <td colspan="4" class="arc-empty">
+                <i class="material-icons">inbox</i>
+                <p>No documents uploaded yet.</p>
+            </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+
+        <div class="arc-no-results" id="noResults" style="display:none;">
+        <i class="material-icons">search_off</i>
+        <p>No files match your search or filters.</p>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="arc-pagination" id="arcPagination"></div>
+
+</div>
 
 </div>
 {% endblock %}
