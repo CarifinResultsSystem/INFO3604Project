@@ -48,12 +48,15 @@
 
             <!-- Actions -->
             <td class="col-actions">
-                <button
-                class="arc-action-btn btn-view"
-                title="Review"
-                onclick="openPreview('{{ doc.id }}','{{ doc.filename }}','{{ doc.viewUrl }}','{{ doc.fileType }}')">
-                <i class="material-symbols-outlined">rate_review</i>
-                </button>
+                
+                <a href="{{ url_for('judge_views.review_score_document', documentID=doc.id) }}">
+                    <button
+                    class="arc-action-btn btn-view"
+                    title="Review"
+                    onclick="openPreview('{{ doc.id }}','{{ doc.filename }}','{{ doc.viewUrl }}','{{ doc.fileType }}')">
+                    <i class="material-symbols-outlined">rate_review</i>
+                    </button>
+                </a>
                 <!--
                 <form method="POST" action="{{ doc.deleteUrl }}" class="arc-inline-form"
                     onsubmit="return confirm('Delete \'{{ doc.filename }}\'? This cannot be undone.')">

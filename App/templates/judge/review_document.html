@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{%block title%}Review Document - {{ document.filename }}{%endblock%}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='judge/judge.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='judge/review.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
+
+
+<div class="review-root">
+    <div class="review-header">
+        <h1>
+            <i class="material-icons">description</i>
+            {{ document.filename }}
+        </h1>
+    </div>
+
+    <div class="review-table-container">
+        <div class="review-table-wrapper">
+            <table class="review-data-table" id="reviewTable">
+                <thead>
+                    <tr>
+                        {% for column in table_data.columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_data.rows %}
+                    <tr>
+                        {% for cell in row %}
+                            {% if cell is number %}
+                            <td class="numeric">{{ cell }}</td>
+                            {% else %}
+                            <td>{{ cell }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="review-actions-bar">
+        <div class="action-group">
+            <a class="btn btn-outline">
+                <i class="material-icons">visibility</i> View System Graded Results
+            </a>
+            <button class="btn btn-outline" >
+                <i class="material-icons">download</i> Download Manual Scores
+            </button>
+            <button class="btn btn-outline" >
+                <i class="material-icons">edit</i> Edit Score Sheet
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'info';
+    if (type === 'success') icon = 'check_circle';
+    if (type === 'error') icon = 'error';
+    
+    toast.innerHTML = `
+        <i class="material-icons toast-icon">${icon}</i>
+        <span>${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

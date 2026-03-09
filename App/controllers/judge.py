@@ -40,6 +40,9 @@ def confirm_score(judgeID, resultID):
     return True
 
 # Get Score Documents
+def get_score_document(documentID):
+    return db.session.get(ScoreDocument, documentID)
+
 def get_all_score_documents():
     return db.session.scalars(db.select(ScoreDocument)).all()
 

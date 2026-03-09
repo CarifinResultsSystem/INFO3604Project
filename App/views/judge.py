@@ -1,7 +1,8 @@
 import os
 from flask import Blueprint, render_template, url_for
 from flask_jwt_extended import jwt_required, current_user
-from App.controllers import get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
+from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
+from App.models import ScoreDocument
 import pandas as pd
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
@@ -17,6 +18,8 @@ def judge_dashboard():
         doc_df = pd.read_excel(doc.storedPath)
         print(doc_df)
         print(doc_df.shape)
+        
+        
     return render_template('judge/judge.html', user=current_user, unconfirmed_docs_count=unconfirmed_docs_count)
 
 @judge_views.route('/judge/review')
@@ -42,6 +45,39 @@ def review_scores():
     docs_data.sort(key=lambda x: x["uploadedAtRaw"], reverse=True)
     
     return render_template('judge/review.html', documents=docs_data)
+
+@judge_views.route('/judge/review/<int:documentID>', methods=['GET'])
+@jwt_required()
+def review_score_document(documentID):
+    document = get_score_document(documentID)
+    
+    ext = os.path.splitext(document.originalFilename)[1].lstrip('.').upper() if document.originalFilename else ''
+    doc_data = ({
+        "id":            document.documentID,
+        "filename":      document.originalFilename or '—',
+        "storedFilename": document.storedFilename,
+        "uploadedAt":    document.uploadedOn.strftime("%b %d, %Y · %H:%M") if document.uploadedOn else "—",
+        "uploadedAtRaw": document.uploadedOn.isoformat() if document.uploadedOn else "",
+        "fileType":      ext or "FILE",
+        "viewUrl":       url_for('scoretaker_views.view_document', documentID=document.documentID),
+        "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=document.documentID),
+    })
+    
+    try:
+        df = pd.read_excel(document.storedPath)
+        table_data = {
+            'columns': df.columns.tolist(),
+            'rows': df.values.tolist(),
+            'headers': df.columns.tolist()
+        }
+    except Exception as e:
+        table_data = {
+            'columns': ['Error'],
+            'rows': [[f'Could not load file: {str(e)}']],
+            'headers': ['Error']
+        }
+    
+    return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
 #modified from scoretaker archives
 @judge_views.route('/judge/archives')
