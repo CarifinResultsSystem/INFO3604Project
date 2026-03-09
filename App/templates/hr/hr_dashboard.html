@@ -235,6 +235,75 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /* ── LIVE POLLING ── */
+  function animateCount(el, newVal) {
+    const current = parseInt(el.textContent) || 0;
+    if (current === newVal) return;
+    const step = newVal > current ? 1 : -1;
+    const steps = Math.min(Math.abs(newVal - current), 20);
+    const increment = (newVal - current) / steps;
+    let val = current;
+    let count = 0;
+    const timer = setInterval(() => {
+      count++;
+      val += increment;
+      el.textContent = Math.round(val);
+      if (count >= steps) {
+        el.textContent = newVal;
+        clearInterval(timer);
+      }
+    }, 30);
+  }
+
+  function updateChart(perYear) {
+    const labels = Object.keys(perYear).sort();
+    const values = labels.map(y => perYear[y]);
+
+    // Only update if data actually changed
+    const currentLabels = chart.data.labels.join(',');
+    const newLabels     = labels.join(',');
+    const currentVals   = chart.data.datasets[0].data.join(',');
+    const newVals       = values.join(',');
+
+    if (currentLabels !== newLabels || currentVals !== newVals) {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.update('active');
+    }
+  }
+
+  function pollStats() {
+    fetch("{{ url_for('hr_views.hr_stats') }}", {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('Poll failed');
+      return r.json();
+    })
+    .then(data => {
+      const instEl  = document.getElementById('stat-institutions');
+      const partEl  = document.getElementById('stat-participants');
+      const reptEl  = document.getElementById('stat-reports');
+
+      if (instEl) animateCount(instEl, data.institutions_this_year ?? 0);
+      if (partEl) animateCount(partEl, data.participants_this_year ?? 0);
+      if (reptEl) animateCount(reptEl, data.reports_count ?? 0);
+
+      if (data.institutions_per_year) {
+        updateChart(data.institutions_per_year);
+      }
+    })
+    .catch((err) => {
+      console.error('POLL ERROR:', err);
+    });
+  }
+
+  pollStats();
+  setInterval(pollStats, 5000);
+
+  
   /* ── RENDER PREVIEW ── */
   function renderReportPreview(data) {
     const season  = data?.season  ?? '{{ current_season | default("Current Season") }}';
