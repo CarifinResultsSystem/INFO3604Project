@@ -8,6 +8,33 @@ import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
+def count_errors(unconfirmed_doc):
+    doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+    errors = 0
+    print(doc_df)
+    print(doc_df.shape)
+    print(doc_df.loc[doc_df['Event/Institution'].str.title()=='Total'])
+    total_row = doc_df['Event/Institution'].str.title()=='Total'
+    total_row_index = doc_df[total_row].index
+    if len(total_row_index) > 0:
+        total_idx = total_row_index[0]
+        
+        # Get all rows before the TOTAL row
+        rows_before_total = doc_df.iloc[:total_idx]
+        
+        # Get institution columns (all except first column)
+        institutions = doc_df.columns[1:]
+        
+        # Check each institution total
+        for inst in institutions:
+            calculated_sum = rows_before_total[inst].sum()
+            actual_total = doc_df.loc[total_idx, inst]
+            
+            if abs(calculated_sum - actual_total) >= 0.01:
+                errors += 1
+                
+    return errors
+
 @judge_views.route('/judge/')
 @jwt_required()
 def judge_dashboard():
@@ -16,17 +43,16 @@ def judge_dashboard():
     errors = 0
     
     for doc in unconfirmed_docs:
-        doc_df = pd.read_excel(doc.storedPath)
-        print(doc_df)
-        print(doc_df.shape)
+        errors += count_errors(doc)
         
+    print(errors)
         
-    return render_template('judge/judge.html', user=current_user, unconfirmed_docs_count=unconfirmed_docs_count)
+    return render_template('judge/judge.html', user=current_user, unconfirmed_docs_count=unconfirmed_docs_count, errors=errors)
 
 @judge_views.route('/judge/review')
 @jwt_required()
 def review_scores():
-    documents = get_all_score_documents()
+    documents = get_unconfirmed_documents()
     
     docs_data = []
     for d in documents:
@@ -40,6 +66,7 @@ def review_scores():
             "fileType":      ext or "FILE",
             "viewUrl":       url_for('scoretaker_views.view_document', documentID=d.documentID),
             "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=d.documentID),
+            "errors":       count_errors(d),
         })
 
     # Sort newest first by default

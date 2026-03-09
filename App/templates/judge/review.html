@@ -23,6 +23,7 @@
             <th class="col-date" onclick="sortTable(this, 2)">
                 Uploaded <i class="material-icons sort-icon">unfold_more</i>
             </th>
+            <td class="col-date">Errors</td>
             <th class="col-actions">Actions</th>
             </tr>
         </thead>
@@ -44,6 +45,9 @@
 
             <!-- Date -->
             <td class="col-date">{{ doc.uploadedAt }}</td>
+
+            <!-- Errors -->
+            <td class="col-date">{{ doc.errors}} </td>
 
 
             <!-- Actions -->
