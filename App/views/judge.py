@@ -8,40 +8,121 @@ import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
-
-def count_sum_errors(unconfirmed_doc):
-    sum_errors = 0
-    doc_df = pd.read_excel(unconfirmed_doc.storedPath)
-    print(doc_df)
-    print(doc_df.shape)
-    print(doc_df.loc[doc_df['Event/Institution'].str.title()=='Total'])
-    total_row = doc_df['Event/Institution'].str.title()=='Total'
-    total_row_index = doc_df[total_row].index
-    if len(total_row_index) > 0:
-        total_idx = total_row_index[0]
+def identify_cell_errors(unconfirmed_doc):
+    try:
+        doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+        error_cells = []
         
-        # Get all rows before the TOTAL row
-        rows_before_total = doc_df.iloc[:total_idx]
+        # Check if 'Event/Institution' column exists
+        if 'Event/Institution' not in doc_df.columns:
+            print("Warning: 'Event/Institution' column not found")
+            return error_cells
         
-        # Get institution columns (all except first column)
-        institutions = doc_df.columns[1:]
+        # Find the TOTAL row
+        total_mask = doc_df['Event/Institution'].astype(str).str.title() == 'Total'
+        total_row_indices = doc_df.index[total_mask].tolist()
         
-        # Check each institution total
-        for inst in institutions:
-            calculated_sum = rows_before_total[inst].sum()
-            actual_total = doc_df.loc[total_idx, inst]
+        if len(total_row_indices) > 0:
+            total_idx = total_row_indices[0]
             
-            if abs(calculated_sum - actual_total) >= 0.01:
-                sum_errors += 1
-                
-    return sum_errors
+            # Get all rows before the TOTAL row
+            rows_before_total = doc_df.iloc[:total_idx]
+            
+            # Get institution columns (all except first column)
+            institutions = doc_df.columns[1:]
+            
+            # Check each institution's total
+            for inst_idx, inst in enumerate(institutions, start=1):
+                try:
+                    calculated_sum = rows_before_total[inst].sum()
+                    actual_total = doc_df.loc[total_idx, inst]
+                    
+                    if abs(calculated_sum - actual_total) >= 0.01:
+                        error_cells.append({
+                            'institution': inst,
+                            'column_index': inst_idx,
+                            'row_index': total_idx,
+                            'calculated_value': round(calculated_sum, 2),
+                            'reported_value': actual_total,
+                            'difference': round(calculated_sum - actual_total, 2),
+                            'cell_location': f"Row {total_idx + 1}, Column {inst}",
+                            'error_type': 'Total Mismatch'
+                        })
+                except Exception as e:
+                    print(f"Error processing institution {inst}: {str(e)}")
+                    continue
+        
+        return error_cells
+    except Exception as e:
+        print(f"Error in identify_cell_errors: {str(e)}")
+        return []
+
+
+def identify_all_cell_errors(unconfirmed_doc):
+    doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+    all_errors = []
+    
+    # Get institution columns (all except first column)
+    institutions = doc_df.columns[1:]
+    
+    # Check for TOTAL row errors first
+    total_errors = identify_cell_errors(unconfirmed_doc)
+    all_errors.extend(total_errors)
+    
+    # Check each cell in the dataframe for other issues
+    for row_idx in range(len(doc_df)):
+        event_name = doc_df.iloc[row_idx, 0]
+        
+        # Skip checking the TOTAL row for negative values (it should be a sum)
+        if event_name and 'TOTAL' in str(event_name).upper():
+            continue
+            
+        for col_idx, inst in enumerate(institutions, start=1):
+            cell_value = doc_df.iloc[row_idx, col_idx]
+            
+            # Check if value is numeric
+            if pd.isna(cell_value):
+                all_errors.append({
+                    'institution': inst,
+                    'column_index': col_idx,
+                    'row_index': row_idx,
+                    'event': event_name,
+                    'value': cell_value,
+                    'cell_location': f"Row {row_idx + 1}, Column {inst}",
+                    'error_type': 'Missing Value'
+                })
+            elif not isinstance(cell_value, (int, float)):
+                try:
+                    float(cell_value)
+                except (ValueError, TypeError):
+                    all_errors.append({
+                        'institution': inst,
+                        'column_index': col_idx,
+                        'row_index': row_idx,
+                        'event': event_name,
+                        'value': cell_value,
+                        'cell_location': f"Row {row_idx + 1}, Column {inst}",
+                        'error_type': 'Non-numeric Value'
+                    })
+            elif cell_value < 0:
+                all_errors.append({
+                    'institution': inst,
+                    'column_index': col_idx,
+                    'row_index': row_idx,
+                    'event': event_name,
+                    'value': cell_value,
+                    'cell_location': f"Row {row_idx + 1}, Column {inst}",
+                    'error_type': 'Negative Value'
+                })
+    
+    
+    return all_errors
+
 
 def count_errors(unconfirmed_doc):
-    doc_df = pd.read_excel(unconfirmed_doc.storedPath)
-    errors = 0
-    errors += count_sum_errors(unconfirmed_doc)
-                
-    return errors
+    errors = identify_all_cell_errors(unconfirmed_doc)
+    return len(errors)
+
 
 @judge_views.route('/judge/')
 @jwt_required()
@@ -100,21 +181,77 @@ def review_score_document(documentID):
     })
     
     try:
+        if not os.path.exists(document.storedPath):
+            raise Exception(f"File not found at path: {document.storedPath}")
+        
         df = pd.read_excel(document.storedPath)
+        
+        error_map = {}
+        
+        try:
+            errors = identify_cell_errors(document)
+            
+            for error in errors:
+                key = f"{error['row_index']},{error['column_index']}"
+                error['message'] = f"Total mismatch: Calculated {error['calculated_value']} vs Reported {error['reported_value']}"
+                error_map[key] = error
+        except Exception as e:
+            print(f"Error in identify_cell_errors: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        try:
+            # Get all cell errors
+            all_errors = identify_all_cell_errors(document)
+            
+            for error in all_errors:
+                key = f"{error['row_index']},{error['column_index']}"
+                if key not in error_map:
+                    if error['error_type'] == 'Missing Value':
+                        error['message'] = f"Missing value at {error['cell_location']}"
+                    else:
+                        error['message'] = error['error_type']
+                    error_map[key] = error
+        except Exception as e:
+            print(f"Error in identify_all_cell_errors: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        # Convert rows to ensure all values are properly formatted
+        rows = []
+        for row_idx, row in enumerate(df.values.tolist()):
+            new_row = []
+            for col_idx, cell in enumerate(row):
+                if pd.isna(cell):
+                    new_row.append('')
+                elif isinstance(cell, (int, float)):
+                    new_row.append(cell)
+                else:
+                    new_row.append(str(cell))
+            rows.append(new_row)
+        
         table_data = {
             'columns': df.columns.tolist(),
-            'rows': df.values.tolist(),
-            'headers': df.columns.tolist()
+            'rows': rows,
+            'headers': df.columns.tolist(),
+            'error_map': error_map,
+            'total_errors': len(error_map)
         }
+        
+        
     except Exception as e:
+        print(f"Error loading document: {str(e)}")
+        import traceback
+        traceback.print_exc()
         table_data = {
             'columns': ['Error'],
             'rows': [[f'Could not load file: {str(e)}']],
-            'headers': ['Error']
+            'headers': ['Error'],
+            'error_map': {},
+            'total_errors': 0
         }
     
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
-
 
 @judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET', 'POST'])
 @jwt_required()

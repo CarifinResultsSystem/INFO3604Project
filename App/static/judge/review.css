@@ -346,3 +346,202 @@
 .unsaved-badge i {
     font-size: 15px;
 }
+
+/* Add these styles to your existing CSS */
+.error-cell {
+    background-color: #ffebee !important;
+    border: 2px solid #dc3545 !important;
+    position: relative;
+    cursor: help;
+    font-weight: 500;
+}
+
+.error-cell:hover {
+    background-color: #ffcdd2 !important;
+}
+
+.error-cell .error-badge {
+    display: inline-block;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    margin-left: 5px;
+    font-weight: bold;
+}
+
+.error-summary {
+    background: #fff3f3;
+    border-left: 4px solid #dc3545;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
+}
+
+.error-summary .material-icons {
+    color: #dc3545;
+    font-size: 2rem;
+}
+
+.error-summary .error-count {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #dc3545;
+}
+
+.error-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.total-row {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-top: 2px solid #dee2e6;
+}
+
+.total-row td:first-child {
+    background-color: #e9ecef;
+    font-weight: 700;
+}
+
+   .error-summary {
+        background: #fff3f3;
+        border-left: 4px solid #dc3545;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .error-summary .material-icons {
+        color: #dc3545;
+        font-size: 2rem;
+    }
+    
+    .error-summary .error-count {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #dc3545;
+    }
+    
+    .error-badge {
+        display: inline-block;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        line-height: 20px;
+        text-align: center;
+        margin-left: 5px;
+    }
+    
+    .error-cell {
+        background-color: #ffebee !important;
+        border: 2px solid #dc3545 !important;
+        position: relative;
+        cursor: help;
+    }
+    
+    /* Tooltip on hover - using title attribute instead of pseudo-element */
+    .error-cell:hover {
+        background-color: #ffcdd2 !important;
+    }
+    
+    .total-row {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-top: 2px solid #dee2e6;
+    }
+    
+    .total-row td:first-child {
+        background-color: #e9ecef;
+    }
+    
+    .error-legend {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+    
+    .legend-color.total-mismatch {
+        background-color: #ffebee;
+        border: 2px solid #dc3545;
+    }
+    
+    /* Custom tooltip styling */
+    [data-tooltip] {
+        position: relative;
+        cursor: help;
+    }
+    
+    [data-tooltip]:before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        background: #333;
+        color: white;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    [data-tooltip]:hover:before {
+        display: block;
+    }
+    
+    [data-tooltip]:after {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 0;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+        display: none;
+    }
+    
+    [data-tooltip]:hover:after {
+        display: block;
+    }

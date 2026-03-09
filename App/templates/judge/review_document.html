@@ -14,6 +14,7 @@
             {{ document.filename }}
         </h1>
     </div>
+    
 
     <div class="review-table-container">
         <div class="review-table-wrapper">
@@ -27,12 +28,33 @@
                 </thead>
                 <tbody>
                     {% for row in table_data.rows %}
-                    <tr>
+                    {% set outer_loop = loop %}
+                    <tr {% if loop.index0 > 0 and table_data.rows[loop.index0][0] == 'TOTAL' %}class="total-row"{% endif %}>
                         {% for cell in row %}
-                            {% if cell is number %}
-                            <td class="numeric">{{ cell }}</td>
+                            {% set row_idx = outer_loop.index0 %}
+                            {% set col_idx = loop.index0 %}
+                            {% set error_key = row_idx ~ ',' ~ col_idx %}
+                            
+                            {% if table_data.error_map and error_key in table_data.error_map %}
+                                {% set error = table_data.error_map[error_key] %}
+                                <td class="{% if cell is number %}numeric{% endif %} error-cell" 
+                                    data-tooltip="{{ error.message }}"
+                                    data-error-type="{{ error.error_type }}">
+                                    {% if cell is number %}
+                                        {{ "%.2f"|format(cell) }}
+                                        {% if error.error_type == 'Total Mismatch' %}
+                                            <span class="error-badge">!</span>
+                                        {% endif %}
+                                    {% else %}
+                                        {{ cell }}
+                                    {% endif %}
+                                </td>
                             {% else %}
-                            <td>{{ cell }}</td>
+                                {% if cell is number %}
+                                <td class="numeric">{{ "%.2f"|format(cell) }}</td>
+                                {% else %}
+                                <td>{{ cell }}</td>
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
                     </tr>
@@ -58,7 +80,6 @@
 </div>
 
 <script>
-
 function showToast(message, type = 'info') {
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
@@ -88,5 +109,23 @@ function showToast(message, type = 'info') {
         }
     }, 5000);
 }
+
+// Auto-show toast if there are errors
+{% if table_data.total_errors > 0 %}
+document.addEventListener('DOMContentLoaded', function() {
+    showToast('Found {{ table_data.total_errors }} error(s) in this document. Hover over highlighted cells for details.', 'error');
+});
+{% endif %}
+
+// Add fallback for browsers that don't support data-tooltip
+document.addEventListener('DOMContentLoaded', function() {
+    var errorCells = document.querySelectorAll('.error-cell');
+    errorCells.forEach(function(cell) {
+        var tooltip = cell.getAttribute('data-tooltip');
+        if (tooltip) {
+            cell.setAttribute('title', tooltip); // Fallback to native title
+        }
+    });
+});
 </script>
 {% endblock %}
