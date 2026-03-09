@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from uuid import uuid4
 
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, request
@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
-from App.models import User, Event, Institution, PointsRules, Participant
+from App.models import User, Event, Institution, PointsRules, Participant, Season
 from App.database import db
 from App.controllers.admin import assignRole
 from App.controllers.event import create_event, delete_event, update_event
@@ -132,25 +132,113 @@ def admin_participants_create():
 @admin_views.route("/admin/events")
 @jwt_required()
 def admin_events():
-    events = Event.query.order_by(Event.eventName.asc()).all()
-    print("EVENT COUNT:", len(events))
-    return render_template("admin/events.html", user=current_user, events=events)
+    events  = Event.query.order_by(Event.eventName.asc()).all()
+    seasons = Season.query.order_by(Season.year.desc()).all()
+
+    current_year = datetime.now().year
+
+    # get ONLY ONE season for the current year
+    current_season = Season.query.filter_by(year=current_year).first()
+
+    return render_template(
+        "admin/events.html",
+        user=current_user,
+        events=events,
+        seasons=seasons,
+        current_season_id=current_season.seasonID if current_season else None
+    )
 
 
 @admin_views.route("/admin/events/create", methods=["POST"])
 @jwt_required()
 def admin_events_create():
-    eventName = request.form.get("eventName", "")
-    eventDate = request.form.get("eventDate", "")
-    eventTime = request.form.get("eventTime", "")
+    eventName     = request.form.get("eventName", "").strip()
+    eventDate     = request.form.get("eventDate", "")
+    eventTime     = request.form.get("eventTime", "")
     eventLocation = request.form.get("eventLocation", "")
+    seasonID      = request.form.get("seasonID", "")
 
-    ev, err = create_event(eventName, eventDate, eventTime, eventLocation)
+    # Check for duplicate name within the same season
+    if seasonID:
+        duplicate = Event.query.filter(
+            func.lower(Event.eventName) == eventName.lower(),
+            Event.seasonID == int(seasonID)
+        ).first()
+        if duplicate:
+            flash(f'An event named "{eventName}" already exists in this season.', "error")
+            return redirect(url_for("admin_views.admin_events"))
+
+    ev, err = create_event(eventName, eventDate, eventTime, eventLocation, seasonID)
     if err:
         flash(err, "error")
-    else:
-        flash(f"Event created: {ev.eventName}", "success")
+        return redirect(url_for("admin_views.admin_events"))
 
+    flash(f"Event created: {ev.eventName}", "success")
+
+    # Auto-duplicate into every future season 
+    try:
+        current_season = db.session.get(Season, int(seasonID))
+        if not current_season or not ev.eventDate:
+            return redirect(url_for("admin_views.admin_events"))
+
+        future_seasons = Season.query.filter(
+            Season.year > current_season.year
+        ).order_by(Season.year.asc()).all()
+
+        for next_season in future_seasons:
+            # Skip if a same-named event already exists in that season
+            already_exists = Event.query.filter(
+                func.lower(Event.eventName) == eventName.lower(),
+                Event.seasonID == next_season.seasonID
+            ).first()
+            if already_exists:
+                continue
+
+            year_diff = next_season.year - current_season.year
+            try:
+                next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff)
+            except ValueError:
+                next_date = ev.eventDate.replace(
+                    year=ev.eventDate.year + year_diff, day=28
+                )
+
+            time_str = ev.time.strftime("%H:%M") if ev.time else "00:00"
+            dup, dup_err = create_event(
+                ev.eventName,
+                next_date.isoformat(),
+                time_str,
+                ev.location or "",
+                str(next_season.seasonID)
+            )
+            if dup_err:
+                flash(f"Could not duplicate into season {next_season.year}: {dup_err}", "error")
+            else:
+                flash(f"Duplicated into season {next_season.year}.", "success")
+
+    except Exception as e:
+        flash(f"Duplication error: {str(e)}", "error")
+
+    return redirect(url_for("admin_views.admin_events"))
+
+
+@admin_views.route("/admin/seasons/create", methods=["POST"])
+@jwt_required()
+def admin_seasons_create():
+    year = request.form.get("seasonYear", "").strip()
+    if not year or not year.isdigit():
+        flash("A valid year is required.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+    if Season.query.filter_by(year=int(year)).first():
+        flash(f"Season {year} already exists.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+    try:
+        s = Season(year=int(year))
+        db.session.add(s)
+        db.session.commit()
+        flash(f"Season {year} created.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), "error")
     return redirect(url_for("admin_views.admin_events"))
 
 
@@ -165,18 +253,23 @@ def admin_events_delete(event_id):
 @admin_views.route("/admin/events/<int:event_id>/update", methods=["POST"])
 @jwt_required()
 def admin_events_update(event_id):
-    eventName = request.form.get("eventName", "")
-    eventDate = request.form.get("eventDate", "")
-    eventTime = request.form.get("eventTime", "")
-    eventLocation = request.form.get("eventLocation", "")
+    eventName     = request.form.get("eventName", "").strip()
+    eventDate     = request.form.get("eventDate", "").strip()
+    eventTime     = request.form.get("eventTime", "").strip()
+    eventLocation = request.form.get("eventLocation", "").strip()
+    seasonID      = request.form.get("seasonID", "").strip()
 
-    ev, err = update_event(event_id, eventName, eventDate, eventTime, eventLocation)
+    # If no seasonID passed, preserve the existing one
+    if not seasonID:
+        existing = db.session.get(Event, event_id)
+        if existing and existing.seasonID:
+            seasonID = str(existing.seasonID)
+
+    ev, err = update_event(event_id, eventName, eventDate, eventTime, eventLocation, seasonID)
+
     if err:
-        flash(err, "error")
-    else:
-        flash("Event updated.", "success")
-
-    return redirect(url_for("admin_views.admin_events"))
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True})
 
 
 @admin_views.route("/admin/institutions", methods=["GET", "POST"])
@@ -211,12 +304,14 @@ def admin_institutions():
 
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
     events = Event.query.order_by(Event.eventName.asc()).all()
+    seasons = Season.query.order_by(Season.year.asc()).all()  # ← add this
 
     return render_template(
         "admin/institutions.html",
         user=current_user,
         institutions=institutions,
         events=events,
+        seasons=seasons,  # ← add this
         participants=Participant.query.all(),
         total_institutions=len(institutions),
         total_participants=Participant.query.count(),
@@ -257,29 +352,40 @@ def admin_event_rules(event_id):
 
     rules = PointsRules.query.filter_by(eventID=event_id).all()
 
-    individual = []
-    team = []
-
+    individual, team_map, team_order = [], {}, []
     for r in rules:
-        if r.conditionType == "placement":
+        if r.ruleType == "individual":
             individual.append({
-                "pointsID": r.pointsID,
-                "placement": r.conditionValue,
-                "label": r.label or "",
-                "points": float(r.points),
+                "pointsID":  r.pointsID,
+                "placement": r.placement,
+                "label":     r.label or "",
+                "points":    float(r.points),
             })
         else:
-            team.append({
+            cat = r.category or "Uncategorised"
+            if cat not in team_map:
+                team_map[cat] = []
+                team_order.append(cat)
+            team_map[cat].append({
                 "pointsID": r.pointsID,
-                "conditionType": r.conditionType,
-                "label": r.label or "",
-                "lowerLimit": r.lowerLimit,
-                "upperLimit": r.upperLimit,
-                "points": float(r.points),
+                "label":    r.label or "",
+                "points":   float(r.points),
             })
 
-    individual.sort(key=lambda x: x["placement"])
-    return jsonify({"eventID": ev.eventID, "eventName": ev.eventName, "individual": individual, "team": team})
+    individual.sort(key=lambda x: x["placement"] or 0)
+
+    team = [
+        {"category": cat, "rows": team_map[cat]}
+        for cat in team_order
+    ]
+
+    return jsonify({
+        "eventID":    ev.eventID,
+        "eventName":  ev.eventName,
+        "individual": individual,
+        "team":       team,
+    })
+
 
 @admin_views.route("/admin/events/<int:event_id>/rules", methods=["POST"])
 @jwt_required()
@@ -289,33 +395,53 @@ def admin_event_rules_save(event_id):
         return jsonify({"error": "Event not found"}), 404
 
     payload = request.get_json(silent=True) or {}
-    ind = payload.get("individual", [])
-    team = payload.get("team", [])
 
-    def update_rule(item, kind):
-        rid = int(item.get("pointsID"))
-        r = db.session.get(PointsRules, rid)
-        if not r or getattr(r, "eventID", None) != event_id:
-            return
+    try:
+        # Individual rules
+        for item in payload.get("individual", []):
+            rid = item.get("pointsID")
+            if rid:
+                r = db.session.get(PointsRules, int(rid))
+                if not r or r.eventID != event_id:
+                    continue
+                r.placement = int(item.get("placement", 0))
+                r.label     = (item.get("label") or "").strip()
+                r.points    = float(item.get("points") or 0)
+            else:
+                r = PointsRules(
+                    eventID   = event_id,
+                    seasonID  = ev.seasonID,
+                    ruleType  = "individual",
+                    placement = int(item.get("placement", 0)),
+                    label     = (item.get("label") or "").strip(),
+                    points    = float(item.get("points") or 0),
+                )
+                db.session.add(r)
 
-        r.label = (item.get("label") or "").strip()
-        r.points = float(item.get("points") or 0)
+        # Team rules — each row in a category is its own DB record
+        for item in payload.get("team", []):
+            rid = item.get("pointsID")
+            if rid:
+                r = db.session.get(PointsRules, int(rid))
+                if not r or r.eventID != event_id:
+                    continue
+                r.category = (item.get("conditionType") or "").strip()
+                r.label    = (item.get("label") or "").strip()
+                r.points   = float(item.get("points") or 0)
+            else:
+                r = PointsRules(
+                    eventID  = event_id,
+                    seasonID = ev.seasonID,
+                    ruleType = "team",
+                    category = (item.get("conditionType") or "").strip(),
+                    label    = (item.get("label") or "").strip(),
+                    points   = float(item.get("points") or 0),
+                )
+                db.session.add(r)
 
-        if kind == "placement":
-            r.conditionType = "placement"
-            r.conditionValue = int(item.get("placement"))
-            r.lowerLimit = None
-            r.upperLimit = None
-        else:
-            r.conditionType = (item.get("conditionType") or "").strip()
-            r.lowerLimit = int(item.get("lowerLimit") or 0)
-            r.upperLimit = int(item.get("upperLimit") or 0)
-            r.conditionValue = None
+        db.session.commit()
+        return jsonify({"success": True})
 
-    for item in ind:
-        update_rule(item, "placement")
-    for item in team:
-        update_rule(item, "team")
-
-    db.session.commit()
-    return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500

@@ -1,10 +1,40 @@
 {% extends "layout.html" %}
+{%block title%}Judge Dashboard{%endblock%}
 
 {% block content %}
-<h1>Judge Dashboard</h1>
-<p>Welcome, {{ user.username }}!</p>
-<ul>
-    <li><a href="#">Score Submissions</a></li>
-    <li><a href="#">View Reports</a></li>
-</ul>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='judge/judge.css') }}">
+
+<div class="dashboard-root">
+
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+        <div class="dashboard-subtitle">Welcome {{user.username}}!</div>
+    </div>
+
+    <div class="dashboard-action-card">
+        <span>View All Uploaded Scores</span>
+    </div>
+
+    <div class="dashboard-stats">
+        <div class="dashboard-stat-card">
+        <div class="dashboard-stat-label">
+            Uploaded Scores Awaiting Confirmation
+        </div>
+        <div class="dashboard-stat-number">#</div>
+        </div>
+
+        <div class="dashboard-stat-card errors">
+        <div class="dashboard-stat-label">
+            Automated Errors Identified
+        </div>
+        <div class="dashboard-stat-number">#</div>
+        </div>
+    </div>
+
+    <div class="dashboard-public-link">
+        <a href="#">Go to Public Dashboard</a>
+    </div>
+
+</div>
 {% endblock %}

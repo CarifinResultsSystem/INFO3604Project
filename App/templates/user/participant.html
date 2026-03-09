@@ -36,11 +36,7 @@
           <i class="material-icons" style="font-size:18px;color:#7b1fa2">calendar_today</i>
           <span class="dir-sortlabel">Season:</span>
           <select class="dir-select browser-default" id="seasonSelect">
-            <option value="2026" selected>2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
+            <option value="all">All</option>
           </select>
         </div>
 
@@ -101,12 +97,15 @@
           {% set full_name = p.firstName ~ ' ' ~ p.lastName %}
           {% set initials = p.firstName[0] ~ p.lastName[0] %}
           {% set inst_name = p.institution.insName if p.institution else 'N/A' %}
-          {% for event in p.events %}
+          {% set ev_names = p.events | map(attribute='eventName') | list %}
+          {% set ev_seasons = p.events | map(attribute='season') | select | map(attribute='year') | unique | list %}
+          
           <tr
             data-name="{{ full_name }}"
-            data-event="{{ event.eventName }}"
+            data-event="{{ ev_names | join(', ') }}"
             data-location="{{ p.location }}"
             data-institution="{{ inst_name }}"
+            data-season="{{ ev_seasons | join(', ') }}"
           >
             <td>
               <div class="p-name-cell">
@@ -114,30 +113,28 @@
                 <span class="participant-name">{{ full_name }}</span>
               </div>
             </td>
-            <td><span class="event-tag">{{ event.eventName }}</span></td>
-            <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
-            <td><span class="institution-tag">{{ inst_name }}</span></td>
-            <td></td>
-          </tr>
-          {% else %}
-          <tr
-            data-name="{{ full_name }}"
-            data-event=""
-            data-location="{{ p.location }}"
-            data-institution="{{ inst_name }}"
-          >
             <td>
-              <div class="p-name-cell">
-                <span class="p-avatar">{{ initials | upper }}</span>
-                <span class="participant-name">{{ full_name }}</span>
-              </div>
+              {% if ev_names %}
+                {% for name in ev_names %}
+                  <span class="event-tag">{{ name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="event-tag">—</span>
+              {% endif %}
             </td>
-            <td><span class="event-tag">—</span></td>
             <td><span class="location-pill"><i class="material-icons">place</i>{{ p.location }}</span></td>
             <td><span class="institution-tag">{{ inst_name }}</span></td>
-            <td></td>
+            <td>
+              {% set ev_seasons = p.events | map(attribute='season') | select | map(attribute='year') | unique | list %}
+              {% if ev_seasons %}
+                {% for yr in ev_seasons %}
+                  <span class="event-tag">{{ yr }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="event-tag">—</span>
+              {% endif %}
+            </td>
           </tr>
-          {% endfor %}
           {% else %}
           {% endfor %}
 
@@ -158,33 +155,31 @@
 </div>
 
 <script>
-  /* HELPERS */
   function normalize(str) {
-    return (str || '').trim().toLowerCase()
-      .replace(/\u00d7/g, 'x')
-      .replace(/\s+/g, ' ');
+    return (str || '').trim().toLowerCase().replace(/\u00d7/g, 'x').replace(/\s+/g, ' ');
   }
 
-  /* POPULATE DROPDOWNS FROM ROW DATA */
   function buildDropdowns() {
     const rows = document.querySelectorAll('#participantBody tr');
-
-    const locations    = new Set();
-    const events       = new Set();
-    const institutions = new Set();
+    const locations = new Set(), events = new Set(),
+          institutions = new Set(), seasons = new Set();
 
     rows.forEach(row => {
-      const loc  = (row.dataset.location    || '').trim();
-      const evt  = (row.dataset.event       || '').trim();
-      const inst = (row.dataset.institution || '').trim();
+      const loc    = (row.dataset.location    || '').trim();
+      const inst   = (row.dataset.institution || '').trim();
+      const evtRaw = (row.dataset.event       || '').trim();
+      const ssnRaw = (row.dataset.season      || '').trim();
+
       if (loc)                    locations.add(loc);
-      if (evt)                    events.add(evt);
       if (inst && inst !== 'N/A') institutions.add(inst);
+      evtRaw.split(',').map(s => s.trim()).filter(Boolean).forEach(e => events.add(e));
+      ssnRaw.split(',').map(s => s.trim()).filter(Boolean).forEach(s => seasons.add(s));
     });
 
-    function populate(selectId, values) {
+    function populate(selectId, values, sorted = true) {
       const sel = document.getElementById(selectId);
-      [...values].sort().forEach(val => {
+      const arr = sorted ? [...values].sort() : [...values].sort((a, b) => b - a);
+      arr.forEach(val => {
         const opt = document.createElement('option');
         opt.value = opt.textContent = val;
         sel.appendChild(opt);
@@ -194,29 +189,32 @@
     populate('locationFilter',    locations);
     populate('eventFilter',       events);
     populate('institutionFilter', institutions);
+    populate('seasonSelect',      seasons, false); // newest first
   }
 
-  /* FILTERS */
   function applyFilters() {
     const search      = normalize(document.getElementById('searchInput').value);
     const location    = document.getElementById('locationFilter').value.trim();
     const eventFilter = normalize(document.getElementById('eventFilter').value);
     const instFilter  = document.getElementById('institutionFilter').value.trim();
+    const seasonFilter = document.getElementById('seasonSelect').value.trim();
     const rows        = document.querySelectorAll('#participantBody tr');
     let visible = 0;
 
     rows.forEach(row => {
-      const name = normalize(row.dataset.name);
-      const loc  = (row.dataset.location    || '').trim();
-      const evt  = normalize(row.dataset.event);
-      const inst = (row.dataset.institution || '').trim();
+      const name    = normalize(row.dataset.name);
+      const loc     = (row.dataset.location    || '').trim();
+      const evt     = normalize(row.dataset.event);
+      const inst    = (row.dataset.institution || '').trim();
+      const seasons = (row.dataset.season      || '').split(',').map(s => s.trim()).filter(Boolean);
 
-      const matchSearch      = !search               || name.includes(search);
-      const matchLocation    = location === 'all'    || loc  === location;
-      const matchEvent       = eventFilter === 'all' || evt  === eventFilter;
-      const matchInstitution = instFilter  === 'all' || inst === instFilter;
+      const matchSearch      = !search                  || name.includes(search);
+      const matchLocation    = location === 'all'       || loc === location;
+      const matchEvent       = eventFilter === 'all'    || evt.split(', ').some(e => normalize(e) === eventFilter);
+      const matchInstitution = instFilter === 'all'     || inst === instFilter;
+      const matchSeason      = seasonFilter === 'all'   || seasons.includes(seasonFilter);
 
-      const show = matchSearch && matchLocation && matchEvent && matchInstitution;
+      const show = matchSearch && matchLocation && matchEvent && matchInstitution && matchSeason;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
@@ -227,41 +225,31 @@
     document.getElementById('tableFooter').textContent  = label;
   }
 
-  /* TABLE SORTING */
   function sortTable(th, colIndex) {
     const tbody   = document.querySelector('#participantBody');
     const rows    = Array.from(tbody.querySelectorAll('tr'));
     const headers = Array.from(th.closest('tr').querySelectorAll('th'));
     const isAsc   = th.classList.contains('sorted-asc');
-
     headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
     th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
-
     const dataKeys = ['name', 'event', 'location', 'institution', 'season'];
     const key = dataKeys[colIndex];
-
     rows.sort((a, b) => {
       const aVal = (a.dataset[key] || '').toLowerCase();
       const bVal = (b.dataset[key] || '').toLowerCase();
       return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
     });
-
     rows.forEach(r => tbody.appendChild(r));
   }
 
-  /* INIT */
   document.addEventListener('DOMContentLoaded', () => {
-    // Build dynamic dropdown options from the actual row data
     buildDropdowns();
-
-    // Set initial count
     const total = document.querySelectorAll('#participantBody tr').length;
     const label = `${total} participants`;
     document.getElementById('resultCount').textContent = label;
     document.getElementById('tableFooter').textContent = label;
 
-    // Wire selects — browser-default keeps native behaviour, Materialize stays away
-    document.getElementById('seasonSelect')     .addEventListener('change', e => changeSeason(e.target.value));
+    document.getElementById('seasonSelect')     .addEventListener('change', applyFilters);
     document.getElementById('locationFilter')   .addEventListener('change', applyFilters);
     document.getElementById('eventFilter')      .addEventListener('change', applyFilters);
     document.getElementById('institutionFilter').addEventListener('change', applyFilters);
