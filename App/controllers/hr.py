@@ -3,68 +3,68 @@ from sqlite3 import IntegrityError
 
 from App.database import db
 from App.models.hr import HRReport
-from App.models import AutomatedResult, User
+from App.models import AutomatedResult, User, Event, participant_events
 
 def _current_season() -> str:
     return str(datetime.utcnow().year)
 
 # DASHBOARD
 def get_institutions_this_year():
-    season = _current_season()
     try:
-        from App.models import Participant, Institution
-        count = (
-            db.session.query(Institution.institutionID)
-            .join(Participant, Participant.institutionID == Institution.institutionID)
-            .join(AutomatedResult, AutomatedResult.participantID == Participant.participantID)
-            .filter(db.extract('year', AutomatedResult.createdAt) == int(season))
-            .distinct()
-            .count()
-        )
-        return count
-    except Exception:
+        from App.models import Institution
+        return db.session.query(Institution).count()
+    except Exception as e:
+        print(f"[HR] get_institutions_this_year error: {e}")
         return 0
 
 
 def get_participants_this_year():
-    season = _current_season()
     try:
-        count = (
-            db.session.query(AutomatedResult.participantID)
-            .filter(db.extract('year', AutomatedResult.createdAt) == int(season))
-            .distinct()
-            .count()
-        )
-        return count
-    except Exception:
+        from App.models import Participant
+        return db.session.query(Participant).count()
+    except Exception as e:
+        print(f"[HR] get_participants_this_year error: {e}")
         return 0
 
+
+def get_institutions_per_year():
+    try:
+        from App.models import Institution, Season
+        from App.models.participant_event import participant_events
+        from App.models import Event, Participant
+
+        seasons = Season.get_all()
+        result = {}
+        for s in seasons:
+            count = (
+                db.session.query(Institution.institutionID)
+                .join(Participant, Participant.institutionID == Institution.institutionID)
+                .join(participant_events,
+                      participant_events.c.participantID == Participant.participantID)
+                .join(Event, Event.eventID == participant_events.c.eventID)
+                .filter(Event.seasonID == s.seasonID)
+                .distinct()
+                .count()
+            )
+            if count > 0:
+                result[str(s.year)] = count
+
+        current = _current_season()
+        if current not in result:
+            from App.models import Institution
+            result[current] = db.session.query(Institution).count()
+
+        return result
+    except Exception as e:
+        print(f"[HR] get_institutions_per_year error: {e}")
+        from App.models import Institution
+        return {_current_season(): db.session.query(Institution).count()}
 
 def get_reports_count(userID=None):
     q = db.session.query(HRReport)
     if userID:
         q = q.filter_by(generated_by=userID)
     return q.count()
-
-
-def get_institutions_per_year():
-    try:
-        from App.models import Participant, Institution
-        rows = (
-            db.session.query(
-                db.extract('year', AutomatedResult.createdAt).label('yr'),
-                db.func.count(db.distinct(Institution.institutionID)).label('cnt')
-            )
-            .join(Participant, Participant.participantID == AutomatedResult.participantID)
-            .join(Institution, Institution.institutionID == Participant.institutionID)
-            .group_by('yr')
-            .order_by('yr')
-            .all()
-        )
-        return {str(int(r.yr)): r.cnt for r in rows}
-    except Exception:
-        return {}
-
 
 def get_latest_report(userID=None):
     q = db.session.query(HRReport).order_by(HRReport.generated_at.desc())
