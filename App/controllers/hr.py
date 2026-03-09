@@ -84,13 +84,14 @@ def get_report(reportID):
     return db.session.get(HRReport, reportID)
 
 
-def create_report(filename, generated_by, season=None, filepath=None):
+def create_report(filename, generated_by, season=None, filepath=None, pdf_data=None):
     season = season or _current_season()
     report = HRReport(
         filename=filename,
         generated_by=generated_by,
         season=season,
-        filepath=filepath
+        filepath=filepath,
+        pdf_data=pdf_data,
     )
     try:
         db.session.add(report)
@@ -133,14 +134,31 @@ def delete_all_reports(userID):
 def build_report_data(season=None):
     season = season or _current_season()
 
-    # Basic stats
     institutions_count = get_institutions_this_year()
     participants_count = get_participants_this_year()
     reports_count      = get_reports_count()
+
+    # Participants
+    participants = []
+    try:
+        from App.models import Participant
+        rows = Participant.query.all()
+        for p in rows:
+            participants.append({
+                "firstName":   p.firstName,
+                "lastName":    p.lastName,
+                "gender":      p.gender,
+                "dateOfBirth": p.dateOfBirth,
+                "location":    p.location,
+                "institution": p.institution.insName if p.institution else "—",
+                "events":      [e.eventName for e in p.events] if p.events else [],
+            })
+    except Exception as e:
+        print(f"[HR] participants error: {e}")
+
     awards = []
     try:
-        #To be changed once judge is complete. 
-        from App.models import Award   
+        from App.models import Award
         award_rows = Award.query.filter_by(season=season).order_by(Award.place).all()
         for a in award_rows:
             awards.append({
@@ -151,7 +169,7 @@ def build_report_data(season=None):
                 "score":       a.score if hasattr(a, 'score') else None,
             })
     except Exception:
-        pass  
+        pass
 
     error_summary = []
     try:
@@ -173,10 +191,11 @@ def build_report_data(season=None):
         pass
 
     return {
-        "season":              season,
-        "institutions_count":  institutions_count,
-        "participants_count":  participants_count,
-        "reports_count":       reports_count,
-        "awards":              awards,
-        "error_summary":       error_summary,
+        "season":             season,
+        "institutions_count": institutions_count,
+        "participants_count": participants_count,
+        "reports_count":      reports_count,
+        "awards":             awards,
+        "error_summary":      error_summary,
+        "participants":       participants,
     }
