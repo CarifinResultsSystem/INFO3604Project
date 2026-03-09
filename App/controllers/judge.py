@@ -43,6 +43,12 @@ def confirm_score(judgeID, resultID):
 def get_all_score_documents():
     return db.session.scalars(db.select(ScoreDocument)).all()
 
+def get_unconfirmed_documents():
+    return db.session.scalars(db.select(ScoreDocument).filter_by(confirmed=False)).all()
+
+def get_unconfirmed_documents_count():
+    return db.session.scalar(db.select(db.func.count()).select_from(ScoreDocument).filter_by(confirmed=False))
+
 # View Automated Results
 def get_automated_result(resultID):
     return db.session.get(AutomatedResult, resultID)

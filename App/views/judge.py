@@ -1,14 +1,23 @@
 import os
 from flask import Blueprint, render_template, url_for
 from flask_jwt_extended import jwt_required, current_user
-from App.controllers import (get_all_score_documents)
+from App.controllers import get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
+import pandas as pd
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
 @judge_views.route('/judge/')
 @jwt_required()
 def judge_dashboard():
-    return render_template('judge/judge.html', user=current_user)
+    unconfirmed_docs_count = get_unconfirmed_documents_count()
+    unconfirmed_docs = get_unconfirmed_documents()
+    errors = 0
+    
+    for doc in unconfirmed_docs:
+        doc_df = pd.read_excel(doc.storedPath)
+        print(doc_df)
+        print(doc_df.shape)
+    return render_template('judge/judge.html', user=current_user, unconfirmed_docs_count=unconfirmed_docs_count)
 
 @judge_views.route('/judge/review')
 @jwt_required()

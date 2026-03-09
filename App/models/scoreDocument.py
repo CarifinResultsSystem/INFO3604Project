@@ -15,6 +15,8 @@ class ScoreDocument(db.Model):
     storedPath = db.Column(db.String(512), nullable=False)
 
     uploadedOn = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+        
+    confirmed = db.Column(db.Boolean, default=False)
 
     scoretakerID = db.Column(
         db.Integer,
