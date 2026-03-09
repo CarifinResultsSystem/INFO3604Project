@@ -79,6 +79,40 @@ def review_score_document(documentID):
     
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
+
+@judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET'])
+@jwt_required()
+def edit_score_document(documentID):
+    document = get_score_document(documentID)
+    
+    ext = os.path.splitext(document.originalFilename)[1].lstrip('.').upper() if document.originalFilename else ''
+    doc_data = ({
+        "id":            document.documentID,
+        "filename":      document.originalFilename or '—',
+        "storedFilename": document.storedFilename,
+        "uploadedAt":    document.uploadedOn.strftime("%b %d, %Y · %H:%M") if document.uploadedOn else "—",
+        "uploadedAtRaw": document.uploadedOn.isoformat() if document.uploadedOn else "",
+        "fileType":      ext or "FILE",
+        "viewUrl":       url_for('scoretaker_views.view_document', documentID=document.documentID),
+        "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=document.documentID),
+    })
+    
+    try:
+        df = pd.read_excel(document.storedPath)
+        table_data = {
+            'columns': df.columns.tolist(),
+            'rows': df.values.tolist(),
+            'headers': df.columns.tolist()
+        }
+    except Exception as e:
+        table_data = {
+            'columns': ['Error'],
+            'rows': [[f'Could not load file: {str(e)}']],
+            'headers': ['Error']
+        }
+    
+    return render_template('judge/edit_document.html', document=doc_data, table_data=table_data)
+
 #modified from scoretaker archives
 @judge_views.route('/judge/archives')
 @jwt_required()

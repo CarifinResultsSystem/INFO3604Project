@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{%block title%}Review Document - {{ document.filename }}{%endblock%}
+{%block title%}Edit Document - {{ document.filename }}{%endblock%}
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='judge/judge.css') }}">
@@ -50,9 +50,9 @@
             <button class="btn btn-outline" >
                 <i class="material-icons">download</i> Download Manual Scores
             </button>
-            <a href="{{ url_for('judge_views.edit_score_document', documentID=document.id) }}" class="btn btn-outline" >
+            <button class="btn btn-outline" >
                 <i class="material-icons">edit</i> Edit Score Sheet
-            </a>
+            </button>
         </div>
     </div>
 </div>
