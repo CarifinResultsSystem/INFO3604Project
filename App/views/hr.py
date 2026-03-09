@@ -168,3 +168,19 @@ def hr_delete_report(report_id):
 def hr_delete_all():
     delete_all_reports(current_user.userID)
     return jsonify({"success": True})
+
+# LIVE STATS POLLING
+@hr_views.route("/hr/stats")
+@hr_required
+def hr_stats():
+    inst = get_institutions_this_year()
+    part = get_participants_this_year()
+    rpts = get_reports_count(current_user.userID)
+    per_year = get_institutions_per_year()
+    
+    return jsonify({
+        "institutions_this_year": inst,
+        "participants_this_year": part,
+        "reports_count":          rpts,
+        "institutions_per_year":  per_year,
+    })
