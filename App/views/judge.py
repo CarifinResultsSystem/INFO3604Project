@@ -1,9 +1,10 @@
 import os
-from flask import Blueprint, render_template, url_for
+from flask import Blueprint, render_template, url_for, jsonify, request
 from flask_jwt_extended import jwt_required, current_user
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
 from App.models import ScoreDocument
 import pandas as pd
+import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
@@ -80,7 +81,7 @@ def review_score_document(documentID):
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
 
-@judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET'])
+@judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET', 'POST'])
 @jwt_required()
 def edit_score_document(documentID):
     document = get_score_document(documentID)
@@ -96,6 +97,43 @@ def edit_score_document(documentID):
         "viewUrl":       url_for('scoretaker_views.view_document', documentID=document.documentID),
         "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=document.documentID),
     })
+    
+    if request.method == 'POST':
+        data = request.get_json(silent=True)
+        if not data or 'rows' not in data:
+            return jsonify({"error": "Invalid request body. Expected JSON with a 'rows' key."}), 400
+
+        try:
+            existing_df = pd.read_excel(document.storedPath)
+            columns = existing_df.columns.tolist()
+
+            submitted_rows = data['rows']
+
+            if len(submitted_rows) != len(existing_df):
+                return jsonify({
+                    "error": f"Row count mismatch: expected {len(existing_df)}, received {len(submitted_rows)}."
+                }), 400
+
+            if any(len(row) != len(columns) for row in submitted_rows):
+                return jsonify({
+                    "error": "Column count mismatch in one or more rows."
+                }), 400
+
+            def coerce(val):
+                try:
+                    return float(val)
+                except (ValueError, TypeError):
+                    return val if val not in ('', None) else np.nan
+
+            coerced_rows = [[coerce(cell) for cell in row] for row in submitted_rows]
+            updated_df = pd.DataFrame(coerced_rows, columns=columns)
+
+            updated_df.to_excel(document.storedPath, index=False)
+
+            return jsonify({"message": "Document saved successfully."}), 200
+
+        except Exception as e:
+            return jsonify({"error": f"Failed to save document: {str(e)}"}), 500
     
     try:
         df = pd.read_excel(document.storedPath)
