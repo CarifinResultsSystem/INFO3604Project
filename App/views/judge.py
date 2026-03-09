@@ -8,9 +8,10 @@ import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
-def count_errors(unconfirmed_doc):
+
+def count_sum_errors(unconfirmed_doc):
+    sum_errors = 0
     doc_df = pd.read_excel(unconfirmed_doc.storedPath)
-    errors = 0
     print(doc_df)
     print(doc_df.shape)
     print(doc_df.loc[doc_df['Event/Institution'].str.title()=='Total'])
@@ -31,7 +32,14 @@ def count_errors(unconfirmed_doc):
             actual_total = doc_df.loc[total_idx, inst]
             
             if abs(calculated_sum - actual_total) >= 0.01:
-                errors += 1
+                sum_errors += 1
+                
+    return sum_errors
+
+def count_errors(unconfirmed_doc):
+    doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+    errors = 0
+    errors += count_sum_errors(unconfirmed_doc)
                 
     return errors
 
