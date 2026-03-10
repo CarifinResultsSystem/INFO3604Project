@@ -14,6 +14,7 @@ class HRReport(db.Model):
     filename     = db.Column(db.String(255), nullable=False)
     filepath     = db.Column(db.String(512), nullable=True)
     is_read      = db.Column(db.Boolean, default=False)
+    pdf_data     = db.Column(db.LargeBinary, nullable=True)
     generated_at = db.Column(db.DateTime, default=_local_now)
 
     generated_by = db.Column(
@@ -26,11 +27,12 @@ class HRReport(db.Model):
 
     user = db.relationship("User", backref=db.backref("hr_reports", lazy=True))
 
-    def __init__(self, filename, generated_by, season=None, filepath=None):
+    def __init__(self, filename, generated_by, season=None, filepath=None, pdf_data=None):
         self.filename     = filename
         self.generated_by = generated_by
         self.season       = season
         self.filepath     = filepath
+        self.pdf_data     = pdf_data
 
     def get_json(self):
         return {
