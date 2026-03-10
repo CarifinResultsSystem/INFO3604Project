@@ -9,49 +9,76 @@ import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
 
+
+#Given the fact that the original final results document has multiple totals row, these are needed to remove it
+def find_total_rows(doc_df):
+    total_mask = doc_df['Event/Institution'].astype(str).str.upper().str.contains('TOTAL')
+    total_indices = doc_df.index[total_mask].tolist()
+    return total_indices
+
+def clean_duplicate_total_rows(doc_df):
+    total_indices = find_total_rows(doc_df)
+    
+    if len(total_indices) <= 1:
+        # No duplicates or only one TOTAL row
+        return doc_df, total_indices[-1] if total_indices else None
+    
+    # Keep only the last TOTAL row
+    last_total_idx = total_indices[-1]
+    
+    # Create a list of indices to drop (all total rows except the last)
+    indices_to_drop = [idx for idx in total_indices if idx != last_total_idx]
+    
+    # Drop the duplicate total rows
+    cleaned_df = doc_df.drop(index=indices_to_drop).reset_index(drop=True)
+    
+    # Find the new index of the kept TOTAL row
+    new_total_mask = cleaned_df['Event/Institution'].astype(str).str.upper().str.contains('TOTAL')
+    new_total_indices = cleaned_df.index[new_total_mask].tolist()
+    new_last_total_idx = new_total_indices[-1] if new_total_indices else None
+    
+    print(f"Removed {len(indices_to_drop)} duplicate TOTAL row(s). Keeping row {last_total_idx + 1} as the final TOTAL.")
+    
+    return cleaned_df, new_last_total_idx
+
+
 def identify_cell_errors(unconfirmed_doc):
     try:
         doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+        
+        cleaned_df, total_idx = clean_duplicate_total_rows(doc_df)
+        
         error_cells = []
         
-        # Check if 'Event/Institution' column exists
-        if 'Event/Institution' not in doc_df.columns:
+        if 'Event/Institution' not in cleaned_df.columns:
             print("Warning: 'Event/Institution' column not found")
             return error_cells
         
-        # Find the TOTAL row
-        total_mask = doc_df['Event/Institution'].astype(str).str.title() == 'Total'
-        total_row_indices = doc_df.index[total_mask].tolist()
+        rows_before_total = cleaned_df.iloc[:total_idx]
         
-        if len(total_row_indices) > 0:
-            total_idx = total_row_indices[0]
-            
-            # Get all rows before the TOTAL row
-            rows_before_total = doc_df.iloc[:total_idx]
-            
-            # Get institution columns (all except first column)
-            institutions = doc_df.columns[1:]
-            
-            # Check each institution's total
-            for inst_idx, inst in enumerate(institutions, start=1):
-                try:
-                    calculated_sum = rows_before_total[inst].sum()
-                    actual_total = doc_df.loc[total_idx, inst]
-                    
-                    if abs(calculated_sum - actual_total) >= 0.01:
-                        error_cells.append({
-                            'institution': inst,
-                            'column_index': inst_idx,
-                            'row_index': total_idx,
-                            'calculated_value': round(calculated_sum, 2),
-                            'reported_value': actual_total,
-                            'difference': round(calculated_sum - actual_total, 2),
-                            'cell_location': f"Row {total_idx + 1}, Column {inst}",
-                            'error_type': 'Total Mismatch'
-                        })
-                except Exception as e:
-                    print(f"Error processing institution {inst}: {str(e)}")
-                    continue
+        # Get institution columns (all except first column)
+        institutions = cleaned_df.columns[1:]
+        
+        # Check each institution's total
+        for inst_idx, inst in enumerate(institutions, start=1):
+            try:
+                calculated_sum = rows_before_total[inst].sum()
+                actual_total = cleaned_df.loc[total_idx, inst]
+                
+                if abs(calculated_sum - actual_total) >= 0.01:
+                    error_cells.append({
+                        'institution': inst,
+                        'column_index': inst_idx,
+                        'row_index': total_idx,
+                        'calculated_value': round(calculated_sum, 2),
+                        'reported_value': actual_total,
+                        'difference': round(calculated_sum - actual_total, 2),
+                        'cell_location': f"Row {total_idx + 1}, Column {inst}",
+                        'error_type': 'Total Mismatch'
+                    })
+            except Exception as e:
+                print(f"Error processing institution {inst}: {str(e)}")
+                continue
         
         return error_cells
     except Exception as e:
@@ -61,27 +88,26 @@ def identify_cell_errors(unconfirmed_doc):
 
 def identify_all_cell_errors(unconfirmed_doc):
     doc_df = pd.read_excel(unconfirmed_doc.storedPath)
+    
+    cleaned_df, total_idx = clean_duplicate_total_rows(doc_df)
+    
     all_errors = []
     
     # Get institution columns (all except first column)
-    institutions = doc_df.columns[1:]
+    institutions = cleaned_df.columns[1:]
     
-    # Check for TOTAL row errors first
     total_errors = identify_cell_errors(unconfirmed_doc)
     all_errors.extend(total_errors)
     
-    # Check each cell in the dataframe for other issues
-    for row_idx in range(len(doc_df)):
-        event_name = doc_df.iloc[row_idx, 0]
+    for row_idx in range(len(cleaned_df)):
+        event_name = cleaned_df.iloc[row_idx, 0]
         
-        # Skip checking the TOTAL row for negative values (it should be a sum)
         if event_name and 'TOTAL' in str(event_name).upper():
             continue
             
         for col_idx, inst in enumerate(institutions, start=1):
-            cell_value = doc_df.iloc[row_idx, col_idx]
+            cell_value = cleaned_df.iloc[row_idx, col_idx]
             
-            # Check if value is numeric
             if pd.isna(cell_value):
                 all_errors.append({
                     'institution': inst,
@@ -119,20 +145,19 @@ def identify_all_cell_errors(unconfirmed_doc):
     
     return all_errors
 
+
 def get_system_calculated_results(document):
     try:
         doc_df = pd.read_excel(document.storedPath)
         
+        # Remove duplicate Total Rows
+        cleaned_df, total_idx = clean_duplicate_total_rows(doc_df)
+        
         # Create a copy to modify
-        results_df = doc_df.copy()
+        results_df = cleaned_df.copy()
         
-        # Find the TOTAL row
-        total_mask = results_df['Event/Institution'].astype(str).str.upper().str.contains('TOTAL')
-        total_row_indices = results_df.index[total_mask].tolist()
-        
-        if len(total_row_indices) > 0:
-            total_idx = total_row_indices[0]
-            
+        # Find the TOTAL row in the cleaned dataframe
+        if total_idx is not None:
             # Get all rows before the TOTAL row (the event scores)
             rows_before_total = results_df.iloc[:total_idx]
             
@@ -175,7 +200,6 @@ def get_system_calculated_results(document):
 def count_errors(unconfirmed_doc):
     errors = identify_all_cell_errors(unconfirmed_doc)
     return len(errors)
-
 
 
 @judge_views.route('/judge/')
@@ -465,18 +489,23 @@ def finalize_document(documentID):
             final_path = document.storedPath.replace('.xlsx', '_final.xlsx').replace('.xls', '_final.xls')
             results_df.to_excel(final_path, index=False)
             
-            document.confirmed = True
-            db.session.commit()
-            
         else:
-            document.confirmed = True
-            db.session.commit()
-            pass
+            # Read the document and clean duplicate total rows
+            doc_df = pd.read_excel(document.storedPath)
+            cleaned_df, _ = clean_duplicate_total_rows(doc_df)
+            
+            # Save the document as the final version
+            final_path = document.storedPath.replace('.xlsx', '_final.xlsx').replace('.xls', '_final.xls')
+            cleaned_df.to_excel(final_path, index=False)
+        
+        document.confirmed = True
+        db.session.commit()
         
         return jsonify({
             "message": "Document successfully finalized",
             "document_id": documentID,
-            "used_system_results": use_system_results
+            "used_system_results": use_system_results,
+            "redirect_url": url_for('judge_views.review_scores')
         }), 200
         
     except Exception as e:
