@@ -1,6 +1,7 @@
 import os
 from flask import Blueprint, render_template, url_for, jsonify, request
 from flask_jwt_extended import jwt_required, current_user
+from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
 from App.models import ScoreDocument
 import pandas as pd
@@ -441,6 +442,48 @@ def view_system_results(documentID):
         }
     
     return render_template('judge/system_results.html', document=doc_data, table_data=table_data)
+
+@judge_views.route('/judge/finalize/<int:documentID>', methods=['POST'])
+@jwt_required()
+def finalize_document(documentID):
+    document = get_score_document(documentID)
+    
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        use_system_results = data.get('use_system_results', False)
+        
+        if use_system_results:
+            # Use system-calculated results
+            results_df, _ = get_system_calculated_results(document)
+            if results_df is None:
+                return jsonify({"error": "Could not calculate system results"}), 500
+            
+            # Save the system results as the final version
+            final_path = document.storedPath.replace('.xlsx', '_final.xlsx').replace('.xls', '_final.xls')
+            results_df.to_excel(final_path, index=False)
+            
+            document.confirmed = True
+            db.session.commit()
+            
+        else:
+            document.confirmed = True
+            db.session.commit()
+            pass
+        
+        return jsonify({
+            "message": "Document successfully finalized",
+            "document_id": documentID,
+            "used_system_results": use_system_results
+        }), 200
+        
+    except Exception as e:
+        print(f"Error finalizing document: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 #modified from scoretaker archives
 @judge_views.route('/judge/archives')

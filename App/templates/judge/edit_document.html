@@ -74,7 +74,7 @@
 
     <div class="review-actions-bar">
         <div class="edit-action-group">
-            <button class="btn btn-upload-final" id="btnUpload" onclick="uploadFinal()">
+            <button class="btn btn-upload-final" id="btnUpload" onclick="uploadAsFinal()">
                 <i class="material-icons">upload_file</i>
                 Upload as Final Results
             </button>
@@ -153,25 +153,46 @@ function discardChanges() {
     showToast('Changes discarded.', 'info');
 }
 
-function uploadFinal() {
+function uploadAsFinal() {
     if (hasUnsavedChanges) {
-        if (!confirm('You have unsaved changes. Save and upload as final results?')) return;
+        if (!confirm('You have unsaved changes. Save and upload as final results?')) {
+            return;
+        }
+        // First save changes, then finalize
+        saveChanges();
+        // Small delay to ensure save completes
+        setTimeout(() => {
+            performFinalization(false); // false = use current document, not system results
+        }, 500);
     } else {
         if (!confirm('Upload this document as final results? This cannot be undone.')) return;
+        performFinalization(false);
     }
+}
 
-    fetch(window.location.pathname + '/finalize', {
+function performFinalization(useSystemResults) {
+    showToast('Processing...', 'info');
+    
+    fetch('/judge/finalize/{{ document.id }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ use_system_results: useSystemResults })
     })
-    .then(r => {
-        if (r.ok) {
-            showToast('Uploaded as final results!', 'success');
+    .then(response => {
+        if (response.ok) {
+            return response.json();
         } else {
-            showToast('Failed to upload as final results.', 'error');
+            throw new Error('Failed to finalize');
         }
     })
-    .catch(() => showToast('Network error.', 'error'));
+    .then(data => {
+        showToast(data.message || 'Successfully uploaded as final results!', 'success');
+        // Optionally redirect or update UI
+    })
+    .catch(error => {
+        showToast('Failed to upload as final results.', 'error');
+        console.error('Error:', error);
+    });
 }
 
 // Warn on navigation with unsaved changes
@@ -206,5 +227,12 @@ function showToast(message, type = 'info') {
     toastContainer.appendChild(toast);
     setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnUpload = document.getElementById('btnUpload');
+    if (btnUpload) {
+        btnUpload.onclick = uploadAsFinal;
+    }
+});
 </script>
 {% endblock %}

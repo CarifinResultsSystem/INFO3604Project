@@ -159,22 +159,36 @@
 <script>
 function uploadAsFinal() {
     if (confirm('Upload these system-calculated results as final? This will replace any existing final results.')) {
-        showToast('Processing...', 'info');
-        
-        fetch('/judge/finalize/{{ document.id }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ use_system_results: true })
-        })
-        .then(response => {
-            if (response.ok) {
-                showToast('Successfully uploaded as final results!', 'success');
-            } else {
-                showToast('Failed to upload as final results.', 'error');
-            }
-        })
-        .catch(() => showToast('Network error. Could not upload.', 'error'));
+        performFinalization(true);
     }
+}
+
+function performFinalization(useSystemResults) {
+    showToast('Processing...', 'info');
+    
+    fetch('/judge/finalize/{{ document.id }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ use_system_results: useSystemResults })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Failed to finalize');
+        }
+    })
+    .then(data => {
+        showToast(data.message || 'Successfully uploaded as final results!', 'success');
+        // Optionally redirect after successful finalization
+        setTimeout(() => {
+            window.location.href = "{{ url_for('judge_views.review_scores') }}";
+        }, 2000);
+    })
+    .catch(error => {
+        showToast('Failed to upload as final results.', 'error');
+        console.error('Error:', error);
+    });
 }
 
 function showToast(message, type = 'info') {
