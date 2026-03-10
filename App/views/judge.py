@@ -118,10 +118,63 @@ def identify_all_cell_errors(unconfirmed_doc):
     
     return all_errors
 
+def get_system_calculated_results(document):
+    try:
+        doc_df = pd.read_excel(document.storedPath)
+        
+        # Create a copy to modify
+        results_df = doc_df.copy()
+        
+        # Find the TOTAL row
+        total_mask = results_df['Event/Institution'].astype(str).str.upper().str.contains('TOTAL')
+        total_row_indices = results_df.index[total_mask].tolist()
+        
+        if len(total_row_indices) > 0:
+            total_idx = total_row_indices[0]
+            
+            # Get all rows before the TOTAL row (the event scores)
+            rows_before_total = results_df.iloc[:total_idx]
+            
+            # Get institution columns (all except first column)
+            institutions = results_df.columns[1:]
+            
+            # Calculate correct sums for each institution
+            comparison_data = []
+            for inst in institutions:
+                calculated_sum = round(rows_before_total[inst].sum(), 2)
+                original_total = results_df.loc[total_idx, inst]
+                
+                # Update the TOTAL row with correct value
+                results_df.loc[total_idx, inst] = calculated_sum
+                
+                # Track comparison data
+                if isinstance(original_total, (int, float)):
+                    diff = round(calculated_sum - original_total, 2)
+                    matches = abs(calculated_sum - original_total) < 0.01
+                else:
+                    diff = 'N/A'
+                    matches = False
+                
+                comparison_data.append({
+                    'institution': inst,
+                    'original_value': original_total,
+                    'corrected_value': calculated_sum,
+                    'difference': diff,
+                    'matches': matches
+                })
+        
+        return results_df, comparison_data
+    
+    except Exception as e:
+        print(f"Error calculating system results: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, []
 
 def count_errors(unconfirmed_doc):
     errors = identify_all_cell_errors(unconfirmed_doc)
     return len(errors)
+
 
 
 @judge_views.route('/judge/')
@@ -322,6 +375,72 @@ def edit_score_document(documentID):
         }
     
     return render_template('judge/edit_document.html', document=doc_data, table_data=table_data)
+
+@judge_views.route('/judge/review/<int:documentID>/system-results', methods=['GET'])
+@jwt_required()
+def view_system_results(documentID):
+    document = get_score_document(documentID)
+    
+    ext = os.path.splitext(document.originalFilename)[1].lstrip('.').upper() if document.originalFilename else ''
+    doc_data = ({
+        "id":            document.documentID,
+        "filename":      document.originalFilename or '—',
+        "storedFilename": document.storedFilename,
+        "uploadedAt":    document.uploadedOn.strftime("%b %d, %Y · %H:%M") if document.uploadedOn else "—",
+        "uploadedAtRaw": document.uploadedOn.isoformat() if document.uploadedOn else "",
+        "fileType":      ext or "FILE",
+        "viewUrl":       url_for('scoretaker_views.view_document', documentID=document.documentID),
+        "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=document.documentID),
+    })
+    
+    try:
+        results_df, comparison_data = get_system_calculated_results(document)
+        
+        if results_df is None:
+            raise Exception("Could not calculate system results")
+        
+        rows = []
+        for row_idx, row in enumerate(results_df.values.tolist()):
+            new_row = []
+            for col_idx, cell in enumerate(row):
+                if pd.isna(cell):
+                    new_row.append('')
+                elif isinstance(cell, (int, float)):
+                    new_row.append(cell)
+                else:
+                    new_row.append(str(cell))
+            rows.append(new_row)
+        
+        total_row_index = None
+        for idx, row in enumerate(rows):
+            if row and len(row) > 0 and str(row[0]).upper() == 'TOTAL':
+                total_row_index = idx
+                break
+        
+        table_data = {
+            'columns': results_df.columns.tolist(),
+            'rows': rows,
+            'headers': results_df.columns.tolist(),
+            'is_system_results': True,
+            'total_row_index': total_row_index,
+            'comparison_data': comparison_data,
+            'original_filename': document.originalFilename
+        }
+        
+    except Exception as e:
+        print(f"Error loading system results: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        table_data = {
+            'columns': ['Error'],
+            'rows': [[f'Could not load system results: {str(e)}']],
+            'headers': ['Error'],
+            'is_system_results': True,
+            'total_row_index': None,
+            'comparison_data': []
+        }
+    
+    return render_template('judge/system_results.html', document=doc_data, table_data=table_data)
 
 #modified from scoretaker archives
 @judge_views.route('/judge/archives')
