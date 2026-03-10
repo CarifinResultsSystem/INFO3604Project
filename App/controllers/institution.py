@@ -1,8 +1,8 @@
 from App.models import Institution
 from App.database import db
 
-def create_institution(insName):
-    newInstitution = Institution(insName=insName)
+def create_institution(insName, insLocation):
+    newInstitution = Institution(insName=insName, insLocation=insLocation)
     db.session.add(newInstitution)
     db.session.commit()
     return newInstitution

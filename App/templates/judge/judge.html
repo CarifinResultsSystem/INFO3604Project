@@ -12,23 +12,25 @@
         <div class="dashboard-subtitle">Welcome {{user.username}}!</div>
     </div>
 
+    <a href="{{url_for('judge_views.review_scores')}}" >
     <div class="dashboard-action-card">
         <span>View All Uploaded Scores</span>
     </div>
+    </a>
 
     <div class="dashboard-stats">
         <div class="dashboard-stat-card">
         <div class="dashboard-stat-label">
             Uploaded Scores Awaiting Confirmation
         </div>
-        <div class="dashboard-stat-number">#</div>
+        <div class="dashboard-stat-number">{{unconfirmed_docs_count}}</div>
         </div>
 
         <div class="dashboard-stat-card errors">
         <div class="dashboard-stat-label">
             Automated Errors Identified
         </div>
-        <div class="dashboard-stat-number">#</div>
+        <div class="dashboard-stat-number">{{errors}}</div>
         </div>
     </div>
 

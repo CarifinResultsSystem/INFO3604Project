@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+{%block title%}Edit Document - {{ document.filename }}{%endblock%}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='judge/judge.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='judge/review.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
+
+<style>
+</style>
+
+<div class="review-root">
+    <div class="review-header">
+        <h1>
+            <i class="material-icons">edit</i>
+            {{ document.filename }}
+        </h1>
+        <div class="review-meta">
+            <span class="unsaved-badge" id="unsavedBadge">
+                <i class="material-icons">edit_note</i>
+                Unsaved changes
+            </span>
+        </div>
+    </div>
+
+    <div class="review-table-container">
+        <div class="review-table-wrapper">
+            <table class="review-data-table" id="reviewTable">
+                <thead>
+                    <tr>
+                        {% for column in table_data.columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody id="editableBody">
+                    {% for row in table_data.rows %}
+                    <tr data-row-index="{{ loop.index0 }}">
+                        {% for cell in row %}
+                            {% if loop.first %}
+                                <td class="row-label">{{ cell }}</td>
+                            {% elif cell is number %}
+                                <td class="editable numeric"
+                                    data-original="{{ cell }}"
+                                    data-col-index="{{ loop.index0 }}">
+                                    <input
+                                        type="number"
+                                        class="numeric"
+                                        value="{{ cell }}"
+                                        step="any"
+                                        data-original="{{ cell }}"
+                                        oninput="onCellEdit(this)"
+                                    >
+                                </td>
+                            {% else %}
+                                <td class="editable"
+                                    data-original="{{ cell }}"
+                                    data-col-index="{{ loop.index0 }}">
+                                    <input
+                                        type="text"
+                                        value="{{ cell if cell is not none else '' }}"
+                                        data-original="{{ cell if cell is not none else '' }}"
+                                        oninput="onCellEdit(this)"
+                                    >
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="review-actions-bar">
+        <div class="edit-action-group">
+            <button class="btn btn-upload-final" id="btnUpload" onclick="uploadAsFinal()">
+                <i class="material-icons">upload_file</i>
+                Upload as Final Results
+            </button>
+            <button class="btn btn-save" id="btnSave" onclick="saveChanges()">
+                <i class="material-icons">save</i>
+                Save Changes
+            </button>
+            <button class="btn btn-discard" id="btnDiscard" onclick="discardChanges()">
+                <i class="material-icons">undo</i>
+                Discard All Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let hasUnsavedChanges = false;
+
+function onCellEdit(input) {
+    const td = input.closest('td');
+    const original = input.dataset.original;
+    const current  = input.value;
+
+    const isChanged = String(current) !== String(original);
+    td.classList.toggle('cell-changed', isChanged);
+
+    // Track unsaved state
+    const anyChanged = [...document.querySelectorAll('.editable.cell-changed')].length > 0;
+    hasUnsavedChanges = anyChanged;
+    document.getElementById('unsavedBadge').classList.toggle('visible', anyChanged);
+}
+
+function saveChanges() {
+    const rows = [];
+    document.querySelectorAll('#editableBody tr').forEach(tr => {
+        const rowData = [];
+        tr.querySelectorAll('td').forEach(td => {
+            const input = td.querySelector('input');
+            rowData.push(input ? input.value : td.textContent.trim());
+        });
+        rows.push(rowData);
+    });
+
+    fetch(window.location.pathname, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows })
+    })
+    .then(r => {
+        if (r.ok) {
+            // Mark all cells as saved (update originals)
+            document.querySelectorAll('.editable input').forEach(input => {
+                input.dataset.original = input.value;
+                input.closest('td').classList.remove('cell-changed');
+            });
+            hasUnsavedChanges = false;
+            document.getElementById('unsavedBadge').classList.remove('visible');
+            showToast('Changes saved successfully.', 'success');
+        } else {
+            showToast('Failed to save changes.', 'error');
+        }
+    })
+    .catch(() => showToast('Network error. Could not save.', 'error'));
+}
+
+function discardChanges() {
+    if (!hasUnsavedChanges) return;
+    if (!confirm('Discard all unsaved changes?')) return;
+
+    document.querySelectorAll('.editable input').forEach(input => {
+        input.value = input.dataset.original;
+        input.closest('td').classList.remove('cell-changed');
+    });
+    hasUnsavedChanges = false;
+    document.getElementById('unsavedBadge').classList.remove('visible');
+    showToast('Changes discarded.', 'info');
+}
+
+function uploadAsFinal() {
+    if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Save and upload as final results?')) {
+            return;
+        }
+        // First save changes, then finalize
+        saveChanges();
+        // Small delay to ensure save completes
+        setTimeout(() => {
+            performFinalization(false); // false = use current document, not system results
+        }, 500);
+    } else {
+        if (!confirm('Upload this document as final results? This cannot be undone.')) return;
+        performFinalization(false);
+    }
+}
+
+function performFinalization(useSystemResults) {
+    showToast('Processing...', 'info');
+    
+    fetch('/judge/finalize/{{ document.id }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ use_system_results: useSystemResults })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Failed to finalize');
+        }
+    })
+    .then(data => {
+        showToast(data.message || 'Successfully uploaded as final results!', 'success');
+        // Optionally redirect or update UI
+    })
+    .catch(error => {
+        showToast('Failed to upload as final results.', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Warn on navigation with unsaved changes
+window.addEventListener('beforeunload', e => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+
+    let icon = 'info';
+    if (type === 'success') icon = 'check_circle';
+    if (type === 'error')   icon = 'error';
+
+    toast.innerHTML = `
+        <i class="material-icons toast-icon">${icon}</i>
+        <span>${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    `;
+
+    toastContainer.appendChild(toast);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnUpload = document.getElementById('btnUpload');
+    if (btnUpload) {
+        btnUpload.onclick = uploadAsFinal;
+    }
+});
+</script>
+{% endblock %}

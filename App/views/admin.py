@@ -368,16 +368,16 @@ def admin_event_rules(event_id):
                 team_order.append(cat)
             team_map[cat].append({
                 "pointsID": r.pointsID,
+                "conditionType": cat,
                 "label":    r.label or "",
                 "points":   float(r.points),
             })
 
     individual.sort(key=lambda x: x["placement"] or 0)
 
-    team = [
-        {"category": cat, "rows": team_map[cat]}
-        for cat in team_order
-    ]
+    team = []
+    for cat in team_order:
+        team.extend(team_map[cat])
 
     return jsonify({
         "eventID":    ev.eventID,

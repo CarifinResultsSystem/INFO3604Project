@@ -13,4 +13,6 @@ pytest==9.0.2
 psycopg2-binary==2.9.11
 PyMySQL==1.1.2
 python-dotenv==1.2.1
+pandas==3.0.1
+openpyxl==3.1.5
 reportlab==4.2.5
