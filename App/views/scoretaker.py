@@ -3,6 +3,13 @@ from datetime import date, datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_file, abort
 from flask_jwt_extended import jwt_required, current_user
 
+from flask import send_file
+import openpyxl
+from io import BytesIO
+
+from App.models import Event, Institution
+from App.models.challenge import Challenge
+
 from App.controllers import (
     upload_score_document,
     get_my_score_documents,
@@ -155,3 +162,60 @@ def delete_document(documentID):
         flash(str(e), "error")
 
     return redirect(url_for('scoretaker_views.archives'))
+
+
+@scoretaker_views.route("/scoretaker/template")
+@jwt_required()
+def download_template():
+
+    # Get data from DB
+    institutions = Institution.query.order_by(Institution.insName.asc()).all()
+    events = Event.query.order_by(Event.eventName.asc()).all()
+    challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Scores Template"
+
+    # ---- HEADER ROW ----
+    ws.cell(row=1, column=1, value="Event / Challenge")
+
+    col = 2
+    for inst in institutions:
+        ws.cell(row=1, column=col, value=inst.insName)
+        col += 1
+
+    # ---- HEADER: AUTO-WIDTH ----
+    for col in ws.columns:
+        max_length = 0
+        col_letter = col[0].column_letter
+
+        for cell in col:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+
+    ws.column_dimensions[col_letter].width = max_length + 2
+
+    # ---- ROWS: EVENTS ----
+    row = 2
+    for ev in events:
+        ws.cell(row=row, column=1, value=ev.eventName)
+        row += 1
+
+    # ---- ROWS: CHALLENGES ----
+    for ch in challenges:
+        ws.cell(row=row, column=1, value=ch.challengeName)
+        row += 1
+
+    # Save to memory (no file on disk)
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="score_template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
