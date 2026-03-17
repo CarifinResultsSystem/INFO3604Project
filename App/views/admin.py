@@ -445,3 +445,116 @@ def admin_event_rules_save(event_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
+    
+
+    
+@admin_views.route("/admin/challenges")
+@jwt_required()
+def admin_challenges():
+    from App.models.challenge import Challenge
+    challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+    events     = Event.query.order_by(Event.eventName.asc()).all()
+    seasons    = Season.query.order_by(Season.year.desc()).all()
+    current_year   = datetime.now().year
+    current_season = Season.query.filter_by(year=current_year).first()
+    return render_template(
+        "admin/challenges.html",
+        user=current_user,
+        challenges=challenges,
+        events=events,
+        seasons=seasons,
+        current_season_id=current_season.seasonID if current_season else None,
+    )
+ 
+ 
+@admin_views.route("/admin/challenges/create", methods=["POST"])
+@jwt_required()
+def admin_challenges_create():
+    from App.controllers.challenge import create_challenge
+    challengeName = request.form.get("challengeName", "").strip()
+    description   = request.form.get("description",   "").strip()
+    bonusPoints   = request.form.get("bonusPoints",   "0")
+    seasonID      = request.form.get("seasonID",      "")
+    eventIDs      = request.form.getlist("eventIDs")
+ 
+    ch, err = create_challenge(
+        challengeName=challengeName,
+        seasonID=seasonID or None,
+        description=description or None,
+        bonusPoints=bonusPoints,
+        eventIDs=eventIDs,
+    )
+    if err:
+        flash(err, "error")
+    else:
+        flash(f'Challenge "{ch.challengeName}" created.', "success")
+    return redirect(url_for("admin_views.admin_challenges"))
+ 
+ 
+@admin_views.route("/admin/challenges/<int:challenge_id>/delete", methods=["POST"])
+@jwt_required()
+def admin_challenges_delete(challenge_id):
+    from App.controllers.challenge import delete_challenge
+    ok = delete_challenge(challenge_id)
+    flash("Challenge removed." if ok else "Challenge not found.", "success" if ok else "error")
+    return redirect(url_for("admin_views.admin_challenges"))
+ 
+ 
+@admin_views.route("/admin/challenges/<int:challenge_id>/update", methods=["POST"])
+@jwt_required()
+def admin_challenges_update(challenge_id):
+    from App.controllers.challenge import update_challenge
+    challengeName = request.form.get("challengeName", "").strip()
+    description   = request.form.get("description",   "").strip()
+    bonusPoints   = request.form.get("bonusPoints",   None)
+    seasonID      = request.form.get("seasonID",      None)
+    eventIDs      = request.form.getlist("eventIDs")   # empty list = clear events
+ 
+    ch, err = update_challenge(
+        challengeID=challenge_id,
+        challengeName=challengeName or None,
+        description=description or None,
+        bonusPoints=bonusPoints,
+        seasonID=seasonID or None,
+        eventIDs=eventIDs if eventIDs else [],
+    )
+    if err:
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True, "challengeName": ch.challengeName})
+ 
+ 
+# ── Challenge Points Rules (mirrors the event rules endpoints) ─────────────
+ 
+@admin_views.route("/admin/challenges/<int:challenge_id>/rules", methods=["GET"])
+@jwt_required()
+def admin_challenge_rules(challenge_id):
+    from App.models.challenge import Challenge
+    from App.controllers.challenge import get_challenge_rules
+    ch = db.session.get(Challenge, challenge_id)
+    if not ch:
+        return jsonify({"error": "Challenge not found"}), 404
+    data = get_challenge_rules(challenge_id)
+    data["challengeID"]   = ch.challengeID
+    data["challengeName"] = ch.challengeName
+    return jsonify(data)
+ 
+ 
+@admin_views.route("/admin/challenges/<int:challenge_id>/rules", methods=["POST"])
+@jwt_required()
+def admin_challenge_rules_save(challenge_id):
+    from App.controllers.challenge import save_challenge_rules
+    payload = request.get_json(silent=True) or {}
+    ok, err = save_challenge_rules(challenge_id, payload)
+    if not ok:
+        return jsonify({"success": False, "error": err}), 500
+    return jsonify({"success": True})
+ 
+ 
+@admin_views.route("/admin/challenges/<int:challenge_id>/rules/<int:rule_id>/delete",
+                   methods=["POST"])
+@jwt_required()
+def admin_challenge_rule_delete(challenge_id, rule_id):
+    from App.controllers.challenge import delete_challenge_rule
+    ok = delete_challenge_rule(rule_id, challenge_id)
+    return jsonify({"success": ok})
+ 

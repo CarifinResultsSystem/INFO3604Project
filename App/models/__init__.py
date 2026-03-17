@@ -7,6 +7,7 @@ from .institution import *
 from .season import *
 from .scoreDocument import *
 from .leaderboard import *
+from .challenge import *
 from .pointsRules import *
 from .automatedResult import *
 from .participant import *

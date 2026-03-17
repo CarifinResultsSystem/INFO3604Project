@@ -10,7 +10,14 @@
 
   <div class="dash-heading">
     <h1>Events</h1>
-    <span class="dash-subtitle">Create, Edit &amp; Manage Events</span>
+    <span class="dash-subtitle">
+      Create, Edit &amp; Manage Events &nbsp;·&nbsp;
+      <a href="{{ url_for('admin_views.admin_challenges') }}"
+         style="color:#7b1fa2;font-weight:600;text-decoration:none;">
+        <i class="material-icons" style="font-size:13px;vertical-align:-2px;">emoji_events</i>
+        Manage Challenges
+      </a>
+    </span>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -32,6 +39,15 @@
   {# ── Build lookups ── #}
   {% set season_year_map = {} %}
   {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
+
+  {# Build a lookup: eventID -> list of challenge names #}
+  {% set event_challenge_map = {} %}
+  {% for ch in challenges %}
+    {% for ev in ch.events %}
+      {% if event_challenge_map.update({ ev.eventID: (event_challenge_map.get(ev.eventID, []) + [ch.challengeName]) }) %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+
   {% set valid_years = seasons | map(attribute='year') | list | sort %}
   {% set all_locations = [] %}
   {% for e in events %}
@@ -150,6 +166,7 @@
               <th>Date</th>
               <th>Time</th>
               <th>Location</th>
+              <th>Challenges</th>
               <th style="text-align:right;">Actions</th>
             </tr>
           </thead>
@@ -171,6 +188,18 @@
               <td><span class="event-chip">{{ e.eventDate }}</span></td>
               <td><span class="event-chip event-chip-blue">{{ e.time.strftime('%H:%M') if e.time else '—' }}</span></td>
               <td class="event-loc">{{ e.location or '—' }}</td>
+              <td>
+                {% set ch_names = event_challenge_map.get(e.eventID, []) %}
+                {% if ch_names %}
+                  {% for cname in ch_names %}
+                    <span style="display:inline-block;padding:2px 9px;margin:2px 2px 2px 0;
+                                 background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;
+                                 font-size:11px;font-weight:600;color:#2e7d32;">{{ cname }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span style="color:#ccc;font-size:12px;">—</span>
+                {% endif %}
+              </td>
               <td style="text-align:right;white-space:nowrap;">
                 <button class="link" type="button" onclick="openEditFromRow(this)">Edit</button>
                 <form method="POST"

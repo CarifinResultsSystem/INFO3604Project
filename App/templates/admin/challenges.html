@@ -1,0 +1,404 @@
+{% extends "layout.html" %}
+{% block title %}Challenges{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_challenges.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_events.css') }}">
+
+<div class="dash-root admin-root events-wrap">
+
+  <div class="dash-heading">
+    <h1>Challenges</h1>
+    <span class="dash-subtitle">Group Events into Challenges &amp; Define Bonus Points</span>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="toast-container">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}">
+            <i class="material-icons toast-icon">
+              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+            </i>
+            <span>{{ message }}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {# Season year lookup #}
+  {% set season_year_map = {} %}
+  {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
+
+  <!-- ── Create Challenge ── -->
+  <p class="section-label">Create New Challenge</p>
+  <div class="admin-panel">
+    <form method="POST" action="{{ url_for('admin_views.admin_challenges_create') }}">
+      <div class="events-form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
+
+        <div class="events-field">
+          <label>Challenge Name <span style="color:red">*</span></label>
+          <input class="admin-input" name="challengeName" required placeholder="e.g. Urban Challenge">
+        </div>
+
+        <div class="events-field">
+          <label>Season <span style="color:red">*</span></label>
+          <select name="seasonID" required
+                  style="display:block;width:100%;height:40px;padding:0 10px;
+                         background:#fff;border:1px solid #ccc;border-radius:6px;
+                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;"
+                  id="createSeasonSelect" onchange="filterCreateEvents(this.value)">
+            <option value="" disabled selected>Select season</option>
+            {% for s in seasons %}
+              <option value="{{ s.seasonID }}"
+                {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="events-field">
+          <label>Bonus Points for Overall Winner</label>
+          <input class="admin-input" name="bonusPoints" type="number" step="0.5" min="0"
+                 placeholder="e.g. 25" value="0">
+        </div>
+
+        <div class="events-field" style="grid-column:1/-1;">
+          <label>Description <span style="color:#aaa;font-size:11px;">(optional)</span></label>
+          <input class="admin-input" name="description" placeholder="Short description of this challenge">
+        </div>
+
+        <div class="events-field" style="grid-column:1/-1;">
+          <label>Attach Events</label>
+          <div id="createEventsGrid" class="events-checkbox-grid-modal">
+            {% for e in events %}
+              <label class="ev-chk-label" data-season="{{ e.seasonID }}">
+                <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
+                <span>{{ e.eventName }}</span>
+              </label>
+            {% endfor %}
+            <span id="createEventsPlaceholder" style="color:#aaa;font-size:13px;padding:6px;">
+              Select a season above to see events.
+            </span>
+          </div>
+        </div>
+
+      </div>
+      <div class="events-form-actions">
+        <button class="dash-card-btn btn-purple" type="submit">
+          <i class="material-icons" style="font-size:16px;">add</i> Create Challenge
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Existing Challenges table ── -->
+  <p class="section-label" style="margin-top:22px;">Existing Challenges</p>
+  <div class="events-card">
+    <div class="events-card-head">
+      <div>
+        <div class="events-card-title">Challenges</div>
+        <div class="events-card-sub">Edit details, manage attached events &amp; configure bonus points rules.</div>
+      </div>
+      <div class="events-filters">
+        <input id="chSearch" type="text" placeholder="Search challenges…" class="ef-input" style="min-width:180px;">
+      </div>
+    </div>
+
+    {% if challenges %}
+      <div class="events-table-wrap">
+        <table class="ch-table" id="chTable">
+          <thead>
+            <tr>
+              <th>Challenge</th>
+              <th>Season</th>
+              <th>Bonus Pts</th>
+              <th>Events</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="chBody">
+            {% for ch in challenges %}
+            <tr class="ch-row"
+                data-name="{{ ch.challengeName|lower }}"
+                data-id="{{ ch.challengeID }}"
+                data-cname="{{ ch.challengeName|e }}"
+                data-desc="{{ ch.description|e if ch.description else '' }}"
+                data-bonus="{{ ch.bonusPoints }}"
+                data-season="{{ ch.seasonID or '' }}"
+                data-event-ids="{{ ch.events | map(attribute='eventID') | list | join(',') }}">
+              <td>
+                <div class="ch-name">{{ ch.challengeName }}</div>
+                {% if ch.description %}
+                  <div class="ch-desc">{{ ch.description }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if ch.seasonID %}
+                  <span class="challenge-badge">
+                    <i class="material-icons" style="font-size:11px;">calendar_today</i>
+                    {{ season_year_map.get(ch.seasonID, '—') }}
+                  </span>
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                <span class="bonus-chip">
+                  <i class="material-icons" style="font-size:12px;">star</i>
+                  {{ ch.bonusPoints | int if ch.bonusPoints == ch.bonusPoints | int else ch.bonusPoints }}
+                </span>
+              </td>
+              <td>
+                {% if ch.events %}
+                  {% for ev in ch.events %}
+                    <span class="challenge-event-chip">{{ ev.eventName }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span style="color:#aaa;font-size:12px;">No events attached</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;white-space:nowrap;">
+                <button class="link" type="button" onclick="openEditChallenge(this)">Edit</button>
+                <form method="POST"
+                      action="{{ url_for('admin_views.admin_challenges_delete', challenge_id=ch.challengeID) }}"
+                      style="display:inline;">
+                  <button class="link danger" type="submit"
+                          onclick="return confirm('Delete this challenge?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="chNoResults" class="events-no-results" style="display:none;">No challenges match your search.</div>
+    {% else %}
+      <div class="events-empty">No challenges yet. Create one above.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+
+<div id="chModal" class="ch-modal-overlay" aria-hidden="true">
+  <div class="ch-modal-backdrop" onclick="closeChModal()"></div>
+  <div class="ch-modal-card" role="dialog" aria-modal="true">
+
+    <!-- Header -->
+    <div class="ch-modal-header">
+      <span id="chModalTitle" class="ch-modal-title">Edit Challenge</span>
+      <button class="event-modal-close" type="button" onclick="closeChModal()">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ch-tabs">
+      <button type="button" id="chTabDetailsBtn" class="ch-tab active"
+              onclick="chSwitchTab('details')">
+        <i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
+        Details &amp; Events
+      </button>
+      <button type="button" id="chTabRulesBtn" class="ch-tab"
+              onclick="chSwitchTab('rules')">
+        <i class="material-icons" style="font-size:14px;vertical-align:-2px;">stars</i>
+        Points Rules
+      </button>
+    </div>
+
+    <!-- Tab: Details -->
+    <div id="chTabDetails" class="ch-modal-body">
+      <input type="hidden" id="editChallengeID">
+
+      <div class="detail-grid">
+        <div class="events-field">
+          <label class="sf-label">Challenge Name <span class="req">*</span></label>
+          <input id="editChName" class="admin-input" type="text">
+        </div>
+        <div class="events-field">
+          <label class="sf-label">Bonus Points for Overall Winner</label>
+          <input id="editChBonus" class="admin-input" type="number" step="0.5" min="0">
+        </div>
+        <div class="events-field" style="grid-column:1/-1;">
+          <label class="sf-label">Description</label>
+          <input id="editChDesc" class="admin-input" type="text">
+        </div>
+      </div>
+
+      <div class="events-field" style="margin-top:14px;">
+        <label class="sf-label">Attached Events</label>
+        <div id="editEventsGrid" class="events-checkbox-grid-modal">
+          {% for e in events %}
+            <label class="ev-chk-label" data-season="{{ e.seasonID }}"
+                   data-event-id="{{ e.eventID }}">
+              <input type="checkbox" name="editEventIDs" value="{{ e.eventID }}">
+              <span>{{ e.eventName }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="ch-modal-footer" style="border-top:none;background:none;padding:16px 0 0;">
+        <button class="ev-btn ev-btn-ghost" type="button" onclick="closeChModal()">Cancel</button>
+        <button class="ev-btn ev-btn-primary" type="button" onclick="saveChDetails()">
+          <i class="material-icons" style="font-size:15px;">save</i> Save Details
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab: Rules (mirrors event rules UI) -->
+    <div id="chTabRules" class="ch-modal-body" style="display:none;">
+
+      <!-- Individual Points -->
+      <div class="rules-section">
+        <div class="rules-section-head">
+          <div class="rules-section-title">Individual Points</div>
+          <button type="button" class="rules-add-btn" onclick="openChIndModal(null)">
+            <i class="material-icons" style="font-size:13px;">add</i> Add Rule
+          </button>
+        </div>
+        <div id="chIndTableWrap" class="rules-table-wrap">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th style="width:130px;">Placement</th>
+                <th>Award</th>
+                <th style="width:90px;">Points</th>
+                <th style="width:80px;text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="chIndBody"></tbody>
+          </table>
+        </div>
+        <div id="chIndEmpty" class="rules-empty" style="display:none;">
+          No individual rules yet.
+        </div>
+      </div>
+
+      <!-- Team Points -->
+      <div class="rules-section">
+        <div class="rules-section-head">
+          <div class="rules-section-title">Team Points</div>
+          <button type="button" class="rules-add-btn" onclick="openChTeamModal(null)">
+            <i class="material-icons" style="font-size:13px;">add</i> Add Category
+          </button>
+        </div>
+        <div id="chTeamTableWrap" class="rules-table-wrap">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th style="width:200px;">Category</th>
+                <th>Conditions</th>
+                <th style="width:80px;text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="chTeamBody"></tbody>
+          </table>
+        </div>
+        <div id="chTeamEmpty" class="rules-empty" style="display:none;">
+          No team categories yet.
+        </div>
+      </div>
+
+      <div class="ch-modal-footer" style="border-top:2px solid #eee;margin-top:8px;">
+        <button class="ev-btn ev-btn-ghost" type="button" onclick="closeChModal()">Cancel</button>
+        <button class="ev-btn ev-btn-primary" type="button" onclick="saveChRules()">
+          <i class="material-icons" style="font-size:15px;">save</i> Save All Rules
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /#chModal -->
+
+
+<!-- Individual Rule Sub-Modal (challenge) -->
+<div id="chIndModal" class="sub-modal-overlay" aria-hidden="true">
+  <div class="sub-modal-backdrop" onclick="closeChIndModal()"></div>
+  <div class="sub-modal-card" role="dialog">
+    <div class="sub-modal-header">
+      <span class="sub-modal-header-title">Individual Point Rule</span>
+      <button type="button" class="event-modal-close" onclick="closeChIndModal()">✕</button>
+    </div>
+    <div class="sub-modal-body">
+      <input type="hidden" id="chIndIdx">
+      <div class="sf-row">
+        <div class="sf-field">
+          <label class="sf-label">Place <span class="req">*</span></label>
+          <input id="chIndPlace" class="admin-input" type="number" min="1" max="100"
+                 placeholder="1" style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">1 = 1st, 2 = 2nd …</span>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Points <span class="req">*</span></label>
+          <input id="chIndPts" class="admin-input" type="number" step="0.01" min="0"
+                 placeholder="e.g. 15" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <div class="sf-field">
+        <label class="sf-label">Award Name <span class="req">*</span></label>
+        <input id="chIndAward" class="admin-input" type="text"
+               placeholder="e.g. Gold, Silver, Bronze"
+               style="width:100%;box-sizing:border-box;">
+      </div>
+    </div>
+    <div class="sub-modal-footer">
+      <button type="button" class="ev-btn ev-btn-ghost" onclick="closeChIndModal()">Cancel</button>
+      <button type="button" class="ev-btn ev-btn-primary" onclick="saveChIndRule()">
+        <i class="material-icons" style="font-size:14px;">check</i> Save Rule
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Team Rule Sub-Modal (challenge) -->
+<div id="chTeamModal" class="sub-modal-overlay" aria-hidden="true">
+  <div class="sub-modal-backdrop" onclick="closeChTeamModal()"></div>
+  <div class="sub-modal-card sub-modal-card-wide" role="dialog">
+    <div class="sub-modal-header">
+      <span class="sub-modal-header-title">Team Point Category</span>
+      <button type="button" class="event-modal-close" onclick="closeChTeamModal()">✕</button>
+    </div>
+    <div class="sub-modal-body">
+      <input type="hidden" id="chTeamIdx">
+      <div class="sf-field">
+        <label class="sf-label">Category Name <span class="req">*</span></label>
+        <input id="chTeamCat" class="admin-input" type="text"
+               placeholder="e.g. Senior Management, Team Turnout"
+               style="width:100%;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label class="sf-label" style="margin-bottom:0;">
+          Awarded For <span class="req">*</span>
+        </label>
+        <button type="button" class="rules-add-btn rules-add-btn-sm" onclick="addChAFRow()">
+          <i class="material-icons" style="font-size:12px;">add</i> Add Row
+        </button>
+      </div>
+      <div class="af-table-wrap">
+        <table class="af-table">
+          <thead>
+            <tr>
+              <th>Condition Description</th>
+              <th style="width:100px;">Points</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody id="chAFBody"></tbody>
+        </table>
+      </div>
+      <div id="chAFEmpty" class="af-empty">No conditions yet. Click "Add Row".</div>
+    </div>
+    <div class="sub-modal-footer">
+      <button type="button" class="ev-btn ev-btn-ghost" onclick="closeChTeamModal()">Cancel</button>
+      <button type="button" class="ev-btn ev-btn-primary" onclick="saveChTeamRule()">
+        <i class="material-icons" style="font-size:14px;">check</i> Save Category
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script src="{{ url_for('static', filename='admin/admin_challenges.js') }}"></script>
+
+{% endblock %}

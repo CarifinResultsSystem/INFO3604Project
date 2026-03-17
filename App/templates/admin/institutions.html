@@ -207,6 +207,16 @@
             {% endfor %}
           </select>
         </div>
+
+        <div class="dir-sortbox">
+          <span class="dir-sortlabel">Challenge</span>
+          <select id="dirChallengeFilter" class="dir-select">
+            <option value="" selected>All</option>
+            {% for ch in challenges %}
+              <option value="{{ ch.challengeID }}">{{ ch.challengeName }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
     </div>
 
@@ -221,13 +231,14 @@
             <th style="width:140px;">DOB</th>
             <th style="width:180px;">Participant Location</th>
             <th style="width:260px;">Events</th>
+            <th style="width:260px;">Challenges</th>
           </tr>
         </thead>
 
         <tbody id="dirBody">
           {% if (participants or [])|length == 0 %}
             <tr>
-              <td colspan="7" class="dir-empty">No participants yet.</td>
+              <td colspan="8" class="dir-empty">No participants yet.</td>
             </tr>
           {% else %}
             {% for p in participants %}
@@ -239,11 +250,16 @@
               {% set evNamesText = evNames | join(', ') if evNames|length else '-' %}
               {% set evIdsText = evIds | join(',') if evIds|length else '' %}
 
+              {% set chNames = (p.challenges | map(attribute='challengeName') | list) if p.challenges else [] %}
+              {% set chIds   = (p.challenges | map(attribute='challengeID')   | list) if p.challenges else [] %}
+              {% set chNamesText = chNames | join(', ') if chNames|length else '' %}
+              {% set chIdsText   = chIds   | join(',') if chIds|length   else '' %}
+
               <tr class="dir-row"
                   data-inst-id="{{ p.institutionID }}"
                   data-event-ids="{{ evIdsText }}"
                   data-name="{{ ((p.firstName ~ ' ' ~ p.lastName)|lower) }}"
-                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evNamesText)|lower) }}">
+                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evNamesText ~ ' ' ~ chNamesText)|lower) }}">
                 <td class="dir-strong">{{ instName }}</td>
                 <td>{{ instLoc }}</td>
                 <td class="dir-strong">{{ p.firstName }} {{ p.lastName }}</td>
@@ -256,6 +272,17 @@
                   {% if evNames|length %}
                     {% for name in evNames %}
                       <span class="dir-chip dir-chip-purple">{{ name }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="dir-muted">-</span>
+                  {% endif %}
+                </td>
+                <td data-challenge-ids="{{ chIdsText }}">
+                  {% if chNames|length %}
+                    {% for cname in chNames %}
+                      <span style="display:inline-block;padding:2px 9px;margin:2px 2px 2px 0;
+                                   background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;
+                                   font-size:11px;font-weight:600;color:#2e7d32;">{{ cname }}</span>
                     {% endfor %}
                   {% else %}
                     <span class="dir-muted">-</span>
@@ -282,18 +309,17 @@
 
   // ---------- Materialize selects ----------
   document.addEventListener('DOMContentLoaded', function () {
-    // Destroy Materialize on selects that need native behaviour
     if (window.M && M.FormSelect) {
       ['seasonEventFilter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         try { var inst = M.FormSelect.getInstance(el); if (inst) inst.destroy(); } catch(e) {}
       });
-      // Init Materialize only on selects that don't need native behaviour
       var selects = document.querySelectorAll('select:not(.browser-default):not(#seasonEventFilter)');
       M.FormSelect.init(selects);
     }
   });
+
   // ---------- Participant form: Filter events by season ----------
   function filterEventsBySeason(seasonId) {
     const labels = document.querySelectorAll('#eventsCheckboxGrid .event-checkbox');
@@ -314,40 +340,45 @@
   }
 
   // ---------- Directory table search/filter/sort ----------
-  const dirSearch = document.getElementById('dirSearch');
-  const dirSort = document.getElementById('dirSort');
-  const dirInstFilter = document.getElementById('dirInstFilter');
-  const dirEventFilter = document.getElementById('dirEventFilter');
-  const dirBody = document.getElementById('dirBody');
+  const dirSearch        = document.getElementById('dirSearch');
+  const dirSort          = document.getElementById('dirSort');
+  const dirInstFilter    = document.getElementById('dirInstFilter');
+  const dirEventFilter   = document.getElementById('dirEventFilter');
+  const dirBody          = document.getElementById('dirBody');
 
-  function applyDirFilters(){
-    const q = (dirSearch?.value || '').trim().toLowerCase();
-    const instId = (dirInstFilter?.value || '').trim();
-    const eventId = (dirEventFilter?.value || '').trim();
+  function applyDirFilters() {
+    const q           = (dirSearch?.value || '').trim().toLowerCase();
+    const instId      = (dirInstFilter?.value || '').trim();
+    const eventId     = (dirEventFilter?.value || '').trim();
+    const challengeId = (document.getElementById('dirChallengeFilter')?.value || '').trim();
 
     document.querySelectorAll('.dir-row').forEach(row => {
-      const blob = row.getAttribute('data-search') || '';
+      const blob    = row.getAttribute('data-search') || '';
       const rowInst = row.getAttribute('data-inst-id') || '';
 
       const rowEvents = (row.getAttribute('data-event-ids') || '')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+        .split(',').map(s => s.trim()).filter(Boolean);
 
-      const matchesQ = !q || blob.includes(q);
-      const matchesInst = !instId || rowInst === instId;
-      const matchesEvent = !eventId || rowEvents.includes(eventId);
+      const chCell = row.querySelector('td[data-challenge-ids]');
+      const rowChallenges = chCell
+        ? (chCell.getAttribute('data-challenge-ids') || '').split(',').map(s => s.trim()).filter(Boolean)
+        : [];
 
-      row.style.display = (matchesQ && matchesInst && matchesEvent) ? '' : 'none';
+      const matchesQ         = !q           || blob.includes(q);
+      const matchesInst      = !instId      || rowInst === instId;
+      const matchesEvent     = !eventId     || rowEvents.includes(eventId);
+      const matchesChallenge = !challengeId || rowChallenges.includes(String(challengeId));
+
+      row.style.display = (matchesQ && matchesInst && matchesEvent && matchesChallenge) ? '' : 'none';
     });
   }
 
-  function applyDirSort(){
+  function applyDirSort() {
     const mode = dirSort?.value || 'az';
     if (!dirBody) return;
 
     const rows = Array.from(dirBody.querySelectorAll('.dir-row'));
-    rows.sort((a,b) => {
+    rows.sort((a, b) => {
       const an = a.getAttribute('data-name') || '';
       const bn = b.getAttribute('data-name') || '';
       return (mode === 'za') ? bn.localeCompare(an) : an.localeCompare(bn);
@@ -356,13 +387,11 @@
     rows.forEach(r => dirBody.appendChild(r));
   }
 
-  if (dirSearch) dirSearch.addEventListener('input', applyDirFilters);
-  if (dirInstFilter) dirInstFilter.addEventListener('change', applyDirFilters);
-  if (dirEventFilter) dirEventFilter.addEventListener('change', applyDirFilters);
-  if (dirSort) dirSort.addEventListener('change', applyDirSort);
-
-
-  
+  if (dirSearch)          dirSearch.addEventListener('input',  applyDirFilters);
+  if (dirInstFilter)      dirInstFilter.addEventListener('change', applyDirFilters);
+  if (dirEventFilter)     dirEventFilter.addEventListener('change', applyDirFilters);
+  document.getElementById('dirChallengeFilter')?.addEventListener('change', applyDirFilters);
+  if (dirSort)            dirSort.addEventListener('change', applyDirSort);
 </script>
 
 {% endblock %}
