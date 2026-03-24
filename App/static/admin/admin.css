@@ -371,6 +371,24 @@
 }
 .link.danger{ color:var(--red); }
 
+#eventRegistrationTable th {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+#eventRegistrationTable th.sorted-asc::after {
+  content: " ▲";
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+#eventRegistrationTable th.sorted-desc::after {
+  content: " ▼";
+  font-size: 12px;
+  margin-left: 6px;
+}
+
 /* Events list rows */
 .admin-list{
   border:1px solid var(--border);

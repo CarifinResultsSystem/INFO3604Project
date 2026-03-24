@@ -110,6 +110,71 @@
         <canvas id="instChart" height="110"></canvas>
     </div>
     </div>
+  </br>
+    <p class="section-label">Event Registrations</p>
+
+      <div class="admin-panel">
+        <div class="admin-panel-head">
+          <h2>Participants by Event</h2>
+        </div>
+
+        <div class="lb-table-wrap">
+          <table class="lb-table" id="eventRegistrationTable">
+            <thead>
+              <tr>
+                <th onclick="sortEventTable(this, 0)">Event</th>
+                <th onclick="sortEventTable(this, 1)">Date</th>
+                <th onclick="sortEventTable(this, 2)">Season</th>
+                <th onclick="sortEventTable(this, 3)">Registrations</th>
+              </tr>
+            </thead>
+            <tbody id="eventRegistrationBody">
+              {% for e in events %}
+              <tr
+                data-event="{{ e.eventName }}"
+                data-date="{{ e.eventDate.isoformat() if e.eventDate else '' }}"
+                data-season="{{ e.season.year if e.season else '' }}"
+                data-count="{{ e.participant_count }}"
+              >
+                <td>
+                  <div class="event-name">{{ e.eventName }}</div>
+                  <div class="event-venue">{{ e.location or '—' }}</div>
+                </td>
+                <td>{{ e.eventDate.strftime('%B %d, %Y') if e.eventDate else '—' }}</td>
+                <td>{{ e.season.year if e.season else '—' }}</td>
+                <td>
+                  <details>
+                    <summary>
+                      {% if e.participant_count == 1 %}
+                        1 participant
+                      {% else %}
+                        {{ e.participant_count }} participants
+                      {% endif %}
+                    </summary>
+
+                    <div style="margin-top:8px;">
+                      {% if e.participants %}
+                        {% for p in e.participants %}
+                          <span class="event-tag">{{ p.firstName }} {{ p.lastName }}</span>
+                        {% endfor %}
+                      {% else %}
+                        <span style="color:#999;">No participants registered</span>
+                      {% endif %}
+                    </div>
+                  </details>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" style="text-align:center;padding:24px;color:#999;">
+                  No events found.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -178,8 +243,36 @@
     setInterval(() => {
         refresh().catch(() => {});
     }, 15000);
-    </script>
-    </div>
 
-    </div>
+    function sortEventTable(th, colIndex) {
+      const tbody = document.querySelector('#eventRegistrationBody');
+      const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.dataset.event);
+      const headers = Array.from(th.closest('tr').querySelectorAll('th'));
+      const isAsc = th.classList.contains('sorted-asc');
+
+      headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+      th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+      rows.sort((a, b) => {
+        if (colIndex === 1) {
+          const aDate = new Date(a.dataset.date || '').getTime();
+          const bDate = new Date(b.dataset.date || '').getTime();
+          return isAsc ? bDate - aDate : aDate - bDate;
+        }
+
+        if (colIndex === 2 || colIndex === 3) {
+          const key = colIndex === 2 ? 'season' : 'count';
+          const aVal = parseInt(a.dataset[key] || '0', 10);
+          const bVal = parseInt(b.dataset[key] || '0', 10);
+          return isAsc ? bVal - aVal : aVal - bVal;
+        }
+
+        const aVal = (a.dataset.event || '').toLowerCase();
+        const bVal = (b.dataset.event || '').toLowerCase();
+        return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      });
+
+      rows.forEach(row => tbody.appendChild(row));
+    }
+    </script>
 {% endblock %}

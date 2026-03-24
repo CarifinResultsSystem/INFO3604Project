@@ -17,6 +17,10 @@ class Event(db.Model):
         self.time      = time
         self.location  = location
         self.seasonID  = seasonID
+    
+    @property
+    def participant_count(self):
+        return len(self.participants)
 
     def get_json(self):
         return {
@@ -27,4 +31,5 @@ class Event(db.Model):
             "location":  self.location,
             "seasonID":  self.seasonID,
             "year":      self.season.year if self.season else None,
+            "participantCount": self.participant_count,
         }
