@@ -177,16 +177,18 @@ def download_template():
     challenges   = Challenge.query.order_by(Challenge.challengeName.asc()).all()
 
     FONT_NAME      = "Arial"
-    C_CHALLENGE_BG = "3B1F5E"
-    C_EVENT_BG     = "6A3D9A"
-    C_RULE_BG      = "F3E8FF"
-    C_INST_HDR_BG  = "2C1654"
-    C_TOTAL_BG     = "2D2D2D"
-    C_RANK_BG      = "4A4A4A"
-    C_INPUT_BG     = "FFFDE7"
+    C_CHALLENGE_BG = "0B3D91"  # Deep blue
+    C_EVENT_BG     = "1E5BB8"  # Medium blue
+    C_RULE_BG      = "E3F2FD"  # Very light blue (background for rules)
+    C_INST_HDR_BG  = "0A2A66"  # Dark navy blue
+
+    C_TOTAL_BG     = "1C1C1C"  # Keep neutral dark (optional: "0D47A1")
+    C_RANK_BG      = "424242"  # Keep gray or change to "1565C0"
+
+    C_INPUT_BG     = "EAF4FF"  # Light blue input cells
     C_WHITE        = "FFFFFF"
-    C_LIGHT_BORDER = "D1B3FF"
-    C_GAP          = "EBEBEB"
+    C_LIGHT_BORDER = "90CAF9"  # Light blue border
+    C_GAP          = "E3F2FD"  # Match rule background
 
     def fill(hex_color):
         return PatternFill("solid", start_color=hex_color, fgColor=hex_color)
@@ -253,7 +255,7 @@ def download_template():
         nonlocal row
         ws.row_dimensions[row].height = 18
         lbl = ws.cell(row=row, column=1, value=label)
-        lbl.font      = Font(name=FONT_NAME, size=9, italic=True, color="5B2D8E")
+        lbl.font = Font(name=FONT_NAME, size=9, italic=True, color="0D47A1")
         lbl.fill      = fill(C_RULE_BG)
         lbl.alignment = Alignment(horizontal="left", vertical="center", indent=4)
         lbl.border    = border_bottom()
