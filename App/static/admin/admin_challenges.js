@@ -91,6 +91,7 @@ function closeChModal() {
   _chTeamRules = [];
 }
 
+/* ─── Tab switching ─── */
 function chSwitchTab(tab) {
   document.getElementById('chTabDetails').style.display = tab === 'details' ? '' : 'none';
   document.getElementById('chTabRules').style.display   = tab === 'rules'   ? '' : 'none';
@@ -99,6 +100,7 @@ function chSwitchTab(tab) {
   if (tab === 'rules' && _chID) loadChRules(_chID);
 }
 
+/* ─── Save details ─── */
 async function saveChDetails() {
   const id    = document.getElementById('editChallengeID').value;
   const name  = document.getElementById('editChName').value.trim();
@@ -124,6 +126,10 @@ async function saveChDetails() {
   }
 }
 
+/* ══════════════════════════════════════════
+   POINTS RULES
+══════════════════════════════════════════ */
+
 let _chIndRules  = [];
 let _chTeamRules = [];
 
@@ -136,20 +142,55 @@ async function loadChRules(challengeID) {
   renderChTeamTable();
 }
 
+/* ── Individual rules table ── */
 function renderChIndTable() {
   const tbody = document.getElementById('chIndBody');
   tbody.innerHTML = '';
-  document.getElementById('chIndEmpty').style.display     = _chIndRules.length ? 'none' : 'block';
-  document.getElementById('chIndTableWrap').style.display = _chIndRules.length ? '' : 'none';
-  _chIndRules.forEach((r, i) => {
+  const empty = document.getElementById('chIndEmpty');
+  const wrap  = document.getElementById('chIndTableWrap');
+  if (!_chIndRules.length) {
+    empty.style.display = 'block';
+    wrap.style.display  = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display  = '';
+
+  // Sort by placement ascending
+  const sorted = [..._chIndRules].sort((a, b) => (a.placement || 0) - (b.placement || 0));
+
+  sorted.forEach((r, i) => {
+    const origIdx = _chIndRules.indexOf(r);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${ordinal(r.placement)}</td>
       <td>${escHtml(r.label)}</td>
       <td><strong>${r.points}</strong></td>
-      <td style="text-align:center;"><button class="link" onclick="openChIndModal(${i})">Edit</button></td>`;
+      <td style="text-align:center;white-space:nowrap;">
+        <button class="link" onclick="openChIndModal(${origIdx})">Edit</button>
+        <button class="link danger" onclick="deleteChIndRule(${origIdx})">Delete</button>
+      </td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function deleteChIndRule(idx) {
+  const rule = _chIndRules[idx];
+  if (!rule) return;
+  if (!confirm('Remove this rule?')) return;
+
+  // If it's a saved rule, delete from server first
+  if (rule.pointsID) {
+    const resp = await fetch(
+      `/admin/challenges/${_chID}/rules/${rule.pointsID}/delete`,
+      { method: 'POST' }
+    );
+    const data = await resp.json();
+    if (!data.success) { alert('Could not delete rule.'); return; }
+  }
+
+  _chIndRules.splice(idx, 1);
+  renderChIndTable();
 }
 
 function openChIndModal(idx) {
@@ -173,10 +214,10 @@ function saveChIndRule() {
   const place = parseInt(document.getElementById('chIndPlace').value);
   const pts   = parseFloat(document.getElementById('chIndPts').value);
   const award = document.getElementById('chIndAward').value.trim();
-  if (!place || isNaN(pts) || !award) { alert('All fields required.'); return; }
+  if (!place || isNaN(pts) || !award) { alert('All fields are required.'); return; }
   const rule = { placement: place, points: pts, label: award };
   if (idx !== '') {
-    rule.pointsID = _chIndRules[idx]?.pointsID;
+    rule.pointsID = _chIndRules[parseInt(idx)]?.pointsID;
     _chIndRules[parseInt(idx)] = rule;
   } else {
     _chIndRules.push(rule);
@@ -185,6 +226,7 @@ function saveChIndRule() {
   closeChIndModal();
 }
 
+/* ── Team rules table ── */
 let _chTeamEditIdx = null;
 
 function renderChTeamTable() {
@@ -192,8 +234,17 @@ function renderChTeamTable() {
   tbody.innerHTML = '';
   const cats = {};
   _chTeamRules.forEach(r => { (cats[r.conditionType] = cats[r.conditionType] || []).push(r); });
-  document.getElementById('chTeamEmpty').style.display     = Object.keys(cats).length ? 'none' : 'block';
-  document.getElementById('chTeamTableWrap').style.display = Object.keys(cats).length ? '' : 'none';
+
+  const empty = document.getElementById('chTeamEmpty');
+  const wrap  = document.getElementById('chTeamTableWrap');
+  if (!Object.keys(cats).length) {
+    empty.style.display = 'block';
+    wrap.style.display  = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display  = '';
+
   Object.entries(cats).forEach(([cat, rows]) => {
     const tr = document.createElement('tr');
     const conds = rows.map(r =>
@@ -202,9 +253,30 @@ function renderChTeamTable() {
     tr.innerHTML = `
       <td><strong>${escHtml(cat)}</strong></td>
       <td>${conds}</td>
-      <td style="text-align:center;"><button class="link" onclick="openChTeamModal(${JSON.stringify(cat)})">Edit</button></td>`;
+      <td style="text-align:center;white-space:nowrap;">
+        <button class="link" onclick="openChTeamModal(${JSON.stringify(cat)})">Edit</button>
+        <button class="link danger" onclick="deleteChTeamCat(${JSON.stringify(cat)})">Delete</button>
+      </td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function deleteChTeamCat(cat) {
+  if (!confirm(`Remove the "${cat}" category and all its conditions?`)) return;
+
+  // Delete each persisted rule in this category
+  const toDelete = _chTeamRules.filter(r => r.conditionType === cat && r.pointsID);
+  for (const rule of toDelete) {
+    const resp = await fetch(
+      `/admin/challenges/${_chID}/rules/${rule.pointsID}/delete`,
+      { method: 'POST' }
+    );
+    const data = await resp.json();
+    if (!data.success) { alert(`Could not delete rule "${rule.label}".`); return; }
+  }
+
+  _chTeamRules = _chTeamRules.filter(r => r.conditionType !== cat);
+  renderChTeamTable();
 }
 
 function openChTeamModal(cat) {
@@ -261,6 +333,7 @@ function saveChTeamRule() {
   closeChTeamModal();
 }
 
+/* ── Save all rules ── */
 async function saveChRules() {
   const id = document.getElementById('editChallengeID').value;
   const resp = await fetch(`/admin/challenges/${id}/rules`, {
@@ -277,6 +350,7 @@ async function saveChRules() {
   }
 }
 
+/* ─── Modal helpers ─── */
 function openSubModal(id)  { const m = document.getElementById(id); m.style.display = 'flex'; m.setAttribute('aria-hidden', 'false'); }
 function closeSubModal(id) { const m = document.getElementById(id); m.style.display = 'none'; m.setAttribute('aria-hidden', 'true'); }
 

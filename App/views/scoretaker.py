@@ -168,17 +168,17 @@ def delete_document(documentID):
 @jwt_required()
 def download_template():
 
-    # Get data from DB
+    from App.models import PointsRules
+
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
     events = Event.query.order_by(Event.eventName.asc()).all()
     challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
 
-    # Create workbook
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Scores Template"
 
-    # ---- HEADER ROW ----
+    # ---- HEADER ----
     ws.cell(row=1, column=1, value="Event / Challenge")
 
     col = 2
@@ -186,29 +186,98 @@ def download_template():
         ws.cell(row=1, column=col, value=inst.insName)
         col += 1
 
-    # ---- HEADER: AUTO-WIDTH ----
-    for col in ws.columns:
-        max_length = 0
-        col_letter = col[0].column_letter
+    row = 2
 
-        for cell in col:
+    # ---- CHALLENGES WITH EVENTS ----
+    for ch in challenges:
+        # Challenge Title (BOLD)
+        cell = ws.cell(row=row, column=1, value=f"Challenge: {ch.challengeName}")
+        cell.font = openpyxl.styles.Font(bold=True)
+        row += 1
+
+        for ev in ch.events:
+            # Event Name (ITALIC)
+            cell = ws.cell(row=row, column=1, value=f"   Event: {ev.eventName}")
+            cell.font = openpyxl.styles.Font(italic=True)
+            row += 1
+
+            rules = PointsRules.query.filter_by(eventID=ev.eventID).all()
+
+            for r in rules:
+                if r.ruleType == "individual":
+                    label = f"      - Individual: {r.label or f'Place {r.placement}'}"
+                else:
+                    label = f"      - Team: {r.category} ({r.label})"
+
+                ws.cell(row=row, column=1, value=label)
+                row += 1
+
+        row += 1  # spacing
+
+    # ---- EVENTS NOT IN ANY CHALLENGE ----
+    challenge_event_ids = {ev.eventID for ch in challenges for ev in ch.events}
+
+    for ev in events:
+        if ev.eventID in challenge_event_ids:
+            continue
+
+        cell = ws.cell(row=row, column=1, value=f"Event: {ev.eventName}")
+        cell.font = openpyxl.styles.Font(italic=True)
+        row += 1
+
+        rules = PointsRules.query.filter_by(eventID=ev.eventID).all()
+
+        for r in rules:
+            if r.ruleType == "individual":
+                label = f"   - Individual: {r.label or f'Place {r.placement}'}"
+            else:
+                label = f"   - Team: {r.category} ({r.label})"
+
+            ws.cell(row=row, column=1, value=label)
+            row += 1
+
+        row += 1
+
+    # ---- TOTAL + RANKING ----
+    row += 1
+
+    total_row = row
+    ws.cell(row=total_row, column=1, value="TOTAL POINTS")
+
+    rank_row = total_row + 1
+    ws.cell(row=rank_row, column=1, value="RANKING")
+
+    # Optional: formulas (Excel will calculate)
+    for col in range(2, len(institutions) + 2):
+        col_letter = openpyxl.utils.get_column_letter(col)
+
+        # Sum all above rows
+        ws.cell(
+            row=total_row,
+            column=col,
+            value=f"=SUM({col_letter}2:{col_letter}{total_row-1})"
+        )
+
+        # Ranking formula
+        ws.cell(
+            row=rank_row,
+            column=col,
+            value=f"=RANK({col_letter}{total_row},$B${total_row}:$"
+                  f"{openpyxl.utils.get_column_letter(len(institutions)+1)}${total_row},0)"
+        )
+
+    # ---- AUTO WIDTH ----
+    for col_cells in ws.columns:
+        max_length = 0
+        col_letter = col_cells[0].column_letter
+
+        for cell in col_cells:
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
 
-    ws.column_dimensions[col_letter].width = max_length + 2
+        ws.column_dimensions[col_letter].width = max_length + 3
 
-    # ---- ROWS: EVENTS ----
-    row = 2
-    for ev in events:
-        ws.cell(row=row, column=1, value=ev.eventName)
-        row += 1
-
-    # ---- ROWS: CHALLENGES ----
-    for ch in challenges:
-        ws.cell(row=row, column=1, value=ch.challengeName)
-        row += 1
-
-    # Save to memory (no file on disk)
+    # Save
     output = BytesIO()
     wb.save(output)
     output.seek(0)
