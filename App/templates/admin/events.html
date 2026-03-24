@@ -345,15 +345,29 @@
       <!-- Tab: Rules -->
       <div id="tabRules" class="event-modal-body" style="display:none;">
 
-        <!-- Individual Points -->
-        <div class="rules-section">
+        <!-- Event Win Points toggle -->
+        <div class="ew-toggle-row">
+          <label class="ew-toggle-label" for="eventWinCheckbox">
+            <span class="ew-toggle-track">
+              <input type="checkbox" id="eventWinCheckbox">
+              <span class="ew-toggle-thumb"></span>
+            </span>
+            <span class="ew-toggle-text">
+              <span class="ew-toggle-title">Event Win Points</span>
+              <span class="ew-toggle-sub">Award points to teams based on finishing position</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Event Win Points Section (shown when checkbox is checked) -->
+        <div id="eventWinSection" class="rules-section" style="display:none;">
           <div class="rules-section-head">
-            <div class="rules-section-title">Individual Points</div>
-            <button type="button" class="rules-add-btn" onclick="openIndividualModal(null)">
+            <div class="rules-section-title">Event Win Points</div>
+            <button type="button" class="rules-add-btn" onclick="openEventWinModal(null)">
               <i class="material-icons" style="font-size:13px;">add</i> Add Rule
             </button>
           </div>
-          <div id="indTableWrap" class="rules-table-wrap">
+          <div id="eventWinTableWrap" class="rules-table-wrap">
             <table class="rules-table">
               <thead>
                 <tr>
@@ -363,11 +377,11 @@
                   <th style="width:80px;text-align:center;">Actions</th>
                 </tr>
               </thead>
-              <tbody id="indTableBody"></tbody>
+              <tbody id="eventWinTableBody"></tbody>
             </table>
           </div>
-          <div id="indEmpty" class="rules-empty" style="display:none;">
-            No individual rules yet. Click "Add Rule" to create one.
+          <div id="eventWinEmpty" class="rules-empty" style="display:none;">
+            No event win rules yet. Click "Add Rule" to create one.
           </div>
         </div>
 
@@ -396,6 +410,15 @@
           </div>
         </div>
 
+        <!-- Max Team Points counter -->
+        <div class="max-points-bar">
+          <i class="material-icons" style="font-size:16px;color:#7b1fa2;">emoji_events</i>
+          <span>Maximum team points per event:</span>
+          <span id="maxTeamPoints" class="max-points-value">0</span>
+          <span class="max-points-unit">pts</span>
+          <span class="max-points-note">(highest value per category)</span>
+        </div>
+
         <div class="event-modal-footer" style="border-top:2px solid #eee;margin-top:8px;">
           <button class="ev-btn ev-btn-ghost" type="button" onclick="closeModal()">Cancel</button>
           <button class="ev-btn ev-btn-primary" type="button" onclick="saveRules()">
@@ -403,49 +426,6 @@
           </button>
         </div>
       </div>
-
-    </div>
-  </div>
-
-  <!-- Individual Rule Sub-Modal -->
-  <div id="indModal" class="sub-modal-overlay" aria-hidden="true">
-    <div class="sub-modal-backdrop" onclick="closeIndividualModal()"></div>
-    <div class="sub-modal-card" role="dialog">
-      <div class="sub-modal-header">
-        <span id="indModalTitle" class="sub-modal-header-title">Individual Point Rule</span>
-        <button type="button" class="event-modal-close" onclick="closeIndividualModal()">✕</button>
-      </div>
-      <div class="sub-modal-body">
-        <input type="hidden" id="indIdx">
-        <div class="sf-row">
-          <div class="sf-field">
-            <label class="sf-label">Place <span class="req">*</span></label>
-            <input id="indPlace" class="admin-input" type="number" min="1" max="100"
-                   placeholder="1" style="width:100%;box-sizing:border-box;">
-            <span class="sf-hint">1 = 1st, 2 = 2nd, 3 = 3rd…</span>
-          </div>
-          <div class="sf-field">
-            <label class="sf-label">Points <span class="req">*</span></label>
-            <input id="indPts" class="admin-input" type="number" step="0.01" min="0"
-                   placeholder="e.g. 15" style="width:100%;box-sizing:border-box;">
-          </div>
-        </div>
-        <div class="sf-field">
-          <label class="sf-label">Award Name <span class="req">*</span></label>
-          <input id="indAward" class="admin-input" type="text"
-                 placeholder="e.g. Gold, Silver, Bronze"
-                 style="width:100%;box-sizing:border-box;">
-          <span class="sf-hint">Award name given for this placement</span>
-        </div>
-      </div>
-      <div class="sub-modal-footer">
-        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeIndividualModal()">Cancel</button>
-        <button type="button" class="ev-btn ev-btn-primary" onclick="saveIndividualRule()">
-          <i class="material-icons" style="font-size:14px;">check</i> Save Rule
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Team Rule Sub-Modal  -->
   <div id="teamModal" class="sub-modal-overlay" aria-hidden="true">
@@ -491,6 +471,46 @@
         <button type="button" class="ev-btn ev-btn-ghost" onclick="closeTeamModal()">Cancel</button>
         <button type="button" class="ev-btn ev-btn-primary" onclick="saveTeamRule()">
           <i class="material-icons" style="font-size:14px;">check</i> Save Category
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Win Rule Sub-Modal -->
+  <div id="eventWinModal" class="sub-modal-overlay" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeEventWinModal()"></div>
+    <div class="sub-modal-card" role="dialog">
+      <div class="sub-modal-header">
+        <span id="eventWinModalTitle" class="sub-modal-header-title">Event Win Rule</span>
+        <button type="button" class="event-modal-close" onclick="closeEventWinModal()">✕</button>
+      </div>
+      <div class="sub-modal-body">
+        <input type="hidden" id="eventWinIdx">
+        <div class="sf-row">
+          <div class="sf-field">
+            <label class="sf-label">Place <span class="req">*</span></label>
+            <input id="eventWinPlace" class="admin-input" type="number" min="1" max="100"
+                   placeholder="1" style="width:100%;box-sizing:border-box;">
+            <span class="sf-hint">1 = 1st, 2 = 2nd, 3 = 3rd…</span>
+          </div>
+          <div class="sf-field">
+            <label class="sf-label">Points <span class="req">*</span></label>
+            <input id="eventWinPts" class="admin-input" type="number" step="0.01" min="0"
+                   placeholder="e.g. 15" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div class="sf-field">
+          <label class="sf-label">Award Name <span class="req">*</span></label>
+          <input id="eventWinAward" class="admin-input" type="text"
+                 placeholder="e.g. Gold, Silver, Bronze"
+                 style="width:100%;box-sizing:border-box;">
+          <span class="sf-hint">Award name given for this placement</span>
+        </div>
+      </div>
+      <div class="sub-modal-footer">
+        <button type="button" class="ev-btn ev-btn-ghost" onclick="closeEventWinModal()">Cancel</button>
+        <button type="button" class="ev-btn ev-btn-primary" onclick="saveEventWinRule()">
+          <i class="material-icons" style="font-size:14px;">check</i> Save Rule
         </button>
       </div>
     </div>

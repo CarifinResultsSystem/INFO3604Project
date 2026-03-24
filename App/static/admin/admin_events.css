@@ -576,3 +576,115 @@
 .select-wrapper:has(#eventSort) {
   display: none !important;
 }
+
+/* ── Event Win toggle row ── */
+.ew-toggle-row {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: #f9f5ff;
+  border: 1px solid #e1d4f7;
+  border-radius: 10px;
+}
+
+.ew-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ew-toggle-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 999px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.ew-toggle-track:has(input:checked) {
+  background: #7b1fa2;
+}
+
+.ew-toggle-track input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  margin: 0;
+}
+
+.ew-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ew-toggle-track:has(input:checked) .ew-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.ew-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ew-toggle-title {
+  font-weight: 800;
+  font-size: 14px;
+  color: #111;
+}
+
+.ew-toggle-sub {
+  font-size: 12px;
+  color: #888;
+}
+
+/* ── Max points bar ── */
+.max-points-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f3e5f5;
+  border: 1px solid #ce93d8;
+  border-radius: 10px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.max-points-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: #7b1fa2;
+  min-width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+
+.max-points-unit {
+  font-weight: 800;
+  color: #7b1fa2;
+}
+
+.max-points-note {
+  font-weight: 400;
+  color: #aaa;
+  font-size: 12px;
+}
