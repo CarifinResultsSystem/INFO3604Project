@@ -48,7 +48,8 @@
           <th onclick="sortTable(this, 0)">Event</th>
           <th onclick="sortTable(this, 1)">Date</th>
           <th onclick="sortTable(this, 2)">Start Time</th>
-          <th onclick="sortTable(this, 3)">Status</th>
+          <th onclick="sortTable(this, 3)">Participant Count</th>
+          <th onclick="sortTable(this, 4)">Status</th>
         </tr>
       </thead>
       <tbody id="scheduleBody">
@@ -66,6 +67,7 @@
           </td>
           <td>{{ e.eventDate.strftime('%B %d, %Y') if e.eventDate else '—' }}</td>
           <td>{{ e.time.strftime('%I:%M %p') if e.time else '—' }}</td>
+          <td>{{ e.participant_count }}</td>
           <td>
             {% if status == 'upcoming' %}
               <span class="status-badge status-upcoming">Upcoming</span>
@@ -75,7 +77,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="4" style="text-align:center;padding:24px;color:#999;">No events scheduled.</td></tr>
+        <tr><td colspan="5" style="text-align:center;padding:24px;color:#999;">No events scheduled.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -113,23 +115,57 @@
     document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
   }
 
+  let activeStatus = 'all';
+  let activeSeason = 'all';
+
+  function filterStatus(status, btn) {
+    activeStatus = status;
+    document.querySelectorAll('.event-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+  }
+
+  function applyFilters() {
+    activeSeason = document.getElementById('seasonSelect').value;
+    const rows = document.querySelectorAll('#scheduleBody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const matchStatus = activeStatus === 'all' || row.dataset.status === activeStatus;
+      const matchSeason = activeSeason === 'all' || row.dataset.season === activeSeason;
+      const show = matchStatus && matchSeason;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
+  }
+
   function sortTable(th, colIndex) {
     const tbody   = document.querySelector('#scheduleBody');
     const rows    = Array.from(tbody.querySelectorAll('tr'));
     const headers = Array.from(th.closest('tr').querySelectorAll('th'));
     const isAsc   = th.classList.contains('sorted-asc');
+
     headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
     th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
     rows.sort((a, b) => {
       if (colIndex === 1 || colIndex === 2) {
         const aDate = new Date(a.dataset.datetime || 0).getTime();
         const bDate = new Date(b.dataset.datetime || 0).getTime();
         return isAsc ? bDate - aDate : aDate - bDate;
       }
+
+      if (colIndex === 3) {
+        const aVal = parseInt(a.cells[colIndex]?.textContent.trim() || '0', 10);
+        const bVal = parseInt(b.cells[colIndex]?.textContent.trim() || '0', 10);
+        return isAsc ? bVal - aVal : aVal - bVal;
+      }
+
       const aVal = a.cells[colIndex]?.textContent.trim() || '';
       const bVal = b.cells[colIndex]?.textContent.trim() || '';
       return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
     });
+
     rows.forEach(r => tbody.appendChild(r));
   }
 </script>
