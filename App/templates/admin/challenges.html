@@ -226,6 +226,19 @@
       </div>
 
       <div class="events-field" style="margin-top:14px;">
+        <label class="sf-label">Season</label>
+        <select id="editChSeason"
+                style="display:block;width:100%;height:40px;padding:0 10px;
+                       background:#fff;border:1px solid #ccc;border-radius:6px;
+                       font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;
+                       margin-bottom:12px;"
+                onchange="filterEditEvents(this.value)">
+          <option value="" disabled>Select a season…</option>
+          {% for s in seasons %}
+            <option value="{{ s.seasonID }}">{{ s.year }}</option>
+          {% endfor %}
+        </select>
+
         <label class="sf-label">Attached Events</label>
         <div id="editEventsGrid" class="events-checkbox-grid-modal">
           {% for e in events %}
@@ -235,6 +248,9 @@
               <span>{{ e.eventName }}</span>
             </label>
           {% endfor %}
+          <span id="editEventsPlaceholder" style="color:#aaa;font-size:13px;padding:6px;display:none;">
+            No events for this season.
+          </span>
         </div>
       </div>
 

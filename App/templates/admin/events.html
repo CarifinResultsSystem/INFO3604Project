@@ -70,10 +70,16 @@
           <span style="color:#999;font-size:13px;">No seasons yet.</span>
         {% endfor %}
       </div>
-      <button class="dash-card-btn btn-purple" type="button" onclick="openSeasonModal()"
-              style="display:inline-flex;align-items:center;gap:6px;">
-        <i class="material-icons" style="font-size:16px;">add</i> Add Season
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="dash-card-btn btn-blue" type="button" onclick="openDuplicateSeasonModal()"
+                style="display:inline-flex;align-items:center;gap:6px;">
+          <i class="material-icons" style="font-size:16px;">content_copy</i> Duplicate Season
+        </button>
+        <button class="dash-card-btn btn-purple" type="button" onclick="openSeasonModal()"
+                style="display:inline-flex;align-items:center;gap:6px;">
+          <i class="material-icons" style="font-size:16px;">add</i> Add Season
+        </button>
+      </div>
     </div>
   </div>
 
@@ -236,6 +242,51 @@
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
           <button type="button" class="ev-btn ev-btn-ghost" onclick="closeSeasonModal()">Cancel</button>
           <button type="submit" class="dash-card-btn btn-purple">Create Season</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Duplicate Season Modal -->
+  <div id="duplicateSeasonModal" class="season-modal" aria-hidden="true">
+    <div class="sub-modal-backdrop" onclick="closeDuplicateSeasonModal()"></div>
+    <div class="season-modal-card">
+      <h3 style="margin:0 0 6px;font-size:17px;font-weight:800;">Duplicate Season Events</h3>
+      <p style="margin:0 0 18px;color:#666;font-size:13px;">
+        Copy all events from one season into another, shifting dates by year.
+        Events that already exist in the target season are skipped.
+      </p>
+      <form method="POST" action="{{ url_for('admin_views.admin_events_duplicate_season') }}">
+        <div class="sf-field" style="margin-bottom:14px;">
+          <label class="sf-label">Copy events FROM</label>
+          <select name="sourceSeasonID" required
+                  style="display:block;width:100%;height:40px;padding:0 10px;
+                         background:#fff;border:1px solid #ccc;border-radius:6px;
+                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;box-sizing:border-box;">
+            <option value="" disabled selected>Select source season…</option>
+            {% for s in seasons | sort(attribute='year', reverse=True) %}
+              <option value="{{ s.seasonID }}">{{ s.year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="sf-field" style="margin-bottom:20px;">
+          <label class="sf-label">Copy events INTO</label>
+          <select name="targetSeasonID" required
+                  style="display:block;width:100%;height:40px;padding:0 10px;
+                         background:#fff;border:1px solid #ccc;border-radius:6px;
+                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;box-sizing:border-box;">
+            <option value="" disabled selected>Select target season…</option>
+            {% for s in seasons | sort(attribute='year', reverse=True) %}
+              <option value="{{ s.seasonID }}">{{ s.year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="ev-btn ev-btn-ghost" onclick="closeDuplicateSeasonModal()">Cancel</button>
+          <button type="submit" class="dash-card-btn btn-blue"
+                  style="display:inline-flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px;">content_copy</i> Duplicate
+          </button>
         </div>
       </form>
     </div>
@@ -449,5 +500,17 @@
 
 <script>var VALID_YEARS = {{ valid_years | tojson }};</script>
 <script src="{{ url_for('static', filename='admin/admin_event.js') }}"></script>
+<script>
+  function openDuplicateSeasonModal() {
+    const modal = document.getElementById('duplicateSeasonModal');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.style.display = 'flex';
+  }
+  function closeDuplicateSeasonModal() {
+    const modal = document.getElementById('duplicateSeasonModal');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = '';
+  }
+</script>
 
 {% endblock %}

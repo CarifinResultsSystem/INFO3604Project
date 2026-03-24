@@ -174,50 +174,83 @@ def admin_events_create():
         return redirect(url_for("admin_views.admin_events"))
 
     flash(f"Event created: {ev.eventName}", "success")
+    return redirect(url_for("admin_views.admin_events"))
 
-    # Auto-duplicate into every future season 
-    try:
-        current_season = db.session.get(Season, int(seasonID))
-        if not current_season or not ev.eventDate:
-            return redirect(url_for("admin_views.admin_events"))
 
-        future_seasons = Season.query.filter(
-            Season.year > current_season.year
-        ).order_by(Season.year.asc()).all()
+@admin_views.route("/admin/events/duplicate-season", methods=["POST"])
+@jwt_required()
+def admin_events_duplicate_season():
+    """
+    Copy all events from a source season into a target season.
+    Skips any event whose name already exists in the target season.
+    """
+    source_season_id = request.form.get("sourceSeasonID", "").strip()
+    target_season_id = request.form.get("targetSeasonID", "").strip()
 
-        for next_season in future_seasons:
-            # Skip if a same-named event already exists in that season
-            already_exists = Event.query.filter(
-                func.lower(Event.eventName) == eventName.lower(),
-                Event.seasonID == next_season.seasonID
-            ).first()
-            if already_exists:
-                continue
+    if not source_season_id or not target_season_id:
+        flash("Both a source and target season are required.", "error")
+        return redirect(url_for("admin_views.admin_events"))
 
-            year_diff = next_season.year - current_season.year
+    if source_season_id == target_season_id:
+        flash("Source and target seasons must be different.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+
+    source_season = db.session.get(Season, int(source_season_id))
+    target_season = db.session.get(Season, int(target_season_id))
+
+    if not source_season or not target_season:
+        flash("Invalid season selection.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+
+    source_events = Event.query.filter_by(seasonID=source_season.seasonID).all()
+
+    if not source_events:
+        flash(f"No events found in season {source_season.year} to duplicate.", "error")
+        return redirect(url_for("admin_views.admin_events"))
+
+    year_diff = target_season.year - source_season.year
+    created, skipped = 0, 0
+
+    for ev in source_events:
+        # Skip if an event with the same name already exists in the target season
+        already_exists = Event.query.filter(
+            func.lower(Event.eventName) == ev.eventName.lower(),
+            Event.seasonID == target_season.seasonID
+        ).first()
+        if already_exists:
+            skipped += 1
+            continue
+
+        # Shift the event date by the year difference
+        next_date = None
+        if ev.eventDate:
             try:
                 next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff)
             except ValueError:
-                next_date = ev.eventDate.replace(
-                    year=ev.eventDate.year + year_diff, day=28
-                )
+                next_date = ev.eventDate.replace(year=ev.eventDate.year + year_diff, day=28)
 
-            time_str = ev.time.strftime("%H:%M") if ev.time else "00:00"
-            dup, dup_err = create_event(
-                ev.eventName,
-                next_date.isoformat(),
-                time_str,
-                ev.location or "",
-                str(next_season.seasonID)
-            )
-            if dup_err:
-                flash(f"Could not duplicate into season {next_season.year}: {dup_err}", "error")
-            else:
-                flash(f"Duplicated into season {next_season.year}.", "success")
+        time_str = ev.time.strftime("%H:%M") if ev.time else "00:00"
+        date_str = next_date.isoformat() if next_date else ""
 
-    except Exception as e:
-        flash(f"Duplication error: {str(e)}", "error")
+        _, err = create_event(
+            ev.eventName,
+            date_str,
+            time_str,
+            ev.location or "",
+            str(target_season.seasonID)
+        )
+        if err:
+            flash(f'Could not duplicate "{ev.eventName}": {err}', "error")
+        else:
+            created += 1
 
+    parts = []
+    if created:
+        parts.append(f"{created} event{'s' if created != 1 else ''} duplicated into season {target_season.year}")
+    if skipped:
+        parts.append(f"{skipped} skipped (already exist)")
+
+    flash(". ".join(parts) + ".", "success" if created else "error")
     return redirect(url_for("admin_views.admin_events"))
 
 
@@ -557,4 +590,3 @@ def admin_challenge_rule_delete(challenge_id, rule_id):
     from App.controllers.challenge import delete_challenge_rule
     ok = delete_challenge_rule(rule_id, challenge_id)
     return jsonify({"success": ok})
- 
