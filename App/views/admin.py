@@ -36,7 +36,13 @@ def block_non_admins():
 @admin_views.route("/admin/")
 @jwt_required()
 def admin_dashboard():
-    return render_template("admin/admin.html", user=current_user)
+    events = Event.query.order_by(Event.eventDate.asc(), Event.time.asc()).all()
+
+    return render_template(
+        "admin/admin.html",
+        user=current_user,
+        events=events
+    )
 
 
 @admin_views.route("/admin/users")
