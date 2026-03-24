@@ -65,3 +65,95 @@
   }
   .ev-chk-label:hover{border-color:#ce93d8;background:#fdf4ff;}
   .ev-chk-label input[type=checkbox]:checked + span{color:#7b1fa2;font-weight:600;}
+
+.ch-placement-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ch-placement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ch-placement-table thead th {
+  background: #f9fafb;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+.ch-placement-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid #f3f4f6;
+}
+.ch-placement-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+.ch-placement-table tbody tr:hover td {
+  background: #faf7fe;
+}
+
+.ch-placement-empty {
+  padding: 10px 2px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ── Placement rules table (create form & read-only display) ── */
+.ch-placement-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ch-placement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ch-placement-table thead th {
+  background: #f9fafb;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+.ch-placement-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid #f3f4f6;
+}
+.ch-placement-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+.ch-placement-table tbody tr:hover td {
+  background: #faf7fe;
+}
+
+.ch-placement-empty {
+  padding: 10px 2px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ── Prevent Materialize hijacking the sort select ── */
+#chSort {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  pointer-events: auto !important;
+  height: 36px !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  background: #fff !important;
+  color: #333 !important;
+}
+.select-wrapper:has(#chSort) { display: none !important; }

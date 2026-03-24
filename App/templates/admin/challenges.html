@@ -33,11 +33,12 @@
   {# Season year lookup #}
   {% set season_year_map = {} %}
   {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
+  {% set valid_years = seasons | map(attribute='year') | list | sort %}
 
   <!-- ── Create Challenge ── -->
   <p class="section-label">Create New Challenge</p>
   <div class="admin-panel">
-    <form method="POST" action="{{ url_for('admin_views.admin_challenges_create') }}">
+    <form method="POST" action="{{ url_for('admin_views.admin_challenges_create') }}" id="createChallengeForm">
       <div class="events-form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
 
         <div class="events-field">
@@ -60,12 +61,6 @@
           </select>
         </div>
 
-        <div class="events-field">
-          <label>Bonus Points for Overall Winner</label>
-          <input class="admin-input" name="bonusPoints" type="number" step="0.5" min="0"
-                 placeholder="e.g. 25" value="0">
-        </div>
-
         <div class="events-field" style="grid-column:1/-1;">
           <label>Description <span style="color:#aaa;font-size:11px;">(optional)</span></label>
           <input class="admin-input" name="description" placeholder="Short description of this challenge">
@@ -86,6 +81,7 @@
           </div>
         </div>
 
+
       </div>
       <div class="events-form-actions">
         <button class="dash-card-btn btn-purple" type="submit">
@@ -105,6 +101,17 @@
       </div>
       <div class="events-filters">
         <input id="chSearch" type="text" placeholder="Search challenges…" class="ef-input" style="min-width:180px;">
+
+        <div class="year-stepper">
+          <button type="button" id="chYearPrev">&#8249;</button>
+          <span id="chYearLabel">—</span>
+          <button type="button" id="chYearNext">&#8250;</button>
+        </div>
+
+        <select id="chSort" class="ef-select">
+          <option value="az" selected>A → Z</option>
+          <option value="za">Z → A</option>
+        </select>
       </div>
     </div>
 
@@ -115,7 +122,7 @@
             <tr>
               <th>Challenge</th>
               <th>Season</th>
-              <th>Bonus Pts</th>
+              <th>Placement Rules</th>
               <th>Events</th>
               <th style="text-align:right;">Actions</th>
             </tr>
@@ -127,8 +134,8 @@
                 data-id="{{ ch.challengeID }}"
                 data-cname="{{ ch.challengeName|e }}"
                 data-desc="{{ ch.description|e if ch.description else '' }}"
-                data-bonus="{{ ch.bonusPoints }}"
                 data-season="{{ ch.seasonID or '' }}"
+                data-year="{{ season_year_map.get(ch.seasonID, '') }}"
                 data-event-ids="{{ ch.events | map(attribute='eventID') | list | join(',') }}">
               <td>
                 <div class="ch-name">{{ ch.challengeName }}</div>
@@ -145,10 +152,22 @@
                 {% else %}—{% endif %}
               </td>
               <td>
-                <span class="bonus-chip">
-                  <i class="material-icons" style="font-size:12px;">star</i>
-                  {{ ch.bonusPoints | int if ch.bonusPoints == ch.bonusPoints | int else ch.bonusPoints }}
-                </span>
+                {#
+                  Render placement rules from ch.individual_rules (sorted by placement).
+                  Falls back gracefully if the attribute doesn't exist yet.
+                #}
+                {% set ind_rules = ch.individual_rules if ch.individual_rules is defined else [] %}
+                {% if ind_rules %}
+                  {% for r in ind_rules | sort(attribute='placement') %}
+                    <span class="bonus-chip" style="margin:2px 2px 2px 0;">
+                      <i class="material-icons" style="font-size:12px;">star</i>
+                      {{ r.placement }}{% if r.placement == 1 %}st{% elif r.placement == 2 %}nd{% elif r.placement == 3 %}rd{% else %}th{% endif %}
+                      · {{ r.label }} · {{ r.points | int if r.points == r.points | int else r.points }}pts
+                    </span>
+                  {% endfor %}
+                {% else %}
+                  <span style="color:#aaa;font-size:12px;">No rules set</span>
+                {% endif %}
               </td>
               <td>
                 {% if ch.events %}
@@ -182,6 +201,7 @@
 </div>
 
 
+<!-- ── Edit Challenge Modal ── -->
 <div id="chModal" class="ch-modal-overlay" aria-hidden="true">
   <div class="ch-modal-backdrop" onclick="closeChModal()"></div>
   <div class="ch-modal-card" role="dialog" aria-modal="true">
@@ -202,7 +222,7 @@
       <button type="button" id="chTabRulesBtn" class="ch-tab"
               onclick="chSwitchTab('rules')">
         <i class="material-icons" style="font-size:14px;vertical-align:-2px;">stars</i>
-        Points Rules
+        Placement Rules
       </button>
     </div>
 
@@ -214,10 +234,6 @@
         <div class="events-field">
           <label class="sf-label">Challenge Name <span class="req">*</span></label>
           <input id="editChName" class="admin-input" type="text">
-        </div>
-        <div class="events-field">
-          <label class="sf-label">Bonus Points for Overall Winner</label>
-          <input id="editChBonus" class="admin-input" type="number" step="0.5" min="0">
         </div>
         <div class="events-field" style="grid-column:1/-1;">
           <label class="sf-label">Description</label>
@@ -262,13 +278,13 @@
       </div>
     </div>
 
-    <!-- Tab: Rules (mirrors event rules UI) -->
+    <!-- Tab: Rules -->
     <div id="chTabRules" class="ch-modal-body" style="display:none;">
 
-      <!-- Individual Points -->
+      <!-- Individual / Placement Points -->
       <div class="rules-section">
         <div class="rules-section-head">
-          <div class="rules-section-title">Individual Points</div>
+          <div class="rules-section-title">Placement Bonus Rules</div>
           <button type="button" class="rules-add-btn" onclick="openChIndModal(null)">
             <i class="material-icons" style="font-size:13px;">add</i> Add Rule
           </button>
@@ -287,32 +303,7 @@
           </table>
         </div>
         <div id="chIndEmpty" class="rules-empty" style="display:none;">
-          No individual rules yet.
-        </div>
-      </div>
-
-      <!-- Team Points -->
-      <div class="rules-section">
-        <div class="rules-section-head">
-          <div class="rules-section-title">Team Points</div>
-          <button type="button" class="rules-add-btn" onclick="openChTeamModal(null)">
-            <i class="material-icons" style="font-size:13px;">add</i> Add Category
-          </button>
-        </div>
-        <div id="chTeamTableWrap" class="rules-table-wrap">
-          <table class="rules-table">
-            <thead>
-              <tr>
-                <th style="width:200px;">Category</th>
-                <th>Conditions</th>
-                <th style="width:80px;text-align:center;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="chTeamBody"></tbody>
-          </table>
-        </div>
-        <div id="chTeamEmpty" class="rules-empty" style="display:none;">
-          No team categories yet.
+          No placement rules yet. Click "Add Rule" to define bonus points per overall challenge position.
         </div>
       </div>
 
@@ -333,7 +324,7 @@
   <div class="sub-modal-backdrop" onclick="closeChIndModal()"></div>
   <div class="sub-modal-card" role="dialog">
     <div class="sub-modal-header">
-      <span class="sub-modal-header-title">Individual Point Rule</span>
+      <span class="sub-modal-header-title">Placement Bonus Rule</span>
       <button type="button" class="event-modal-close" onclick="closeChIndModal()">✕</button>
     </div>
     <div class="sub-modal-body">
@@ -367,54 +358,10 @@
   </div>
 </div>
 
-<!-- Team Rule Sub-Modal (challenge) -->
-<div id="chTeamModal" class="sub-modal-overlay" aria-hidden="true">
-  <div class="sub-modal-backdrop" onclick="closeChTeamModal()"></div>
-  <div class="sub-modal-card sub-modal-card-wide" role="dialog">
-    <div class="sub-modal-header">
-      <span class="sub-modal-header-title">Team Point Category</span>
-      <button type="button" class="event-modal-close" onclick="closeChTeamModal()">✕</button>
-    </div>
-    <div class="sub-modal-body">
-      <input type="hidden" id="chTeamIdx">
-      <div class="sf-field">
-        <label class="sf-label">Category Name <span class="req">*</span></label>
-        <input id="chTeamCat" class="admin-input" type="text"
-               placeholder="e.g. Senior Management, Team Turnout"
-               style="width:100%;box-sizing:border-box;">
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <label class="sf-label" style="margin-bottom:0;">
-          Awarded For <span class="req">*</span>
-        </label>
-        <button type="button" class="rules-add-btn rules-add-btn-sm" onclick="addChAFRow()">
-          <i class="material-icons" style="font-size:12px;">add</i> Add Row
-        </button>
-      </div>
-      <div class="af-table-wrap">
-        <table class="af-table">
-          <thead>
-            <tr>
-              <th>Condition Description</th>
-              <th style="width:100px;">Points</th>
-              <th style="width:36px;"></th>
-            </tr>
-          </thead>
-          <tbody id="chAFBody"></tbody>
-        </table>
-      </div>
-      <div id="chAFEmpty" class="af-empty">No conditions yet. Click "Add Row".</div>
-    </div>
-    <div class="sub-modal-footer">
-      <button type="button" class="ev-btn ev-btn-ghost" onclick="closeChTeamModal()">Cancel</button>
-      <button type="button" class="ev-btn ev-btn-primary" onclick="saveChTeamRule()">
-        <i class="material-icons" style="font-size:14px;">check</i> Save Category
-      </button>
-    </div>
-  </div>
-</div>
 
 
+
+<script>var CH_VALID_YEARS = {{ valid_years | tojson }};</script>
 <script src="{{ url_for('static', filename='admin/admin_challenges.js') }}"></script>
 
 {% endblock %}

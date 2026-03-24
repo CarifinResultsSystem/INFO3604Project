@@ -32,7 +32,51 @@ function filterEditEvents(seasonId) {
   placeholder.style.display = visible === 0 ? 'block' : 'none';
 }
 
-/* Auto-trigger on page load if a season is already selected */
+/* ─── Year stepper (challenges table) ─── */
+var chYearIndex = (function () {
+  var cur = new Date().getFullYear();
+  var i = CH_VALID_YEARS.indexOf(cur);
+  return i >= 0 ? i : Math.max(0, CH_VALID_YEARS.length - 1);
+})();
+
+function chActiveYear() { return CH_VALID_YEARS.length ? CH_VALID_YEARS[chYearIndex] : null; }
+
+function updateChYearUI() {
+  var y = chActiveYear();
+  document.getElementById('chYearLabel').textContent = y !== null ? y : '—';
+  document.getElementById('chYearPrev').style.opacity = chYearIndex <= 0 ? '0.3' : '1';
+  document.getElementById('chYearNext').style.opacity = chYearIndex >= CH_VALID_YEARS.length - 1 ? '0.3' : '1';
+  filterChTable();
+}
+
+/* ─── Table filter & sort (challenges) ─── */
+function filterChTable() {
+  var q    = (document.getElementById('chSearch').value || '').trim().toLowerCase();
+  var sort = document.getElementById('chSort').value;
+  var y    = chActiveYear();
+  var tbody = document.getElementById('chBody');
+  if (!tbody) return;
+
+  var rows = Array.from(tbody.querySelectorAll('tr.ch-row'));
+
+  rows.sort(function (a, b) {
+    var an = a.dataset.name || '', bn = b.dataset.name || '';
+    if (sort === 'za') return an > bn ? -1 : an < bn ? 1 : 0;
+    return an < bn ? -1 : an > bn ? 1 : 0;
+  });
+  rows.forEach(function (r) { tbody.appendChild(r); });
+
+  var visible = 0;
+  rows.forEach(function (row) {
+    var show = (!q || row.dataset.name.includes(q))
+            && (y === null || String(row.dataset.year) === String(y));
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('chNoResults').style.display = visible === 0 ? 'block' : 'none';
+}
+
+/* Auto-trigger on page load */
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('createSeasonSelect');
   if (sel && sel.value) filterCreateEvents(sel.value);
@@ -40,17 +84,114 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.toast').forEach(t => {
     setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 4000);
   });
+
+  /* Year stepper buttons */
+  document.getElementById('chYearPrev').addEventListener('click', function () {
+    if (chYearIndex > 0) { chYearIndex--; updateChYearUI(); }
+  });
+  document.getElementById('chYearNext').addEventListener('click', function () {
+    if (chYearIndex < CH_VALID_YEARS.length - 1) { chYearIndex++; updateChYearUI(); }
+  });
+
+  /* Filter listeners */
+  document.getElementById('chSearch').addEventListener('input', filterChTable);
+  document.getElementById('chSort').addEventListener('change', filterChTable);
+
+  /* Kill Materialize on chSort if present */
+  if (window.M && M.FormSelect) {
+    try { const inst = M.FormSelect.getInstance(document.getElementById('chSort')); if (inst) inst.destroy(); } catch (e) {}
+  }
+
+  /* Inject hidden inputs for create-form placement rules before submit */
+  const createForm = document.getElementById('createChallengeForm');
+  if (createForm) {
+    createForm.addEventListener('submit', () => {
+      const hiddens = document.getElementById('createPlacementHiddens');
+      hiddens.innerHTML = '';
+      _createPlacementRules.forEach((r, i) => {
+        const mkHidden = (name, val) => {
+          const el = document.createElement('input');
+          el.type = 'hidden';
+          el.name = name;
+          el.value = val;
+          hiddens.appendChild(el);
+        };
+        mkHidden(`placementRules[${i}][placement]`, r.placement);
+        mkHidden(`placementRules[${i}][label]`,     r.label);
+        mkHidden(`placementRules[${i}][points]`,    r.points);
+      });
+    });
+  }
+
+  updateChYearUI();
 });
 
-/* ─── Search filter for table ─── */
-document.getElementById('chSearch')?.addEventListener('input', function () {
-  const q = this.value.trim().toLowerCase();
-  document.querySelectorAll('.ch-row').forEach(r => {
-    r.style.display = (!q || r.dataset.name.includes(q)) ? '' : 'none';
+/* ══════════════════════════════════════════
+   CREATE FORM — inline placement rules
+══════════════════════════════════════════ */
+
+let _createPlacementRules = []; // [{placement, label, points}]
+
+function syncCreatePlacementUI() {
+  const wrap  = document.getElementById('createPlacementWrap');
+  const empty = document.getElementById('createPlacementEmpty');
+  const tbody = document.getElementById('createPlacementBody');
+
+  if (!_createPlacementRules.length) {
+    wrap.style.display  = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  wrap.style.display  = '';
+  empty.style.display = 'none';
+
+  // Sort ascending by placement before rendering
+  const sorted = [..._createPlacementRules].sort((a, b) => a.placement - b.placement);
+  tbody.innerHTML = '';
+  sorted.forEach((r) => {
+    const origIdx = _createPlacementRules.indexOf(r);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ordinal(r.placement)}</td>
+      <td>${escHtml(r.label)}</td>
+      <td><strong>${r.points}</strong></td>
+      <td style="text-align:center;">
+        <button type="button" class="af-remove-btn" onclick="removeCreatePlacementRow(${origIdx})" title="Remove">
+          <i class="material-icons" style="font-size:16px;">remove_circle_outline</i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
   });
-  document.getElementById('chNoResults').style.display =
-    document.querySelectorAll('.ch-row:not([style*="none"])').length === 0 && q ? 'block' : 'none';
-});
+}
+
+function addCreatePlacementRow() {
+  /* Prompt inline — open a lightweight mini-form approach reusing the chIndModal */
+  _createIndModalCallback = (place, label, pts) => {
+    if (_createPlacementRules.some(r => r.placement === place)) {
+      alert(`A rule for ${ordinal(place)} place already exists.`);
+      return false;
+    }
+    _createPlacementRules.push({ placement: place, label, points: pts });
+    syncCreatePlacementUI();
+    return true;
+  };
+  /* Reuse the challenge individual sub-modal, temporarily in "create-form" mode */
+  _chIndModalMode = 'create';
+  document.getElementById('chIndIdx').value   = '';
+  document.getElementById('chIndPlace').value = '';
+  document.getElementById('chIndPts').value   = '';
+  document.getElementById('chIndAward').value = '';
+  openSubModal('chIndModal');
+}
+
+function removeCreatePlacementRow(idx) {
+  _createPlacementRules.splice(idx, 1);
+  syncCreatePlacementUI();
+}
+
+/* ══════════════════════════════════════════
+   EDIT MODAL
+══════════════════════════════════════════ */
 
 let _chID = null;
 
@@ -61,7 +202,6 @@ function openEditChallenge(btn) {
   document.getElementById('chModalTitle').textContent = 'Edit: ' + row.dataset.cname;
   document.getElementById('editChName').value  = row.dataset.cname;
   document.getElementById('editChDesc').value  = row.dataset.desc;
-  document.getElementById('editChBonus').value = row.dataset.bonus;
 
   const seasonID = String(row.dataset.season || '').trim();
   document.getElementById('editChSeason').value = seasonID;
@@ -88,7 +228,6 @@ function closeChModal() {
   document.getElementById('chModal').classList.remove('open');
   document.getElementById('chModal').setAttribute('aria-hidden', 'true');
   _chIndRules = [];
-  _chTeamRules = [];
 }
 
 /* ─── Tab switching ─── */
@@ -105,7 +244,6 @@ async function saveChDetails() {
   const id    = document.getElementById('editChallengeID').value;
   const name  = document.getElementById('editChName').value.trim();
   const desc  = document.getElementById('editChDesc').value.trim();
-  const bonus = document.getElementById('editChBonus').value;
 
   const checkedIDs = [...document.querySelectorAll('#editEventsGrid input:checked')]
     .map(cb => cb.value);
@@ -113,7 +251,6 @@ async function saveChDetails() {
   const fd = new FormData();
   fd.append('challengeName', name);
   fd.append('description',   desc);
-  fd.append('bonusPoints',   bonus);
   checkedIDs.forEach(eid => fd.append('eventIDs', eid));
 
   const resp = await fetch(`/admin/challenges/${id}/update`, { method: 'POST', body: fd });
@@ -130,19 +267,16 @@ async function saveChDetails() {
    POINTS RULES
 ══════════════════════════════════════════ */
 
-let _chIndRules  = [];
-let _chTeamRules = [];
+let _chIndRules = [];
 
 async function loadChRules(challengeID) {
   const resp = await fetch(`/admin/challenges/${challengeID}/rules`);
   const data = await resp.json();
-  _chIndRules  = data.individual || [];
-  _chTeamRules = data.team       || [];
+  _chIndRules = data.individual || [];
   renderChIndTable();
-  renderChTeamTable();
 }
 
-/* ── Individual rules table ── */
+/* ── Individual / Placement rules table ── */
 function renderChIndTable() {
   const tbody = document.getElementById('chIndBody');
   tbody.innerHTML = '';
@@ -179,7 +313,6 @@ async function deleteChIndRule(idx) {
   if (!rule) return;
   if (!confirm('Remove this rule?')) return;
 
-  // If it's a saved rule, delete from server first
   if (rule.pointsID) {
     const resp = await fetch(
       `/admin/challenges/${_chID}/rules/${rule.pointsID}/delete`,
@@ -193,7 +326,12 @@ async function deleteChIndRule(idx) {
   renderChIndTable();
 }
 
+/* Tracks whether the chIndModal is being used from the create-form or the edit modal */
+let _chIndModalMode = 'edit'; // 'edit' | 'create'
+let _createIndModalCallback = null;
+
 function openChIndModal(idx) {
+  _chIndModalMode = 'edit';
   document.getElementById('chIndIdx').value = idx === null ? '' : idx;
   if (idx !== null && _chIndRules[idx]) {
     const r = _chIndRules[idx];
@@ -207,7 +345,7 @@ function openChIndModal(idx) {
   }
   openSubModal('chIndModal');
 }
-function closeChIndModal() { closeSubModal('chIndModal'); }
+function closeChIndModal() { closeSubModal('chIndModal'); _chIndModalMode = 'edit'; }
 
 function saveChIndRule() {
   const idx   = document.getElementById('chIndIdx').value;
@@ -215,131 +353,44 @@ function saveChIndRule() {
   const pts   = parseFloat(document.getElementById('chIndPts').value);
   const award = document.getElementById('chIndAward').value.trim();
   if (!place || isNaN(pts) || !award) { alert('All fields are required.'); return; }
+
+  /* ── Create-form mode: delegate to callback ── */
+  if (_chIndModalMode === 'create') {
+    if (_createIndModalCallback) {
+      const ok = _createIndModalCallback(place, award, pts);
+      if (ok) closeChIndModal();
+    }
+    return;
+  }
+
+  /* ── Edit-modal mode ── */
   const rule = { placement: place, points: pts, label: award };
   if (idx !== '') {
+    // Check for duplicate placement (excluding the rule being edited)
+    const duplicate = _chIndRules.some((r, i) =>
+      i !== parseInt(idx) && r.placement === place
+    );
+    if (duplicate) { alert(`A rule for ${ordinal(place)} place already exists.`); return; }
     rule.pointsID = _chIndRules[parseInt(idx)]?.pointsID;
     _chIndRules[parseInt(idx)] = rule;
   } else {
+    if (_chIndRules.some(r => r.placement === place)) {
+      alert(`A rule for ${ordinal(place)} place already exists.`);
+      return;
+    }
     _chIndRules.push(rule);
   }
   renderChIndTable();
   closeChIndModal();
 }
 
-/* ── Team rules table ── */
-let _chTeamEditIdx = null;
-
-function renderChTeamTable() {
-  const tbody = document.getElementById('chTeamBody');
-  tbody.innerHTML = '';
-  const cats = {};
-  _chTeamRules.forEach(r => { (cats[r.conditionType] = cats[r.conditionType] || []).push(r); });
-
-  const empty = document.getElementById('chTeamEmpty');
-  const wrap  = document.getElementById('chTeamTableWrap');
-  if (!Object.keys(cats).length) {
-    empty.style.display = 'block';
-    wrap.style.display  = 'none';
-    return;
-  }
-  empty.style.display = 'none';
-  wrap.style.display  = '';
-
-  Object.entries(cats).forEach(([cat, rows]) => {
-    const tr = document.createElement('tr');
-    const conds = rows.map(r =>
-      `<span style="font-size:12px;color:#555;">${escHtml(r.label)} <strong>(${r.points}pts)</strong></span>`
-    ).join('<br>');
-    tr.innerHTML = `
-      <td><strong>${escHtml(cat)}</strong></td>
-      <td>${conds}</td>
-      <td style="text-align:center;white-space:nowrap;">
-        <button class="link" onclick="openChTeamModal(${JSON.stringify(cat)})">Edit</button>
-        <button class="link danger" onclick="deleteChTeamCat(${JSON.stringify(cat)})">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-async function deleteChTeamCat(cat) {
-  if (!confirm(`Remove the "${cat}" category and all its conditions?`)) return;
-
-  // Delete each persisted rule in this category
-  const toDelete = _chTeamRules.filter(r => r.conditionType === cat && r.pointsID);
-  for (const rule of toDelete) {
-    const resp = await fetch(
-      `/admin/challenges/${_chID}/rules/${rule.pointsID}/delete`,
-      { method: 'POST' }
-    );
-    const data = await resp.json();
-    if (!data.success) { alert(`Could not delete rule "${rule.label}".`); return; }
-  }
-
-  _chTeamRules = _chTeamRules.filter(r => r.conditionType !== cat);
-  renderChTeamTable();
-}
-
-function openChTeamModal(cat) {
-  _chTeamEditIdx = cat;
-  document.getElementById('chTeamIdx').value = cat || '';
-  if (cat) {
-    document.getElementById('chTeamCat').value = cat;
-    const rows = _chTeamRules.filter(r => r.conditionType === cat);
-    document.getElementById('chAFBody').innerHTML = '';
-    rows.forEach(r => addChAFRow(r.label, r.points, r.pointsID));
-  } else {
-    document.getElementById('chTeamCat').value = '';
-    document.getElementById('chAFBody').innerHTML = '';
-  }
-  syncChAFEmpty();
-  openSubModal('chTeamModal');
-}
-function closeChTeamModal() { closeSubModal('chTeamModal'); }
-
-function addChAFRow(label = '', pts = '', pid = '') {
-  const tbody = document.getElementById('chAFBody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input class="admin-input af-label" type="text" value="${escHtml(label)}"
-               placeholder="e.g. Highest team turnout" style="width:100%;box-sizing:border-box;"></td>
-    <td><input class="admin-input af-pts" type="number" step="0.01" min="0"
-               value="${pts}" placeholder="0" style="width:100%;box-sizing:border-box;">
-        <input type="hidden" class="af-pid" value="${pid}"></td>
-    <td><button type="button" class="link danger"
-                onclick="this.closest('tr').remove();syncChAFEmpty()">✕</button></td>`;
-  tbody.appendChild(tr);
-  syncChAFEmpty();
-}
-function syncChAFEmpty() {
-  document.getElementById('chAFEmpty').style.display =
-    document.getElementById('chAFBody').rows.length ? 'none' : 'block';
-}
-
-function saveChTeamRule() {
-  const cat = document.getElementById('chTeamCat').value.trim();
-  if (!cat) { alert('Category name is required.'); return; }
-  const rows = [...document.getElementById('chAFBody').rows].map(tr => ({
-    conditionType: cat,
-    label:    tr.querySelector('.af-label').value.trim(),
-    points:   parseFloat(tr.querySelector('.af-pts').value) || 0,
-    pointsID: tr.querySelector('.af-pid').value || undefined,
-  }));
-  if (!rows.length) { alert('Add at least one condition.'); return; }
-  if (_chTeamEditIdx) {
-    _chTeamRules = _chTeamRules.filter(r => r.conditionType !== _chTeamEditIdx);
-  }
-  _chTeamRules.push(...rows);
-  renderChTeamTable();
-  closeChTeamModal();
-}
-
-/* ── Save all rules ── */
+/* ─── Modal helpers ─── */
 async function saveChRules() {
   const id = document.getElementById('editChallengeID').value;
   const resp = await fetch(`/admin/challenges/${id}/rules`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ individual: _chIndRules, team: _chTeamRules }),
+    body: JSON.stringify({ individual: _chIndRules }),
   });
   const data = await resp.json();
   if (data.success) {
