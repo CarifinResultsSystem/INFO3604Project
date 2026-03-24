@@ -67,7 +67,11 @@
           </td>
           <td>{{ e.eventDate.strftime('%B %d, %Y') if e.eventDate else '—' }}</td>
           <td>{{ e.time.strftime('%I:%M %p') if e.time else '—' }}</td>
-          <td>{{ e.participant_count }}</td>
+          <td>
+            <span class="participant-pill">
+              {{ e.participant_count }} registered
+            </span>
+          </td>
           <td>
             {% if status == 'upcoming' %}
               <span class="status-badge status-upcoming">Upcoming</span>
