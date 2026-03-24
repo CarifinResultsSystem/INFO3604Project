@@ -105,53 +105,34 @@
     activeSeason = document.getElementById('seasonSelect').value;
     const rows = document.querySelectorAll('#scheduleBody tr');
     let visible = 0;
+
     rows.forEach(row => {
+      if (!row.dataset.status) return;
+
       const matchStatus = activeStatus === 'all' || row.dataset.status === activeStatus;
       const matchSeason = activeSeason === 'all' || row.dataset.season === activeSeason;
       const show = matchStatus && matchSeason;
+
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
-    document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
-  }
 
-  let activeStatus = 'all';
-  let activeSeason = 'all';
-
-  function filterStatus(status, btn) {
-    activeStatus = status;
-    document.querySelectorAll('.event-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    applyFilters();
-  }
-
-  function applyFilters() {
-    activeSeason = document.getElementById('seasonSelect').value;
-    const rows = document.querySelectorAll('#scheduleBody tr');
-    let visible = 0;
-    rows.forEach(row => {
-      const matchStatus = activeStatus === 'all' || row.dataset.status === activeStatus;
-      const matchSeason = activeSeason === 'all' || row.dataset.season === activeSeason;
-      const show = matchStatus && matchSeason;
-      row.style.display = show ? '' : 'none';
-      if (show) visible++;
-    });
     document.getElementById('emptyState').style.display = visible === 0 ? '' : 'none';
   }
 
   function sortTable(th, colIndex) {
-    const tbody   = document.querySelector('#scheduleBody');
-    const rows    = Array.from(tbody.querySelectorAll('tr'));
+    const tbody = document.querySelector('#scheduleBody');
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.dataset.status);
     const headers = Array.from(th.closest('tr').querySelectorAll('th'));
-    const isAsc   = th.classList.contains('sorted-asc');
+    const isAsc = th.classList.contains('sorted-asc');
 
     headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
     th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
 
     rows.sort((a, b) => {
       if (colIndex === 1 || colIndex === 2) {
-        const aDate = new Date(a.dataset.datetime || 0).getTime();
-        const bDate = new Date(b.dataset.datetime || 0).getTime();
+        const aDate = new Date(a.dataset.datetime || '').getTime();
+        const bDate = new Date(b.dataset.datetime || '').getTime();
         return isAsc ? bDate - aDate : aDate - bDate;
       }
 
@@ -161,13 +142,18 @@
         return isAsc ? bVal - aVal : aVal - bVal;
       }
 
-      const aVal = a.cells[colIndex]?.textContent.trim() || '';
-      const bVal = b.cells[colIndex]?.textContent.trim() || '';
+      const aVal = a.cells[colIndex]?.textContent.trim().toLowerCase() || '';
+      const bVal = b.cells[colIndex]?.textContent.trim().toLowerCase() || '';
       return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
     });
 
-    rows.forEach(r => tbody.appendChild(r));
+    rows.forEach(row => tbody.appendChild(row));
+    applyFilters();
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyFilters();
+  });
 </script>
 
 {% endblock %}
