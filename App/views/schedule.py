@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request, flash, redirect, url_for
 from flask_jwt_extended import jwt_required, current_user as jwt_current_user
 
-from datetime import date
+from datetime import date, datetime
 from App.database import db
 from App.models import Event, Season
 
@@ -19,7 +19,8 @@ def get_schedule_page():
     return render_template('user/schedule.html',
         events=events,
         seasons=seasons,
-        today=date.today()
+        today=date.today(),
+        now=datetime.now()
     )
 
 
