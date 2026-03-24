@@ -54,7 +54,6 @@
       </thead>
       <tbody id="scheduleBody">
         {% for e in events %}
-        {% set now = now() if now is defined else none %}
         {% set is_upcoming = e.eventDate >= today if e.eventDate else false %}
         {% set status = 'upcoming' if is_upcoming else 'completed' %}
         <tr
