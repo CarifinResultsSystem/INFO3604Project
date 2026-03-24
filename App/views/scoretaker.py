@@ -169,115 +169,179 @@ def delete_document(documentID):
 def download_template():
 
     from App.models import PointsRules
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
 
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
-    events = Event.query.order_by(Event.eventName.asc()).all()
-    challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+    events       = Event.query.order_by(Event.eventName.asc()).all()
+    challenges   = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+
+    FONT_NAME      = "Arial"
+    C_CHALLENGE_BG = "3B1F5E"
+    C_EVENT_BG     = "6A3D9A"
+    C_RULE_BG      = "F3E8FF"
+    C_INST_HDR_BG  = "2C1654"
+    C_TOTAL_BG     = "2D2D2D"
+    C_RANK_BG      = "4A4A4A"
+    C_INPUT_BG     = "FFFDE7"
+    C_WHITE        = "FFFFFF"
+    C_LIGHT_BORDER = "D1B3FF"
+    C_GAP          = "EBEBEB"
+
+    def fill(hex_color):
+        return PatternFill("solid", start_color=hex_color, fgColor=hex_color)
+
+    def font(bold=False, italic=False, color=C_WHITE, size=10, name=FONT_NAME):
+        return Font(name=name, bold=bold, italic=italic, color=color, size=size)
+
+    def border_all(color=C_LIGHT_BORDER, style="thin"):
+        s = Side(border_style=style, color=color)
+        return Border(left=s, right=s, top=s, bottom=s)
+
+    def border_bottom(color=C_LIGHT_BORDER, style="thin"):
+        s = Side(border_style=style, color=color)
+        return Border(bottom=s)
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Scores Template"
 
-    # ---- HEADER ----
-    ws.cell(row=1, column=1, value="Event / Challenge")
+    n_inst = len(institutions)
+    ws.column_dimensions["A"].width = 40
+    for i in range(2, n_inst + 2):
+        ws.column_dimensions[get_column_letter(i)].width = 14
 
-    col = 2
-    for inst in institutions:
-        ws.cell(row=1, column=col, value=inst.insName)
-        col += 1
+    row = 1
 
-    row = 2
-
-    # ---- CHALLENGES WITH EVENTS ----
-    for ch in challenges:
-        # Challenge Title (BOLD)
-        cell = ws.cell(row=row, column=1, value=f"Challenge: {ch.challengeName}")
-        cell.font = openpyxl.styles.Font(bold=True)
+    def write_inst_header_row():
+        nonlocal row
+        ws.row_dimensions[row].height = 28
+        lbl = ws.cell(row=row, column=1, value="Rule")
+        lbl.font      = font(bold=True, size=10, color="C9A6FF")
+        lbl.fill      = fill(C_INST_HDR_BG)
+        lbl.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        for i, inst in enumerate(institutions, start=2):
+            c = ws.cell(row=row, column=i, value=inst.insName)
+            c.font      = font(bold=True, size=10, color=C_WHITE)
+            c.fill      = fill(C_INST_HDR_BG)
+            c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         row += 1
 
-        for ev in ch.events:
-            # Event Name (ITALIC)
-            cell = ws.cell(row=row, column=1, value=f"   Event: {ev.eventName}")
-            cell.font = openpyxl.styles.Font(italic=True)
-            row += 1
+    def write_challenge_row(name):
+        nonlocal row
+        ws.row_dimensions[row].height = 26
+        lbl = ws.cell(row=row, column=1, value=name.upper())
+        lbl.font      = font(bold=True, size=12, color=C_WHITE)
+        lbl.fill      = fill(C_CHALLENGE_BG)
+        lbl.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        for c in range(2, n_inst + 2):
+            ws.cell(row=row, column=c).fill = fill(C_CHALLENGE_BG)
+        row += 1
 
-            rules = PointsRules.query.filter_by(eventID=ev.eventID).all()
+    def write_event_row(name):
+        nonlocal row
+        ws.row_dimensions[row].height = 20
+        lbl = ws.cell(row=row, column=1, value=name)
+        lbl.font      = font(bold=False, italic=True, size=10, color=C_WHITE)
+        lbl.fill      = fill(C_EVENT_BG)
+        lbl.alignment = Alignment(horizontal="left", vertical="center", indent=2)
+        for c in range(2, n_inst + 2):
+            ws.cell(row=row, column=c).fill = fill(C_EVENT_BG)
+        row += 1
 
+    def write_rule_row(label):
+        nonlocal row
+        ws.row_dimensions[row].height = 18
+        lbl = ws.cell(row=row, column=1, value=label)
+        lbl.font      = Font(name=FONT_NAME, size=9, italic=True, color="5B2D8E")
+        lbl.fill      = fill(C_RULE_BG)
+        lbl.alignment = Alignment(horizontal="left", vertical="center", indent=4)
+        lbl.border    = border_bottom()
+        for c in range(2, n_inst + 2):
+            cell               = ws.cell(row=row, column=c)
+            cell.fill          = fill(C_INPUT_BG)
+            cell.border        = border_all()
+            cell.alignment     = Alignment(horizontal="center", vertical="center")
+            cell.number_format = "0.00"
+        row += 1
+
+    def write_gap():
+        nonlocal row
+        ws.row_dimensions[row].height = 8
+        for c in range(1, n_inst + 2):
+            ws.cell(row=row, column=c).fill = fill(C_GAP)
+        row += 1
+
+    def write_rules_for_event(event_id):
+        rules = PointsRules.query.filter_by(eventID=event_id).all()
+        if rules:
             for r in rules:
                 if r.ruleType == "individual":
-                    label = f"      - Individual: {r.label or f'Place {r.placement}'}"
+                    label = f"Place {r.placement}" + (f"  -  {r.label}" if r.label else "")
                 else:
-                    label = f"      - Team: {r.category} ({r.label})"
+                    label = f"{r.category}  -  {r.label}"
+                write_rule_row(label)
+        else:
+            write_rule_row("(no rules configured)")
 
-                ws.cell(row=row, column=1, value=label)
-                row += 1
+    score_rows = []
+    challenge_event_ids = set()
 
-        row += 1  # spacing
+    for ch in challenges:
+        write_inst_header_row()
+        write_challenge_row(ch.challengeName)
+        for ev in ch.events:
+            challenge_event_ids.add(ev.eventID)
+            write_event_row(ev.eventName)
+            start = row
+            write_rules_for_event(ev.eventID)
+            score_rows.extend(range(start, row))
+        write_gap()
 
-    # ---- EVENTS NOT IN ANY CHALLENGE ----
-    challenge_event_ids = {ev.eventID for ch in challenges for ev in ch.events}
+    orphans = [e for e in events if e.eventID not in challenge_event_ids]
+    if orphans:
+        write_inst_header_row()
+        write_challenge_row("Other Events")
+        for ev in orphans:
+            write_event_row(ev.eventName)
+            start = row
+            write_rules_for_event(ev.eventID)
+            score_rows.extend(range(start, row))
+        write_gap()
 
-    for ev in events:
-        if ev.eventID in challenge_event_ids:
-            continue
-
-        cell = ws.cell(row=row, column=1, value=f"Event: {ev.eventName}")
-        cell.font = openpyxl.styles.Font(italic=True)
-        row += 1
-
-        rules = PointsRules.query.filter_by(eventID=ev.eventID).all()
-
-        for r in rules:
-            if r.ruleType == "individual":
-                label = f"   - Individual: {r.label or f'Place {r.placement}'}"
-            else:
-                label = f"   - Team: {r.category} ({r.label})"
-
-            ws.cell(row=row, column=1, value=label)
-            row += 1
-
-        row += 1
-
-    # ---- TOTAL + RANKING ----
-    row += 1
+    write_gap()
 
     total_row = row
-    ws.cell(row=total_row, column=1, value="TOTAL POINTS")
+    rank_row  = row + 1
 
-    rank_row = total_row + 1
-    ws.cell(row=rank_row, column=1, value="RANKING")
+    ws.row_dimensions[total_row].height = 24
+    ws.row_dimensions[rank_row].height  = 24
 
-    # Optional: formulas (Excel will calculate)
-    for col in range(2, len(institutions) + 2):
-        col_letter = openpyxl.utils.get_column_letter(col)
+    last_col = get_column_letter(n_inst + 1)
 
-        # Sum all above rows
-        ws.cell(
-            row=total_row,
-            column=col,
-            value=f"=SUM({col_letter}2:{col_letter}{total_row-1})"
-        )
+    for r_num, label, bg in [
+        (total_row, "TOTAL POINTS", C_TOTAL_BG),
+        (rank_row,  "RANKING",      C_RANK_BG),
+    ]:
+        lbl = ws.cell(row=r_num, column=1, value=label)
+        lbl.font      = font(bold=True, size=11, color=C_WHITE)
+        lbl.fill      = fill(bg)
+        lbl.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        for c in range(2, n_inst + 2):
+            cell           = ws.cell(row=r_num, column=c)
+            cell.fill      = fill(bg)
+            cell.font      = font(bold=True, size=11, color=C_WHITE)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
 
-        # Ranking formula
-        ws.cell(
-            row=rank_row,
-            column=col,
-            value=f"=RANK({col_letter}{total_row},$B${total_row}:$"
-                  f"{openpyxl.utils.get_column_letter(len(institutions)+1)}${total_row},0)"
-        )
+    if score_rows:
+        rank_range = f"$B${total_row}:${last_col}${total_row}"
+        for col_idx in range(2, n_inst + 2):
+            col_letter = get_column_letter(col_idx)
+            parts = "+".join(f"{col_letter}{r}" for r in score_rows)
+            ws.cell(row=total_row, column=col_idx, value=f"={parts}")
+            ws.cell(row=rank_row,  column=col_idx,
+                    value=f"=RANK({col_letter}{total_row},{rank_range},0)")
 
-    # ---- AUTO WIDTH ----
-    for col_cells in ws.columns:
-        max_length = 0
-        col_letter = col_cells[0].column_letter
-
-        for cell in col_cells:
-            if cell.value:
-                max_length = max(max_length, len(str(cell.value)))
-
-        ws.column_dimensions[col_letter].width = max_length + 3
-
-    # Save
     output = BytesIO()
     wb.save(output)
     output.seek(0)
