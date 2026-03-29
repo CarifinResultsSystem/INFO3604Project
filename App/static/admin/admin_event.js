@@ -130,18 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
     closeModal();
   });
 
-  // Event win points checkbox
-  // FIX 2: The HTML label no longer has for="eventWinCheckbox" since the
-  // input is nested inside the label. The `for` + nested-input combo caused
-  // every click to fire twice (toggle on → immediately toggle off). The
-  // change listener here works correctly either way.
-  var ewCheckbox = document.getElementById('eventWinCheckbox');
-  if (ewCheckbox) {
-    ewCheckbox.addEventListener('change', function () {
-      toggleEventWinSection(this.checked);
-    });
-  }
-
   updateYearUI();
 });
 
@@ -288,8 +276,21 @@ async function saveRules() {
 }
 
 // Toggle event win section visibility
+function toggleEW() {
+  _eventWinEnabled = !_eventWinEnabled;
+  document.getElementById('ewTrack').classList.toggle('ew-on', _eventWinEnabled);
+  document.getElementById('eventWinSection').style.display = _eventWinEnabled ? 'block' : 'none';
+  if (!_eventWinEnabled) {
+    _eventWinRules = [];
+    renderEventWinTable();
+  }
+  updateMaxPoints();
+}
+
 function toggleEventWinSection(enabled) {
   _eventWinEnabled = enabled;
+  var track = document.getElementById('ewTrack');
+  if (track) track.classList.toggle('ew-on', enabled);
   document.getElementById('eventWinSection').style.display = enabled ? 'block' : 'none';
   if (!enabled) {
     _eventWinRules = [];

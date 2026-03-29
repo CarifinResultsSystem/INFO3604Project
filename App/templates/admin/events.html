@@ -354,10 +354,9 @@
         <!-- FIX 2: Removed `for="eventWinCheckbox"` from the label.
              The input is nested inside the label, so `for` is redundant and
              causes a double-toggle (click fires twice → checkbox flips on then off). -->
-        <div class="ew-toggle-row">
+        <div class="ew-toggle-row" onclick="toggleEW()">
           <label class="ew-toggle-label">
-            <span class="ew-toggle-track">
-              <input type="checkbox" id="eventWinCheckbox">
+            <span class="ew-toggle-track" id="ewTrack">
               <span class="ew-toggle-thumb"></span>
             </span>
             <span class="ew-toggle-text">
@@ -365,7 +364,6 @@
               <span class="ew-toggle-sub">Award points to teams based on finishing position</span>
             </span>
           </label>
-        </div>
 
         <!-- Event Win Points Section (shown when checkbox is checked) -->
         <div id="eventWinSection" class="rules-section" style="display:none;">
