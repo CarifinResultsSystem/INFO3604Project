@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Score Archives — CariFin{% endblock %}
+{% block title %}Score Archives | CariFin{% endblock %}
+
+{% block favicon %}
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/archives.png') }}">
+{% endblock %}
 
 {% block content %}
 
