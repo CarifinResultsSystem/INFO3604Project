@@ -107,18 +107,23 @@ def archives():
     docs_data = []
     for d in documents:
         ext = os.path.splitext(d.originalFilename)[1].lstrip('.').upper() if d.originalFilename else ''
+
+        uploaded_by = "—"
+        if d.scoretaker and d.scoretaker.user and d.scoretaker.user.username:
+            uploaded_by = d.scoretaker.user.username
+
         docs_data.append({
-            "id":            d.documentID,
-            "filename":      d.originalFilename or '—',
+            "id":             d.documentID,
+            "filename":       d.originalFilename or '—',
             "storedFilename": d.storedFilename,
-            "uploadedAt":    d.uploadedOn.strftime("%b %d, %Y · %H:%M") if d.uploadedOn else "—",
-            "uploadedAtRaw": d.uploadedOn.isoformat() if d.uploadedOn else "",
-            "fileType":      ext or "FILE",
-            "viewUrl":       url_for('scoretaker_views.view_document', documentID=d.documentID),
-            "deleteUrl":     url_for('scoretaker_views.delete_document', documentID=d.documentID),
+            "uploadedAt":     d.uploadedOn.strftime("%b %d, %Y · %H:%M") if d.uploadedOn else "—",
+            "uploadedAtRaw":  d.uploadedOn.isoformat() if d.uploadedOn else "",
+            "fileType":       ext or "FILE",
+            "uploadedBy":     uploaded_by,
+            "viewUrl":        url_for('scoretaker_views.view_document', documentID=d.documentID),
+            "deleteUrl":      url_for('scoretaker_views.delete_document', documentID=d.documentID),
         })
 
-    # Sort newest first by default
     docs_data.sort(key=lambda x: x["uploadedAtRaw"], reverse=True)
 
     return render_template(
