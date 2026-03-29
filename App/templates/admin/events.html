@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Events{% endblock %}
+{% block title %}Events | Admin{% endblock %}
+
+{% block favicon %}
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/events.png') }}">
+{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
