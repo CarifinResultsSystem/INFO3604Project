@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login — CariFin</title>
+  <title>Login | CariFin</title>
+
+  {% block favicon %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/login.png') }}">
+  {% endblock %}
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
