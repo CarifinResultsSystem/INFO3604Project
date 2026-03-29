@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Schedule — CariFin{% endblock %}
+{% block title %}Schedule | CariFin{% endblock %}
+
+{% block favicon %}
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/schedule.png') }}">
+{% endblock %}
 
 {% block content %}
 

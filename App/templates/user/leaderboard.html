@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 
-{% block title %}Leaderboard — CariFin{% endblock %}
+{% block title %}Leaderboard | CariFin{% endblock %}
+
+{% block favicon %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/leaderboard.png') }}">
+{% endblock %}
 
 {% block content %}
 
