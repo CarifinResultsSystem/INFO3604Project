@@ -117,16 +117,38 @@
   text-align: center; font-size: 14px; color: #222;
 }
 
-/* Prevent Materialize hijacking */
-#locationFilter, #eventSort {
-  display: block !important; visibility: visible !important;
-  opacity: 1 !important; position: static !important;
-  pointer-events: auto !important; height: 36px !important;
-  appearance: auto !important; -webkit-appearance: auto !important;
-  background: #fff !important; color: #333 !important;
+/* ── Prevent Materialize hijacking our filter/sort selects ── */
+#locationFilter,
+#eventSort,
+#sourceSeasonSelect,
+#targetSeasonSelect {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  pointer-events: auto !important;
+  height: 36px !important;
+  padding: 0 8px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  background: #fff !important;
+  color: #333 !important;
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  min-width: 120px;
+}
+/* sourceSeasonSelect / targetSeasonSelect are taller by design */
+#sourceSeasonSelect,
+#targetSeasonSelect {
+  height: 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 .select-wrapper:has(#locationFilter),
-.select-wrapper:has(#eventSort) { display: none !important; }
+.select-wrapper:has(#eventSort),
+.select-wrapper:has(#sourceSeasonSelect),
+.select-wrapper:has(#targetSeasonSelect) { display: none !important; }
 
 /* MAIN EDIT MODAL */
 .admin-modal {
@@ -304,7 +326,7 @@
 .ev-btn-ghost { border-color: #ddd; color: #555; }
 .ev-btn-ghost:hover { background: #f9fafb; }
 
-/* SUB-MODALS (individual / team) */
+/* SUB-MODALS (team / event-win) */
 .sub-modal-overlay {
   display: none;
   position: fixed; inset: 0; z-index: 3000;
@@ -381,9 +403,13 @@
   color: #aaa; font-size: 13px; display: none;
 }
 
-/* Season modal */
+/* ── Season modals (Add + Duplicate) ──
+   Both use the .season-modal class.
+   Visibility is driven by the .open class added by openOverlay()/closeOverlay().
+   No inline style.display manipulation needed. */
 .season-modal {
-  display: none; position: fixed; inset: 0; z-index: 2000;
+  display: none;
+  position: fixed; inset: 0; z-index: 2000;
   align-items: center; justify-content: center;
   background: rgba(0,0,0,0.45);
 }
@@ -391,193 +417,17 @@
 .season-modal-card {
   position: relative; background: #fff;
   border-radius: 14px; padding: 28px 24px;
-  width: 320px; max-width: calc(100vw - 32px);
+  width: 360px; max-width: calc(100vw - 32px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
-/* Responsive */
-.event-modal-card{
-  width: min(980px, calc(100% - 48px));
-  margin: 18px auto;
-  border-radius: 18px;
-  border: 2px solid #111;
-  background: #fff;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Top bar */
-.event-modal-top{
-  position: relative;
-  padding: 14px 16px 12px;
-  border-bottom: 2px solid #111;
-  background: #fff;
-}
-
-.event-modal-title{
-  width: 100%;
-  border: 2px solid #111;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-weight: 800;
-  font-size: 20px;
-  outline: none;
-}
-
-.event-modal-title:focus{
-  border-color: var(--purple);
-  box-shadow: 0 0 0 4px rgba(123,31,162,0.12);
-}
-
-/* Close button (top-right X) */
-.event-modal-close{
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 2px solid #111;
-  background: #fff;
-  cursor: pointer;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.event-modal-close:hover{ background: #f2f2f2; }
-
-/* Scrollable body */
-.event-modal-body{
-  padding: 14px 16px 16px;
-  max-height: calc(100vh - 240px);
-  overflow: auto;
-}
-
-/* Visible scrollbar */
-.event-modal-body::-webkit-scrollbar{ width: 10px; }
-.event-modal-body::-webkit-scrollbar-track{ background: #f2f2f2; }
-.event-modal-body::-webkit-scrollbar-thumb{ background: #bdbdbd; border-radius: 999px; }
-
-/* Section headings */
-.event-modal-section{ margin-top: 12px; }
-.event-modal-section:first-child{ margin-top: 0; }
-
-.event-modal-section-title{
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: .14em;
-  font-size: 0.9rem;
-  color: #222;
-  margin: 8px 0 10px;
-}
-
-/* Table grid */
-.event-table-wrap{
-  border: 2px solid #111;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.event-table{
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-}
-
-.event-table thead th{
-  background: #fff;
-  border-bottom: 2px solid #111;
-  padding: 12px 12px;
-  font-weight: 800;
-  text-align: left;
-}
-
-.event-table td{
-  border-bottom: 1px solid #111;
-  padding: 12px 12px;
-  vertical-align: middle;
-}
-
-.event-table tbody tr:last-child td{ border-bottom: none; }
-
-/* Inputs inside table */
-.event-modal-body .admin-input{
-  border: 2px solid #111;
-  border-radius: 10px;
-  padding: 8px 10px;
-}
-
-/* Empty messages */
-.event-empty{
-  padding: 10px 2px;
-  color: #777;
-  font-weight: 700;
-}
-
-/* Footer buttons */
-.event-modal-actions{
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 14px 16px;
-  border-top: 2px solid #111;
-  background: #fff;
-}
-
-.event-btn{
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  border: 2px solid #111;
-  background: #fff;
-}
-
-.event-btn-primary:hover{ background: #f5f5f5; }
-
-.event-btn-danger{
-  border-color: var(--red);
-  color: var(--red);
-}
-
-.event-btn-danger:hover{
-  background: rgba(198,40,40,0.08);
-}
-
-@media (max-width: 860px) {
-  .events-form-grid { grid-template-columns: 1fr; }
-  .detail-grid      { grid-template-columns: 1fr; }
-  .sf-row           { grid-template-columns: 1fr; }
-  .events-card-head { flex-direction: column; }
-}
-
-/* ── Prevent Materialize from hiding/replacing filter & sort selects ── */
-#locationFilter,
-#eventSort {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: static !important;
-  pointer-events: auto !important;
-  height: 36px !important;
-  padding: 0 8px !important;
-  border: 1px solid #ccc !important;
-  border-radius: 6px !important;
-  font-size: 13px !important;
-  background: #fff !important;
-  color: #333 !important;
-  -webkit-appearance: auto !important;
-  appearance: auto !important;
-  min-width: 120px;
-}
-
-/* Hide the Materialize-generated wrapper dropdown if it sneaks through */
-.select-wrapper:has(#locationFilter),
-.select-wrapper:has(#eventSort) {
-  display: none !important;
-}
-
-/* ── Event Win toggle row ── */
+/* ── Event Win Points toggle ──
+   FIX 2: The <label> no longer has a `for` attribute because the <input> is
+   nested inside it. Removing `for` prevents the double-toggle bug where each
+   click fired twice (once from the label wrapper, once from the `for` link),
+   causing the checkbox to flip on and then immediately off again.
+   The CSS here is unchanged from before — the toggle works purely via the
+   :has(input:checked) selector on .ew-toggle-track. */
 .ew-toggle-row {
   margin-bottom: 18px;
   padding: 14px 16px;
@@ -616,8 +466,10 @@
   height: 100%;
   cursor: pointer;
   margin: 0;
+  z-index: 2; /* sits above the thumb visually but is invisible */
 }
 
+/* Single canonical definition — no duplicate block */
 .ew-toggle-thumb {
   position: absolute;
   top: 3px;
@@ -629,6 +481,7 @@
   transition: transform 0.2s;
   pointer-events: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 1; /* renders above track background, below the invisible input */
 }
 
 .ew-toggle-track:has(input:checked) .ew-toggle-thumb {
@@ -640,13 +493,11 @@
   flex-direction: column;
   gap: 2px;
 }
-
 .ew-toggle-title {
   font-weight: 800;
   font-size: 14px;
   color: #111;
 }
-
 .ew-toggle-sub {
   font-size: 12px;
   color: #888;
@@ -668,7 +519,6 @@
   font-weight: 600;
   flex-wrap: wrap;
 }
-
 .max-points-value {
   font-size: 18px;
   font-weight: 900;
@@ -677,14 +527,20 @@
   text-align: center;
   line-height: 1;
 }
-
 .max-points-unit {
   font-weight: 800;
   color: #7b1fa2;
 }
-
 .max-points-note {
   font-weight: 400;
   color: #aaa;
   font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .events-form-grid { grid-template-columns: 1fr; }
+  .detail-grid      { grid-template-columns: 1fr; }
+  .sf-row           { grid-template-columns: 1fr; }
+  .events-card-head { flex-direction: column; }
 }
