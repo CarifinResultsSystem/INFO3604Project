@@ -1,6 +1,11 @@
 {% extends "layout.html" %}
 
-{% block title %}HR | Reports{% endblock %}
+{% block title %}Reports | HR{% endblock %}
+
+{% block favicon %}
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/reports.png') }}">
+{% endblock %}
+
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='hr/reports.css') }}">

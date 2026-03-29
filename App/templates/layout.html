@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
     <!-- ---------------- TITLE ---------------- -->
-    <title>{% block title %}CariFin Results & Scoring System{% endblock %}</title>
+    <title>{% block title %}Dashboard | CariFin{% endblock %}</title>
+
+    {% block favicon %}
+      <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/dashboard.png') }}">
+    {% endblock %}
 
     <!-- ---------------- FONTS & STYLES ---------------- -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
