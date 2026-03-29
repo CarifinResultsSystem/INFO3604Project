@@ -5,22 +5,22 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
 
-  <!-- FLASH MESSAGES -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div id="toast-container">
-        {% for category, message in messages %}
-          <div class="toast toast-{{ category }}">
-            <i class="material-icons toast-icon">
-              {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
-            </i>
-            <span>{{ message }}</span>
-            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="toast-container">
+      {% for category, message in messages %}
+        <div class="toast toast-{{ category }}">
+          <i class="material-icons toast-icon">
+            {% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}
+          </i>
+          <span>{{ message }}</span>
+          <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 
 <div class="dash-root">
 
@@ -38,7 +38,13 @@
 
     <div class="arc-search-wrap">
       <i class="material-icons">search</i>
-      <input type="text" id="arcSearch" class="arc-search" placeholder="Search filename…" autocomplete="off">
+      <input
+        type="text"
+        id="arcSearch"
+        class="arc-search"
+        placeholder="Search filename or uploader…"
+        autocomplete="off"
+      >
     </div>
 
     <div class="arc-selects">
@@ -89,9 +95,13 @@
           <th class="col-date" onclick="sortTable(this, 2)">
             Uploaded <i class="material-icons sort-icon">unfold_more</i>
           </th>
+          <th class="col-user" onclick="sortTable(this, 3)">
+            Uploaded By <i class="material-icons sort-icon">unfold_more</i>
+          </th>
           <th class="col-actions">Actions</th>
         </tr>
       </thead>
+
       <tbody id="arcBody">
         {% for doc in documents %}
         <tr
@@ -99,6 +109,7 @@
           data-name="{{ doc.filename | lower }}"
           data-type="{{ doc.fileType }}"
           data-date="{{ doc.uploadedAtRaw }}"
+          data-user="{{ doc.uploadedBy | lower }}"
         >
           <!-- Filename -->
           <td class="col-name">
@@ -114,6 +125,14 @@
           <!-- Date -->
           <td class="col-date">{{ doc.uploadedAt }}</td>
 
+          <!-- Uploaded By -->
+          <td class="col-user">
+            <div class="arc-user-cell">
+              <i class="material-icons" style="font-size:16px; vertical-align:middle;">person</i>
+              <span>{{ doc.uploadedBy or '—' }}</span>
+            </div>
+          </td>
+
           <!-- Actions -->
           <td class="col-actions">
             <button
@@ -123,8 +142,13 @@
             >
               <i class="material-icons">visibility</i>
             </button>
-            <form method="POST" action="{{ doc.deleteUrl }}" class="arc-inline-form"
-                  onsubmit="return confirm('Delete \'{{ doc.filename }}\'? This cannot be undone.')">
+
+            <form
+              method="POST"
+              action="{{ doc.deleteUrl }}"
+              class="arc-inline-form"
+              onsubmit="return confirm('Delete \'{{ doc.filename }}\'? This cannot be undone.')"
+            >
               <button type="submit" class="arc-action-btn btn-delete" title="Delete">
                 <i class="material-icons">delete_outline</i>
               </button>
@@ -133,7 +157,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4" class="arc-empty">
+          <td colspan="5" class="arc-empty">
             <i class="material-icons">inbox</i>
             <p>No documents uploaded yet.</p>
           </td>
@@ -194,23 +218,35 @@ const pagination  = document.getElementById('arcPagination');
 
 function dateBound(f) {
   const now = new Date();
-  if (f === 'today') { const d = new Date(now); d.setHours(0,0,0,0); return d; }
-  if (f === 'week')  { const d = new Date(now); d.setDate(d.getDate()-7); return d; }
-  if (f === 'month') { const d = new Date(now); d.setMonth(d.getMonth()-1); return d; }
+  if (f === 'today') {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (f === 'week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }
+  if (f === 'month') {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 1);
+    return d;
+  }
   return null;
 }
 
 function applyFilters() {
-  const q      = searchInput.value.toLowerCase().trim();
-  const type   = filterType.value;
-  const bound  = dateBound(filterDate.value);
+  const q       = searchInput.value.toLowerCase().trim();
+  const type    = filterType.value;
+  const bound   = dateBound(filterDate.value);
   const allRows = [...arcBody.querySelectorAll('tr.arc-row')];
-  let visible  = [];
+  let visible   = [];
 
   allRows.forEach(row => {
     const match =
-      (!q     || row.dataset.name.includes(q)) &&
-      (!type  || row.dataset.type === type) &&
+      (!q || row.dataset.name.includes(q) || row.dataset.user.includes(q)) &&
+      (!type || row.dataset.type === type) &&
       (!bound || (row.dataset.date && new Date(row.dataset.date) >= bound));
 
     row.style.display = 'none';
@@ -228,7 +264,10 @@ function applyFilters() {
 }
 
 [searchInput, filterType, filterDate].forEach(el =>
-  el.addEventListener('input', () => { currentPage = 1; applyFilters(); })
+  el.addEventListener('input', () => {
+    currentPage = 1;
+    applyFilters();
+  })
 );
 
 function renderPagination(total) {
@@ -239,36 +278,58 @@ function renderPagination(total) {
     const b = document.createElement('button');
     b.className = 'arc-page-btn' + (active ? ' active' : '');
     b.innerHTML = html;
-    b.disabled  = disabled;
-    b.onclick   = onClick;
+    b.disabled = disabled;
+    b.onclick = onClick;
     return b;
   };
 
-  pagination.appendChild(mkBtn('<i class="material-icons">chevron_left</i>', currentPage === 1, false,
-    () => { currentPage--; applyFilters(); }));
+  pagination.appendChild(
+    mkBtn(
+      '<i class="material-icons">chevron_left</i>',
+      currentPage === 1,
+      false,
+      () => {
+        currentPage--;
+        applyFilters();
+      }
+    )
+  );
 
   for (let i = 1; i <= total; i++) {
     const p = i;
-    pagination.appendChild(mkBtn(String(i), false, i === currentPage,
-      () => { currentPage = p; applyFilters(); }));
+    pagination.appendChild(
+      mkBtn(String(i), false, i === currentPage, () => {
+        currentPage = p;
+        applyFilters();
+      })
+    );
   }
 
-  pagination.appendChild(mkBtn('<i class="material-icons">chevron_right</i>', currentPage === total, false,
-    () => { currentPage++; applyFilters(); }));
+  pagination.appendChild(
+    mkBtn(
+      '<i class="material-icons">chevron_right</i>',
+      currentPage === total,
+      false,
+      () => {
+        currentPage++;
+        applyFilters();
+      }
+    )
+  );
 }
 
 function sortTable(th, colIndex) {
-  const tbody   = document.querySelector('#arcTable tbody');
-  const rows    = [...tbody.querySelectorAll('tr.arc-row')];
+  const tbody = document.querySelector('#arcTable tbody');
+  const rows = [...tbody.querySelectorAll('tr.arc-row')];
   const headers = [...th.closest('tr').querySelectorAll('th')];
-  const isAsc   = th.classList.contains('sorted-asc');
+  const isAsc = th.classList.contains('sorted-asc');
 
   headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
   th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
 
   rows.sort((a, b) => {
-    let av = colIndex === 2 ? (a.dataset.date || '') : a.cells[colIndex].textContent.trim();
-    let bv = colIndex === 2 ? (b.dataset.date || '') : b.cells[colIndex].textContent.trim();
+    let av = colIndex === 2 ? (a.dataset.date || '') : a.cells[colIndex].textContent.trim().toLowerCase();
+    let bv = colIndex === 2 ? (b.dataset.date || '') : b.cells[colIndex].textContent.trim().toLowerCase();
     return isAsc ? bv.localeCompare(av) : av.localeCompare(bv);
   });
 
@@ -287,12 +348,12 @@ const pvBody  = document.getElementById('pvBody');
 const pvClose = document.getElementById('pvClose');
 
 function openPreview(id, filename, url, type) {
-  pvExt.textContent  = type;
-  pvExt.className    = 'arc-ext ext-' + type.toLowerCase();
+  pvExt.textContent = type;
+  pvExt.className = 'arc-ext ext-' + type.toLowerCase();
   pvName.textContent = filename;
-  pvDl.href          = url;
-  pvDl.download      = filename;
-  pvBody.innerHTML   = '<div class="arc-preview-loading"><span class="arc-spinner"></span> Loading…</div>';
+  pvDl.href = url;
+  pvDl.download = filename;
+  pvBody.innerHTML = '<div class="arc-preview-loading"><span class="arc-spinner"></span> Loading…</div>';
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
 
@@ -301,7 +362,7 @@ function openPreview(id, filename, url, type) {
       .then(r => r.text())
       .then(text => {
         const pre = document.createElement('pre');
-        pre.className   = 'arc-preview-code';
+        pre.className = 'arc-preview-code';
         pre.textContent = text;
         pvBody.innerHTML = '';
         pvBody.appendChild(pre);
@@ -324,8 +385,12 @@ function showFallback(url, filename) {
 }
 
 pvClose.addEventListener('click', closePreview);
-overlay.addEventListener('click', e => { if (e.target === overlay) closePreview(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+overlay.addEventListener('click', e => {
+  if (e.target === overlay) closePreview();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePreview();
+});
 
 function closePreview() {
   overlay.classList.remove('active');
@@ -333,13 +398,13 @@ function closePreview() {
 }
 
 // AUTO-DISMISS TOASTS
-  document.querySelectorAll('.toast').forEach(toast => {
-    setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  });
+document.querySelectorAll('.toast').forEach(toast => {
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.4s';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+});
 </script>
 
 {% endblock %}
