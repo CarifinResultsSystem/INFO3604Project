@@ -115,7 +115,6 @@ def admin_participants_create():
         location = request.form.get("location", "").strip()
         institutionID = request.form.get("institutionID")
 
-        # ✅ checkboxes -> list of strings
         eventIDs = request.form.getlist("eventIDs")
 
         create_participant(
@@ -138,12 +137,13 @@ def admin_participants_create():
 @admin_views.route("/admin/events")
 @jwt_required()
 def admin_events():
-    events  = Event.query.order_by(Event.eventName.asc()).all()
-    seasons = Season.query.order_by(Season.year.desc()).all()
+    from App.models.challenge import Challenge
 
-    current_year = datetime.now().year
+    events     = Event.query.order_by(Event.eventName.asc()).all()
+    seasons    = Season.query.order_by(Season.year.desc()).all()
+    challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
 
-    # get ONLY ONE season for the current year
+    current_year   = datetime.now().year
     current_season = Season.query.filter_by(year=current_year).first()
 
     return render_template(
@@ -151,6 +151,7 @@ def admin_events():
         user=current_user,
         events=events,
         seasons=seasons,
+        challenges=challenges,
         current_season_id=current_season.seasonID if current_season else None
     )
 
@@ -158,6 +159,8 @@ def admin_events():
 @admin_views.route("/admin/events/create", methods=["POST"])
 @jwt_required()
 def admin_events_create():
+    import json as _json
+
     eventName     = request.form.get("eventName", "").strip()
     eventDate     = request.form.get("eventDate", "")
     eventTime     = request.form.get("eventTime", "")
@@ -177,6 +180,43 @@ def admin_events_create():
     ev, err = create_event(eventName, eventDate, eventTime, eventLocation, seasonID)
     if err:
         flash(err, "error")
+        return redirect(url_for("admin_views.admin_events"))
+
+    # ── Save any points rules submitted with the create form ──
+    try:
+        ind_raw  = request.form.get("rulesIndividual", "[]")
+        team_raw = request.form.get("rulesTeam",       "[]")
+        ind_rules  = _json.loads(ind_raw)  if ind_raw  else []
+        team_rules = _json.loads(team_raw) if team_raw else []
+
+        for item in ind_rules:
+            r = PointsRules(
+                eventID   = ev.eventID,
+                seasonID  = ev.seasonID,
+                ruleType  = "individual",
+                placement = int(item.get("placement", 0)),
+                label     = (item.get("label") or "").strip(),
+                points    = float(item.get("points") or 0),
+            )
+            db.session.add(r)
+
+        for item in team_rules:
+            r = PointsRules(
+                eventID  = ev.eventID,
+                seasonID = ev.seasonID,
+                ruleType = "team",
+                category = (item.get("conditionType") or "").strip(),
+                label    = (item.get("label") or "").strip(),
+                points   = float(item.get("points") or 0),
+            )
+            db.session.add(r)
+
+        if ind_rules or team_rules:
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Event created but rules could not be saved: {e}", "error")
         return redirect(url_for("admin_views.admin_events"))
 
     flash(f"Event created: {ev.eventName}", "success")
@@ -218,7 +258,6 @@ def admin_events_duplicate_season():
     created, skipped = 0, 0
 
     for ev in source_events:
-        # Skip if an event with the same name already exists in the target season
         already_exists = Event.query.filter(
             func.lower(Event.eventName) == ev.eventName.lower(),
             Event.seasonID == target_season.seasonID
@@ -227,7 +266,6 @@ def admin_events_duplicate_season():
             skipped += 1
             continue
 
-        # Shift the event date by the year difference
         next_date = None
         if ev.eventDate:
             try:
@@ -298,7 +336,6 @@ def admin_events_update(event_id):
     eventLocation = request.form.get("eventLocation", "").strip()
     seasonID      = request.form.get("seasonID", "").strip()
 
-    # If no seasonID passed, preserve the existing one
     if not seasonID:
         existing = db.session.get(Event, event_id)
         if existing and existing.seasonID:
@@ -343,14 +380,14 @@ def admin_institutions():
 
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
     events = Event.query.order_by(Event.eventName.asc()).all()
-    seasons = Season.query.order_by(Season.year.asc()).all()  # ← add this
+    seasons = Season.query.order_by(Season.year.asc()).all()
 
     return render_template(
         "admin/institutions.html",
         user=current_user,
         institutions=institutions,
         events=events,
-        seasons=seasons,  # ← add this
+        seasons=seasons,
         participants=Participant.query.all(),
         total_institutions=len(institutions),
         total_participants=Participant.query.count(),
@@ -436,7 +473,6 @@ def admin_event_rules_save(event_id):
     payload = request.get_json(silent=True) or {}
 
     try:
-        # Individual rules
         for item in payload.get("individual", []):
             rid = item.get("pointsID")
             if rid:
@@ -457,7 +493,6 @@ def admin_event_rules_save(event_id):
                 )
                 db.session.add(r)
 
-        # Team rules — each row in a category is its own DB record
         for item in payload.get("team", []):
             rid = item.get("pointsID")
             if rid:
@@ -484,16 +519,15 @@ def admin_event_rules_save(event_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
-    
 
-    
+
 @admin_views.route("/admin/challenges")
 @jwt_required()
 def admin_challenges():
     from App.models.challenge import Challenge
-    challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
-    events     = Event.query.order_by(Event.eventName.asc()).all()
-    seasons    = Season.query.order_by(Season.year.desc()).all()
+    challenges     = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+    events         = Event.query.order_by(Event.eventName.asc()).all()
+    seasons        = Season.query.order_by(Season.year.desc()).all()
     current_year   = datetime.now().year
     current_season = Season.query.filter_by(year=current_year).first()
     return render_template(
@@ -504,18 +538,20 @@ def admin_challenges():
         seasons=seasons,
         current_season_id=current_season.seasonID if current_season else None,
     )
- 
- 
+
+
 @admin_views.route("/admin/challenges/create", methods=["POST"])
 @jwt_required()
 def admin_challenges_create():
-    from App.controllers.challenge import create_challenge
+    import json as _json
+    from App.controllers.challenge import create_challenge, save_challenge_rules
+
     challengeName = request.form.get("challengeName", "").strip()
     description   = request.form.get("description",   "").strip()
     bonusPoints   = request.form.get("bonusPoints",   "0")
     seasonID      = request.form.get("seasonID",      "")
     eventIDs      = request.form.getlist("eventIDs")
- 
+
     ch, err = create_challenge(
         challengeName=challengeName,
         seasonID=seasonID or None,
@@ -525,11 +561,25 @@ def admin_challenges_create():
     )
     if err:
         flash(err, "error")
-    else:
-        flash(f'Challenge "{ch.challengeName}" created.', "success")
+        return redirect(url_for("admin_views.admin_challenges"))
+
+    # Save any placement rules submitted with the create form
+    try:
+        rules_raw       = request.form.get("placementRulesJSON", "[]")
+        placement_rules = _json.loads(rules_raw) if rules_raw else []
+        if placement_rules:
+            ok, rule_err = save_challenge_rules(ch.challengeID, {"individual": placement_rules})
+            if not ok:
+                flash(f'Challenge created but rules could not be saved: {rule_err}', "error")
+                return redirect(url_for("admin_views.admin_challenges"))
+    except Exception as e:
+        flash(f'Challenge created but rules could not be saved: {e}', "error")
+        return redirect(url_for("admin_views.admin_challenges"))
+
+    flash(f'Challenge "{ch.challengeName}" created.', "success")
     return redirect(url_for("admin_views.admin_challenges"))
- 
- 
+
+
 @admin_views.route("/admin/challenges/<int:challenge_id>/delete", methods=["POST"])
 @jwt_required()
 def admin_challenges_delete(challenge_id):
@@ -537,8 +587,8 @@ def admin_challenges_delete(challenge_id):
     ok = delete_challenge(challenge_id)
     flash("Challenge removed." if ok else "Challenge not found.", "success" if ok else "error")
     return redirect(url_for("admin_views.admin_challenges"))
- 
- 
+
+
 @admin_views.route("/admin/challenges/<int:challenge_id>/update", methods=["POST"])
 @jwt_required()
 def admin_challenges_update(challenge_id):
@@ -547,8 +597,8 @@ def admin_challenges_update(challenge_id):
     description   = request.form.get("description",   "").strip()
     bonusPoints   = request.form.get("bonusPoints",   None)
     seasonID      = request.form.get("seasonID",      None)
-    eventIDs      = request.form.getlist("eventIDs")   # empty list = clear events
- 
+    eventIDs      = request.form.getlist("eventIDs")
+
     ch, err = update_challenge(
         challengeID=challenge_id,
         challengeName=challengeName or None,
@@ -560,10 +610,10 @@ def admin_challenges_update(challenge_id):
     if err:
         return jsonify({"success": False, "error": err}), 400
     return jsonify({"success": True, "challengeName": ch.challengeName})
- 
- 
-# ── Challenge Points Rules (mirrors the event rules endpoints) ─────────────
- 
+
+
+# ── Challenge Points Rules ─────────────────────────────────────────────────
+
 @admin_views.route("/admin/challenges/<int:challenge_id>/rules", methods=["GET"])
 @jwt_required()
 def admin_challenge_rules(challenge_id):
@@ -576,8 +626,8 @@ def admin_challenge_rules(challenge_id):
     data["challengeID"]   = ch.challengeID
     data["challengeName"] = ch.challengeName
     return jsonify(data)
- 
- 
+
+
 @admin_views.route("/admin/challenges/<int:challenge_id>/rules", methods=["POST"])
 @jwt_required()
 def admin_challenge_rules_save(challenge_id):
@@ -587,8 +637,8 @@ def admin_challenge_rules_save(challenge_id):
     if not ok:
         return jsonify({"success": False, "error": err}), 500
     return jsonify({"success": True})
- 
- 
+
+
 @admin_views.route("/admin/challenges/<int:challenge_id>/rules/<int:rule_id>/delete",
                    methods=["POST"])
 @jwt_required()

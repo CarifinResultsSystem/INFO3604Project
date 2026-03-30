@@ -43,52 +43,97 @@
   <p class="section-label">Create New Challenge</p>
   <div class="admin-panel">
     <form method="POST" action="{{ url_for('admin_views.admin_challenges_create') }}" id="createChallengeForm">
-      <div class="events-form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
 
-        <div class="events-field">
-          <label>Challenge Name <span style="color:red">*</span></label>
-          <input class="admin-input" name="challengeName" required placeholder="e.g. Urban Challenge">
+      <!-- Step 1: Basic Details -->
+      <div class="create-step">
+        <div class="create-step-label">
+          <span class="create-step-num">1</span>
+          Challenge Details
         </div>
+        <div class="events-form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:12px;">
 
-        <div class="events-field">
-          <label>Season <span style="color:red">*</span></label>
-          <select name="seasonID" required
-                  style="display:block;width:100%;height:40px;padding:0 10px;
-                         background:#fff;border:1px solid #ccc;border-radius:6px;
-                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;"
-                  id="createSeasonSelect" onchange="filterCreateEvents(this.value)">
-            <option value="" disabled selected>Select season</option>
-            {% for s in seasons %}
-              <option value="{{ s.seasonID }}"
-                {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="events-field" style="grid-column:1/-1;">
-          <label>Description <span style="color:#aaa;font-size:11px;">(optional)</span></label>
-          <input class="admin-input" name="description" placeholder="Short description of this challenge">
-        </div>
-
-        <div class="events-field" style="grid-column:1/-1;">
-          <label>Attach Events</label>
-          <div id="createEventsGrid" class="events-checkbox-grid-modal">
-            {% for e in events %}
-              <label class="ev-chk-label" data-season="{{ e.seasonID }}">
-                <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
-                <span>{{ e.eventName }}</span>
-              </label>
-            {% endfor %}
-            <span id="createEventsPlaceholder" style="color:#aaa;font-size:13px;padding:6px;">
-              Select a season above to see events.
-            </span>
+          <div class="events-field">
+            <label>Challenge Name <span style="color:red">*</span></label>
+            <input class="admin-input" name="challengeName" required placeholder="e.g. Urban Challenge">
           </div>
+
+          <div class="events-field">
+            <label>Season <span style="color:red">*</span></label>
+            <select name="seasonID" required
+                    style="display:block;width:100%;height:40px;padding:0 10px;
+                           background:#fff;border:1px solid #ccc;border-radius:6px;
+                           font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;"
+                    id="createSeasonSelect" onchange="filterCreateEvents(this.value)">
+              <option value="" disabled selected>Select season</option>
+              {% for s in seasons %}
+                <option value="{{ s.seasonID }}"
+                  {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="events-field" style="grid-column:1/-1;">
+            <label>Description <span style="color:#aaa;font-size:11px;">(optional)</span></label>
+            <input class="admin-input" name="description" placeholder="Short description of this challenge">
+          </div>
+
+          <div class="events-field" style="grid-column:1/-1;">
+            <label>Attach Events</label>
+            <div id="createEventsGrid" class="events-checkbox-grid-modal">
+              {% for e in events %}
+                <label class="ev-chk-label" data-season="{{ e.seasonID }}">
+                  <input type="checkbox" name="eventIDs" value="{{ e.eventID }}">
+                  <span>{{ e.eventName }}</span>
+                </label>
+              {% endfor %}
+              <span id="createEventsPlaceholder" style="color:#aaa;font-size:13px;padding:6px;">
+                Select a season above to see events.
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Step 2: Placement Rules (collapsible) -->
+      <div class="create-step" style="margin-top:16px;">
+        <div class="create-step-label create-step-toggle" onclick="toggleCreateChRules()">
+          <span class="create-step-num">2</span>
+          Placement Rules
+          <i class="material-icons" id="createChRulesChevron"
+             style="font-size:20px;margin-left:auto;color:#7b1fa2;
+                    transition:transform .2s;transform:rotate(0deg);">expand_more</i>
         </div>
 
+        <div id="createChRulesBody" style="display:none;padding-top:14px;">
+          <div class="rules-section-head">
+            <div class="rules-section-title">Placement Bonus Rules</div>
+            <button type="button" class="rules-add-btn" onclick="openCreateChIndModal()">
+              <i class="material-icons" style="font-size:13px;">add</i> Add Rule
+            </button>
+          </div>
+          <div id="createChIndTableWrap" class="rules-table-wrap" style="display:none;">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th style="width:130px;">Placement</th>
+                  <th>Award</th>
+                  <th style="width:90px;">Points</th>
+                  <th style="width:80px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="createChIndBody"></tbody>
+            </table>
+          </div>
+          <div id="createChIndEmpty" class="rules-empty">No placement rules yet. Click "Add Rule".</div>
 
+          <!-- Hidden JSON field submitted with the form -->
+          <input type="hidden" name="placementRulesJSON" id="createChPlacementJSON" value="[]">
+        </div>
       </div>
-      <div class="events-form-actions">
-        <button class="dash-card-btn btn-purple" type="submit">
+
+      <div class="events-form-actions" style="margin-top:18px;">
+        <button class="dash-card-btn btn-purple" type="submit" onclick="serializeCreateChRules()">
           <i class="material-icons" style="font-size:16px;">add</i> Create Challenge
         </button>
       </div>
@@ -126,7 +171,6 @@
             <tr>
               <th>Challenge</th>
               <th>Season</th>
-              <th>Placement Rules</th>
               <th>Events</th>
               <th style="text-align:right;">Actions</th>
             </tr>
@@ -154,24 +198,6 @@
                     {{ season_year_map.get(ch.seasonID, '—') }}
                   </span>
                 {% else %}—{% endif %}
-              </td>
-              <td>
-                {#
-                  Render placement rules from ch.individual_rules (sorted by placement).
-                  Falls back gracefully if the attribute doesn't exist yet.
-                #}
-                {% set ind_rules = ch.individual_rules if ch.individual_rules is defined else [] %}
-                {% if ind_rules %}
-                  {% for r in ind_rules | sort(attribute='placement') %}
-                    <span class="bonus-chip" style="margin:2px 2px 2px 0;">
-                      <i class="material-icons" style="font-size:12px;">star</i>
-                      {{ r.placement }}{% if r.placement == 1 %}st{% elif r.placement == 2 %}nd{% elif r.placement == 3 %}rd{% else %}th{% endif %}
-                      · {{ r.label }} · {{ r.points | int if r.points == r.points | int else r.points }}pts
-                    </span>
-                  {% endfor %}
-                {% else %}
-                  <span style="color:#aaa;font-size:12px;">No rules set</span>
-                {% endif %}
               </td>
               <td>
                 {% if ch.events %}
@@ -361,8 +387,6 @@
     </div>
   </div>
 </div>
-
-
 
 
 <script>var CH_VALID_YEARS = {{ valid_years | tojson }};</script>

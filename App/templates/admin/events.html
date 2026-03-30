@@ -16,11 +16,6 @@
     <h1>Events</h1>
     <span class="dash-subtitle">
       Create, Edit &amp; Manage Events &nbsp;·&nbsp;
-      <a href="{{ url_for('admin_views.admin_challenges') }}"
-         style="color:#7b1fa2;font-weight:600;text-decoration:none;">
-        <i class="material-icons" style="font-size:13px;vertical-align:-2px;">emoji_events</i>
-        Manage Challenges
-      </a>
     </span>
   </div>
 
@@ -44,7 +39,6 @@
   {% set season_year_map = {} %}
   {% for s in seasons %}{% if season_year_map.update({s.seasonID: s.year}) %}{% endif %}{% endfor %}
 
-  {# Build a lookup: eventID -> list of challenge names #}
   {% set event_challenge_map = {} %}
   {% for ch in challenges %}
     {% for ev in ch.events %}
@@ -87,53 +81,141 @@
     </div>
   </div>
 
-  <!-- Create Event -->
+  <!-- CREATE EVENT FORM (2-step) -->
   <p class="section-label">Add New Event</p>
   <div class="admin-panel">
-    <form method="POST" action="{{ url_for('admin_views.admin_events_create') }}">
-      <div class="events-form-grid">
+    <form method="POST" action="{{ url_for('admin_views.admin_events_create') }}" id="createEventForm">
 
-        <div class="events-field">
-          <label>Event Name</label>
-          <input class="admin-input" name="eventName" required placeholder="e.g. One Lap Savannah">
+      <!-- Step 1: Basic Details -->
+      <div class="create-step">
+        <div class="create-step-label">
+          <span class="create-step-num">1</span>
+          Event Details
         </div>
-
-        <div class="events-field">
-          <label>Location</label>
-          <input class="admin-input" name="eventLocation" required placeholder="e.g. Queen's Park Savannah">
+        <div class="events-form-grid" style="margin-top:12px;">
+          <div class="events-field">
+            <label>Event Name</label>
+            <input class="admin-input" name="eventName" required placeholder="e.g. One Lap Savannah">
+          </div>
+          <div class="events-field">
+            <label>Location</label>
+            <input class="admin-input" name="eventLocation" required placeholder="e.g. Queen's Park Savannah">
+          </div>
+          <div class="events-field">
+            <label>Date</label>
+            <input class="admin-input" type="date" name="eventDate" id="eventDateInput" required>
+          </div>
+          <div class="events-field">
+            <label>Time</label>
+            <input class="admin-input" type="time" name="eventTime" required>
+          </div>
+          <div class="events-field">
+            <label>Season</label>
+            <select name="seasonID" id="seasonSelect" required
+                    style="display:block;width:100%;height:40px;padding:0 10px;
+                           background:#fff;border:1px solid #ccc;border-radius:6px;
+                           font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;">
+              {% for s in seasons %}
+                <option value="{{ s.seasonID }}"
+                  {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
-
-        <div class="events-field">
-          <label>Date</label>
-          <input class="admin-input" type="date" name="eventDate" id="eventDateInput" required>
-        </div>
-
-        <div class="events-field">
-          <label>Time</label>
-          <input class="admin-input" type="time" name="eventTime" required>
-        </div>
-
-        <div class="events-field">
-          <label>Season</label>
-          <select name="seasonID" id="seasonSelect" required
-                  style="display:block;width:100%;height:40px;padding:0 10px;
-                         background:#fff;border:1px solid #ccc;border-radius:6px;
-                         font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;">
-            {% for s in seasons %}
-              <option value="{{ s.seasonID }}"
-                {% if s.seasonID == current_season_id %}selected{% endif %}>{{ s.year }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
       </div>
-      <div class="events-form-actions">
-        <button class="dash-card-btn btn-purple" type="submit">
+
+      <!-- Step 2: Points Rules (collapsible) -->
+      <div class="create-step" style="margin-top:16px;">
+        <div class="create-step-label create-step-toggle" onclick="toggleCreateRules()">
+          <span class="create-step-num">2</span>
+          Points Rules
+          <i class="material-icons" id="createRulesChevron"
+             style="font-size:20px;margin-left:auto;color:#7b1fa2;
+                    transition:transform .2s;transform:rotate(0deg);">expand_more</i>
+        </div>
+
+        <div id="createRulesBody" style="display:none;padding-top:14px;">
+
+          <!-- Event Win toggle -->
+          <div class="ew-toggle-row" onclick="toggleCreateEW()">
+            <div class="ew-toggle-label">
+              <span class="ew-toggle-track" id="createEwTrack">
+                <span class="ew-toggle-thumb"></span>
+              </span>
+              <span class="ew-toggle-text">
+                <span class="ew-toggle-title">Event Win Points</span>
+                <span class="ew-toggle-sub">Award points to teams based on finishing position</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Event Win rules list -->
+          <div id="createEventWinSection" style="display:none;margin-bottom:18px;">
+            <div class="rules-section-head" style="margin-top:10px;">
+              <div class="rules-section-title">Event Win Points</div>
+              <button type="button" class="rules-add-btn" onclick="openCreateEWModal(null)">
+                <i class="material-icons" style="font-size:13px;">add</i> Add Rule
+              </button>
+            </div>
+            <div id="createEWTableWrap" class="rules-table-wrap" style="display:none;">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th style="width:130px;">Placement</th>
+                    <th>Award</th>
+                    <th style="width:90px;">Points</th>
+                    <th style="width:80px;text-align:center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="createEWTableBody"></tbody>
+              </table>
+            </div>
+            <div id="createEWEmpty" class="rules-empty">No event win rules yet. Click "Add Rule".</div>
+          </div>
+
+          <!-- Team Points -->
+          <div style="margin-bottom:6px;">
+            <div class="rules-section-head">
+              <div class="rules-section-title">Team Points</div>
+              <button type="button" class="rules-add-btn" onclick="openCreateTeamModal(null)">
+                <i class="material-icons" style="font-size:13px;">add</i> Add Category
+              </button>
+            </div>
+            <div id="createTeamTableWrap" class="rules-table-wrap" style="display:none;">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th style="width:200px;">Category</th>
+                    <th>Conditions</th>
+                    <th style="width:80px;text-align:center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="createTeamTableBody"></tbody>
+              </table>
+            </div>
+            <div id="createTeamEmpty" class="rules-empty">No team categories yet. Click "Add Category".</div>
+          </div>
+
+          <!-- Hidden JSON fields submitted with the form -->
+          <input type="hidden" name="rulesIndividual" id="createRulesIndividualJSON" value="[]">
+          <input type="hidden" name="rulesTeam"       id="createRulesTeamJSON"       value="[]">
+
+        </div><!-- /#createRulesBody -->
+      </div><!-- /.create-step -->
+
+      <div class="events-form-actions" style="margin-top:18px;">
+        <button class="dash-card-btn btn-purple" type="submit" onclick="serializeCreateRules()">
           <i class="material-icons" style="font-size:16px;">add</i> Create Event
         </button>
       </div>
     </form>
   </div>
+
+  <a href="{{ url_for('admin_views.admin_challenges') }}"
+         style="color:#7b1fa2;font-weight:600;text-decoration:none;">
+        <i class="material-icons" style="font-size:13px;vertical-align:-2px;">emoji_events</i>
+        Manage Challenges
+      </a>
 
   <!-- Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
@@ -146,20 +228,17 @@
       <div class="events-filters">
         <input id="eventSearch" type="text" placeholder="Search events…"
                class="ef-input" style="min-width:160px;">
-
         <select id="locationFilter" class="ef-select" style="min-width:130px;">
           <option value="">All Locations</option>
           {% for loc in all_locations %}
             <option value="{{ loc|lower }}">{{ loc }}</option>
           {% endfor %}
         </select>
-
         <div class="year-stepper">
           <button type="button" id="yearPrev">&#8249;</button>
           <span id="yearLabel">—</span>
           <button type="button" id="yearNext">&#8250;</button>
         </div>
-
         <select id="eventSort" class="ef-select">
           <option value="az" selected>A → Z</option>
           <option value="date">By Date</option>
@@ -252,8 +331,6 @@
   </div>
 
   <!-- Duplicate Season Modal -->
-  <!-- FIX 1: Uses openOverlay/closeOverlay via JS (no inline style.display).
-       Selects have IDs so Materialize can be explicitly destroyed on them. -->
   <div id="duplicateSeasonModal" class="season-modal" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeDuplicateSeasonModal()"></div>
     <div class="season-modal-card">
@@ -298,17 +375,17 @@
     </div>
   </div>
 
-  <!-- Main Edit Modal -->
+  <!-- ══════════════════════════════════
+       MAIN EDIT MODAL
+  ══════════════════════════════════ -->
   <div id="eventModal" class="admin-modal" aria-hidden="true">
     <div class="event-modal-card" role="dialog" aria-modal="true">
 
-      <!-- Header -->
       <div class="event-modal-header">
         <span id="modalHeaderName" class="event-modal-header-name">Edit Event</span>
         <button class="event-modal-close" type="button" onclick="closeModal()">✕</button>
       </div>
 
-      <!-- Tabs -->
       <div class="event-modal-tabs">
         <button type="button" id="tabDetailsBtn" class="modal-tab active" onclick="switchTab('details')">
           <i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
@@ -351,11 +428,9 @@
       <!-- Tab: Rules -->
       <div id="tabRules" class="event-modal-body" style="display:none;">
 
-        <!-- FIX 2: Removed `for="eventWinCheckbox"` from the label.
-             The input is nested inside the label, so `for` is redundant and
-             causes a double-toggle (click fires twice → checkbox flips on then off). -->
+        <!-- Event Win Points toggle — pure JS slider, no checkbox -->
         <div class="ew-toggle-row" onclick="toggleEW()">
-          <label class="ew-toggle-label">
+          <div class="ew-toggle-label">
             <span class="ew-toggle-track" id="ewTrack">
               <span class="ew-toggle-thumb"></span>
             </span>
@@ -363,9 +438,10 @@
               <span class="ew-toggle-title">Event Win Points</span>
               <span class="ew-toggle-sub">Award points to teams based on finishing position</span>
             </span>
-          </label>
+          </div>
+        </div>
 
-        <!-- Event Win Points Section (shown when checkbox is checked) -->
+        <!-- Event Win Points Section -->
         <div id="eventWinSection" class="rules-section" style="display:none;">
           <div class="rules-section-head">
             <div class="rules-section-title">Event Win Points</div>
@@ -416,7 +492,7 @@
           </div>
         </div>
 
-        <!-- Max Team Points counter -->
+        <!-- Max Team Points -->
         <div class="max-points-bar">
           <i class="material-icons" style="font-size:16px;color:#7b1fa2;">emoji_events</i>
           <span>Maximum team points per event:</span>
@@ -436,7 +512,10 @@
     </div><!-- /.event-modal-card -->
   </div><!-- /#eventModal -->
 
-  <!-- Team Rule Sub-Modal -->
+  <!-- ══════════════════════════════════
+       TEAM RULE SUB-MODAL
+       context hidden field switches between 'create' and 'edit'
+  ══════════════════════════════════ -->
   <div id="teamModal" class="sub-modal-overlay" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeTeamModal()"></div>
     <div class="sub-modal-card sub-modal-card-wide" role="dialog">
@@ -446,6 +525,7 @@
       </div>
       <div class="sub-modal-body">
         <input type="hidden" id="teamIdx">
+        <input type="hidden" id="teamModalContext" value="edit">
         <div class="sf-field">
           <label class="sf-label">Category Name <span class="req">*</span></label>
           <input id="teamCat" class="admin-input" type="text"
@@ -485,7 +565,9 @@
     </div>
   </div>
 
-  <!-- Event Win Rule Sub-Modal -->
+  <!-- ══════════════════════════════════
+       EVENT WIN RULE SUB-MODAL
+  ══════════════════════════════════ -->
   <div id="eventWinModal" class="sub-modal-overlay" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeEventWinModal()"></div>
     <div class="sub-modal-card" role="dialog">
@@ -495,6 +577,7 @@
       </div>
       <div class="sub-modal-body">
         <input type="hidden" id="eventWinIdx">
+        <input type="hidden" id="eventWinModalContext" value="edit">
         <div class="sf-row">
           <div class="sf-field">
             <label class="sf-label">Place <span class="req">*</span></label>

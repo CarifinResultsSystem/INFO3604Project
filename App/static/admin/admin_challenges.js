@@ -51,9 +51,9 @@ function updateChYearUI() {
 
 /* ─── Table filter & sort (challenges) ─── */
 function filterChTable() {
-  var q    = (document.getElementById('chSearch').value || '').trim().toLowerCase();
-  var sort = document.getElementById('chSort').value;
-  var y    = chActiveYear();
+  var q     = (document.getElementById('chSearch').value || '').trim().toLowerCase();
+  var sort  = document.getElementById('chSort').value;
+  var y     = chActiveYear();
   var tbody = document.getElementById('chBody');
   if (!tbody) return;
 
@@ -102,81 +102,54 @@ document.addEventListener('DOMContentLoaded', () => {
     try { const inst = M.FormSelect.getInstance(document.getElementById('chSort')); if (inst) inst.destroy(); } catch (e) {}
   }
 
-  /* Inject hidden inputs for create-form placement rules before submit */
-  const createForm = document.getElementById('createChallengeForm');
-  if (createForm) {
-    createForm.addEventListener('submit', () => {
-      const hiddens = document.getElementById('createPlacementHiddens');
-      hiddens.innerHTML = '';
-      _createPlacementRules.forEach((r, i) => {
-        const mkHidden = (name, val) => {
-          const el = document.createElement('input');
-          el.type = 'hidden';
-          el.name = name;
-          el.value = val;
-          hiddens.appendChild(el);
-        };
-        mkHidden(`placementRules[${i}][placement]`, r.placement);
-        mkHidden(`placementRules[${i}][label]`,     r.label);
-        mkHidden(`placementRules[${i}][points]`,    r.points);
-      });
-    });
-  }
-
   updateChYearUI();
 });
 
+
 /* ══════════════════════════════════════════
-   CREATE FORM — inline placement rules
+   CREATE FORM — Step 2 Placement Rules
 ══════════════════════════════════════════ */
 
-let _createPlacementRules = []; // [{placement, label, points}]
+let _createChRules = [];
+let _createChRulesOpen = false;
 
-function syncCreatePlacementUI() {
-  const wrap  = document.getElementById('createPlacementWrap');
-  const empty = document.getElementById('createPlacementEmpty');
-  const tbody = document.getElementById('createPlacementBody');
+function toggleCreateChRules() {
+  _createChRulesOpen = !_createChRulesOpen;
+  document.getElementById('createChRulesBody').style.display = _createChRulesOpen ? '' : 'none';
+  document.getElementById('createChRulesChevron').style.transform =
+    _createChRulesOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+}
 
-  if (!_createPlacementRules.length) {
+function syncCreateChIndUI() {
+  const wrap  = document.getElementById('createChIndTableWrap');
+  const empty = document.getElementById('createChIndEmpty');
+  const tbody = document.getElementById('createChIndBody');
+  if (!_createChRules.length) {
     wrap.style.display  = 'none';
     empty.style.display = 'block';
     return;
   }
   wrap.style.display  = '';
   empty.style.display = 'none';
-
-  // Sort ascending by placement before rendering
-  const sorted = [..._createPlacementRules].sort((a, b) => a.placement - b.placement);
+  const sorted = [..._createChRules].sort((a, b) => a.placement - b.placement);
   tbody.innerHTML = '';
-  sorted.forEach((r) => {
-    const origIdx = _createPlacementRules.indexOf(r);
+  sorted.forEach(r => {
+    const origIdx = _createChRules.indexOf(r);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${ordinal(r.placement)}</td>
       <td>${escHtml(r.label)}</td>
       <td><strong>${r.points}</strong></td>
       <td style="text-align:center;">
-        <button type="button" class="af-remove-btn" onclick="removeCreatePlacementRow(${origIdx})" title="Remove">
-          <i class="material-icons" style="font-size:16px;">remove_circle_outline</i>
-        </button>
+        <button type="button" class="link danger"
+                onclick="_createChRules.splice(${origIdx},1);syncCreateChIndUI()">Remove</button>
       </td>`;
     tbody.appendChild(tr);
   });
 }
 
-function addCreatePlacementRow() {
-  /* Prompt inline — open a lightweight mini-form approach reusing the chIndModal */
-  _createIndModalCallback = (place, label, pts) => {
-    if (_createPlacementRules.some(r => r.placement === place)) {
-      alert(`A rule for ${ordinal(place)} place already exists.`);
-      return false;
-    }
-    _createPlacementRules.push({ placement: place, label, points: pts });
-    syncCreatePlacementUI();
-    return true;
-  };
-  /* Reuse the challenge individual sub-modal, temporarily in "create-form" mode */
-  _chIndModalMode = 'create';
+function openCreateChIndModal() {
+  _chIndModalMode = 'createCh';
   document.getElementById('chIndIdx').value   = '';
   document.getElementById('chIndPlace').value = '';
   document.getElementById('chIndPts').value   = '';
@@ -184,10 +157,10 @@ function addCreatePlacementRow() {
   openSubModal('chIndModal');
 }
 
-function removeCreatePlacementRow(idx) {
-  _createPlacementRules.splice(idx, 1);
-  syncCreatePlacementUI();
+function serializeCreateChRules() {
+  document.getElementById('createChPlacementJSON').value = JSON.stringify(_createChRules);
 }
+
 
 /* ══════════════════════════════════════════
    EDIT MODAL
@@ -200,8 +173,8 @@ function openEditChallenge(btn) {
   _chID = row.dataset.id;
   document.getElementById('editChallengeID').value = _chID;
   document.getElementById('chModalTitle').textContent = 'Edit: ' + row.dataset.cname;
-  document.getElementById('editChName').value  = row.dataset.cname;
-  document.getElementById('editChDesc').value  = row.dataset.desc;
+  document.getElementById('editChName').value = row.dataset.cname;
+  document.getElementById('editChDesc').value = row.dataset.desc;
 
   const seasonID = String(row.dataset.season || '').trim();
   document.getElementById('editChSeason').value = seasonID;
@@ -215,6 +188,11 @@ function openEditChallenge(btn) {
       attachedIDs.includes(String(label.dataset.eventId).trim());
   });
 
+  // Reset rules and pre-load so they're ready when the user switches to the Rules tab
+  _chIndRules = [];
+  renderChIndTable();
+  loadChRules(_chID);
+
   chSwitchTab('details');
   openChModal();
 }
@@ -224,6 +202,7 @@ function openChModal() {
   m.classList.add('open');
   m.setAttribute('aria-hidden', 'false');
 }
+
 function closeChModal() {
   document.getElementById('chModal').classList.remove('open');
   document.getElementById('chModal').setAttribute('aria-hidden', 'true');
@@ -236,14 +215,13 @@ function chSwitchTab(tab) {
   document.getElementById('chTabRules').style.display   = tab === 'rules'   ? '' : 'none';
   document.getElementById('chTabDetailsBtn').classList.toggle('active', tab === 'details');
   document.getElementById('chTabRulesBtn').classList.toggle('active',   tab === 'rules');
-  if (tab === 'rules' && _chID) loadChRules(_chID);
 }
 
 /* ─── Save details ─── */
 async function saveChDetails() {
-  const id    = document.getElementById('editChallengeID').value;
-  const name  = document.getElementById('editChName').value.trim();
-  const desc  = document.getElementById('editChDesc').value.trim();
+  const id   = document.getElementById('editChallengeID').value;
+  const name = document.getElementById('editChName').value.trim();
+  const desc = document.getElementById('editChDesc').value.trim();
 
   const checkedIDs = [...document.querySelectorAll('#editEventsGrid input:checked')]
     .map(cb => cb.value);
@@ -263,6 +241,7 @@ async function saveChDetails() {
   }
 }
 
+
 /* ══════════════════════════════════════════
    POINTS RULES
 ══════════════════════════════════════════ */
@@ -270,15 +249,20 @@ async function saveChDetails() {
 let _chIndRules = [];
 
 async function loadChRules(challengeID) {
-  const resp = await fetch(`/admin/challenges/${challengeID}/rules`);
-  const data = await resp.json();
-  _chIndRules = data.individual || [];
-  renderChIndTable();
+  try {
+    const resp = await fetch(`/admin/challenges/${challengeID}/rules`);
+    const data = await resp.json();
+    _chIndRules = data.individual || [];
+    renderChIndTable();
+  } catch (e) {
+    console.error('Failed to load challenge rules:', e);
+  }
 }
 
 /* ── Individual / Placement rules table ── */
 function renderChIndTable() {
   const tbody = document.getElementById('chIndBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   const empty = document.getElementById('chIndEmpty');
   const wrap  = document.getElementById('chIndTableWrap');
@@ -290,10 +274,9 @@ function renderChIndTable() {
   empty.style.display = 'none';
   wrap.style.display  = '';
 
-  // Sort by placement ascending
   const sorted = [..._chIndRules].sort((a, b) => (a.placement || 0) - (b.placement || 0));
 
-  sorted.forEach((r, i) => {
+  sorted.forEach(r => {
     const origIdx = _chIndRules.indexOf(r);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -326,9 +309,8 @@ async function deleteChIndRule(idx) {
   renderChIndTable();
 }
 
-/* Tracks whether the chIndModal is being used from the create-form or the edit modal */
-let _chIndModalMode = 'edit'; // 'edit' | 'create'
-let _createIndModalCallback = null;
+/* Tracks whether chIndModal is being used from create-form or edit modal */
+let _chIndModalMode = 'edit'; // 'edit' | 'createCh'
 
 function openChIndModal(idx) {
   _chIndModalMode = 'edit';
@@ -345,6 +327,7 @@ function openChIndModal(idx) {
   }
   openSubModal('chIndModal');
 }
+
 function closeChIndModal() { closeSubModal('chIndModal'); _chIndModalMode = 'edit'; }
 
 function saveChIndRule() {
@@ -354,19 +337,20 @@ function saveChIndRule() {
   const award = document.getElementById('chIndAward').value.trim();
   if (!place || isNaN(pts) || !award) { alert('All fields are required.'); return; }
 
-  /* ── Create-form mode: delegate to callback ── */
-  if (_chIndModalMode === 'create') {
-    if (_createIndModalCallback) {
-      const ok = _createIndModalCallback(place, award, pts);
-      if (ok) closeChIndModal();
+  /* ── Create-form mode (challenge) ── */
+  if (_chIndModalMode === 'createCh') {
+    if (_createChRules.some(r => r.placement === place)) {
+      alert(`A rule for ${ordinal(place)} place already exists.`); return;
     }
+    _createChRules.push({ placement: place, label: award, points: pts });
+    syncCreateChIndUI();
+    closeChIndModal();
     return;
   }
 
   /* ── Edit-modal mode ── */
   const rule = { placement: place, points: pts, label: award };
   if (idx !== '') {
-    // Check for duplicate placement (excluding the rule being edited)
     const duplicate = _chIndRules.some((r, i) =>
       i !== parseInt(idx) && r.placement === place
     );
@@ -384,7 +368,6 @@ function saveChIndRule() {
   closeChIndModal();
 }
 
-/* ─── Modal helpers ─── */
 async function saveChRules() {
   const id = document.getElementById('editChallengeID').value;
   const resp = await fetch(`/admin/challenges/${id}/rules`, {
@@ -410,6 +393,7 @@ function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
+
 function escHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

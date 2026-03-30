@@ -1,7 +1,7 @@
 /* Layout */
 .events-wrap { max-width: 1200px; margin: 0 auto; }
 
-/* Create form */
+/* ── Create form ── */
 .events-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -10,6 +10,39 @@
 .events-field { display: flex; flex-direction: column; gap: 6px; }
 .events-field label { font-weight: 700; font-size: 13px; color: #333; }
 .events-form-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+/* ── 2-step create panel ── */
+.create-step {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fafafa;
+}
+.create-step-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #111;
+}
+.create-step-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.create-step-toggle:hover { color: #7b1fa2; }
+.create-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #7b1fa2;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
 
 /* Events card */
 .events-card {
@@ -40,11 +73,7 @@
 
 /* ── Table ── */
 .events-table-wrap { overflow-x: auto; }
-.events-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 700px;
-}
+.events-table { width: 100%; border-collapse: collapse; min-width: 700px; }
 .events-table thead { background: #f8f5fc; }
 .events-table thead th {
   padding: 12px 16px;
@@ -85,11 +114,7 @@
 }
 
 /* Filter controls */
-.events-filters {
-  display: flex;
-  align-items: center; gap: 10px;
-  margin-top: 8px;
-}
+.events-filters { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .ef-input {
   height: 36px; padding: 0 10px;
   border: 1px solid #ddd; border-radius: 8px;
@@ -104,7 +129,7 @@
   cursor: pointer; outline: none;
 }
 .year-stepper {
-  display: flex; align-items: center; gap: 0;
+  display: flex; align-items: center;
   border: 1px solid #ddd; border-radius: 8px;
   background: #fff; height: 36px; padding: 0 6px;
 }
@@ -117,7 +142,7 @@
   text-align: center; font-size: 14px; color: #222;
 }
 
-/* ── Prevent Materialize hijacking our filter/sort selects ── */
+/* ── Prevent Materialize hijacking selects ── */
 #locationFilter,
 #eventSort,
 #sourceSeasonSelect,
@@ -138,7 +163,6 @@
   appearance: auto !important;
   min-width: 120px;
 }
-/* sourceSeasonSelect / targetSeasonSelect are taller by design */
 #sourceSeasonSelect,
 #targetSeasonSelect {
   height: 40px !important;
@@ -150,7 +174,7 @@
 .select-wrapper:has(#sourceSeasonSelect),
 .select-wrapper:has(#targetSeasonSelect) { display: none !important; }
 
-/* MAIN EDIT MODAL */
+/* ── MAIN EDIT MODAL ── */
 .admin-modal {
   display: none;
   position: fixed; inset: 0; z-index: 2000;
@@ -172,17 +196,13 @@
   box-shadow: 0 16px 64px rgba(0,0,0,0.25);
 }
 
-/* Modal header */
 .event-modal-header {
   display: flex; align-items: center;
   justify-content: space-between;
   padding: 16px 20px 0;
 }
-.event-modal-header-name {
-  font-weight: 800; font-size: 17px; color: #111;
-}
+.event-modal-header-name { font-weight: 800; font-size: 17px; color: #111; }
 
-/* Tab strip */
 .event-modal-tabs {
   display: flex; gap: 4px;
   padding: 12px 20px 0;
@@ -190,8 +210,7 @@
 }
 .modal-tab {
   padding: 8px 16px;
-  font-weight: 800; font-size: 13px;
-  cursor: pointer;
+  font-weight: 800; font-size: 13px; cursor: pointer;
   border: 2px solid #111; border-bottom: none;
   border-radius: 8px 8px 0 0;
   background: #fff; color: #555;
@@ -202,7 +221,6 @@
 .modal-tab.active { background: #111; color: #fff; }
 .modal-tab:not(.active):hover { background: #f5f5f5; color: #111; }
 
-/* Modal close */
 .event-modal-close {
   width: 32px; height: 32px;
   border-radius: 8px; border: 2px solid #ccc;
@@ -213,7 +231,6 @@
 }
 .event-modal-close:hover { background: #f5f5f5; border-color: #111; color: #111; }
 
-/* Modal body (scrollable tab content) */
 .event-modal-body {
   padding: 20px;
   overflow-y: auto;
@@ -223,7 +240,6 @@
 .event-modal-body::-webkit-scrollbar-track { background: #f2f2f2; }
 .event-modal-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 999px; }
 
-/* Modal footer */
 .event-modal-footer {
   display: flex; justify-content: flex-end; gap: 10px;
   padding: 14px 20px;
@@ -231,7 +247,6 @@
   background: #fafafa;
 }
 
-/* Details tab grid */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -252,18 +267,13 @@
 }
 
 /* Rules table */
-.rules-table-wrap {
-  border: 2px solid #111; border-radius: 10px; overflow: hidden;
-}
-.rules-table {
-  width: 100%; border-collapse: collapse; font-size: 0.9rem;
-}
+.rules-table-wrap { border: 2px solid #111; border-radius: 10px; overflow: hidden; }
+.rules-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .rules-table thead th {
   background: #fafafa;
   border-bottom: 2px solid #111;
   padding: 10px 12px;
-  font-weight: 800; text-align: left;
-  white-space: nowrap;
+  font-weight: 800; text-align: left; white-space: nowrap;
 }
 .rules-table tbody td {
   padding: 10px 12px;
@@ -273,26 +283,23 @@
 .rules-table tbody tr:last-child td { border-bottom: none; }
 .rules-table tbody tr:hover td { background: #faf7fe; }
 
-/* Team sub-rows */
 .team-category-row td { font-weight: 700; background: #fff; }
 .team-subrow td {
   background: #fafafa; font-size: 12px; color: #666;
   padding-left: 28px !important;
 }
 
-/* Action buttons in table */
 .rule-action-btn {
   background: none; border: none; cursor: pointer;
   padding: 4px 6px; border-radius: 4px;
   display: inline-flex; align-items: center;
   transition: background .12s;
 }
-.rule-action-btn.edit  { color: #7b1fa2; }
-.rule-action-btn.edit:hover  { background: #f3e5f5; }
+.rule-action-btn.edit { color: #7b1fa2; }
+.rule-action-btn.edit:hover { background: #f3e5f5; }
 .rule-action-btn.del { color: #dc2626; }
 .rule-action-btn.del:hover { background: #fef2f2; }
 
-/* Add rule button */
 .rules-add-btn {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 6px 12px;
@@ -304,11 +311,7 @@
 .rules-add-btn:hover { background: #e1bee7; }
 .rules-add-btn-sm { padding: 4px 10px; font-size: 11px; }
 
-/* Empty state */
-.rules-empty {
-  padding: 16px 4px; color: #999;
-  font-size: 13px; font-weight: 600;
-}
+.rules-empty { padding: 16px 4px; color: #999; font-size: 13px; font-weight: 600; }
 
 /* Generic buttons */
 .ev-btn {
@@ -326,7 +329,7 @@
 .ev-btn-ghost { border-color: #ddd; color: #555; }
 .ev-btn-ghost:hover { background: #f9fafb; }
 
-/* SUB-MODALS (team / event-win) */
+/* SUB-MODALS */
 .sub-modal-overlay {
   display: none;
   position: fixed; inset: 0; z-index: 3000;
@@ -335,10 +338,7 @@
 }
 .sub-modal-overlay.open { display: flex; }
 
-.sub-modal-backdrop {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.5);
-}
+.sub-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
 .sub-modal-card {
   position: relative; z-index: 1;
   background: #fff; border-radius: 14px;
@@ -359,9 +359,7 @@
 }
 .sub-modal-header-title { font-weight: 800; font-size: 15px; color: #111; }
 
-.sub-modal-body {
-  padding: 20px; overflow-y: auto; flex: 1;
-}
+.sub-modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 .sub-modal-footer {
   display: flex; justify-content: flex-end; gap: 10px;
   padding: 12px 20px;
@@ -369,7 +367,6 @@
   background: #fafafa; flex-shrink: 0;
 }
 
-/* Form fields inside sub-modals */
 .sf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .sf-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
 .sf-field:last-child { margin-bottom: 0; }
@@ -377,7 +374,7 @@
 .sf-label .req { color: #dc2626; }
 .sf-hint { font-size: 11px; color: #aaa; }
 
-/* Awarded-for rows table */
+/* Awarded-for table */
 .af-table-wrap { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
 .af-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .af-table thead th {
@@ -388,25 +385,16 @@
 }
 .af-table tbody tr:not(:last-child) td { border-bottom: 1px solid #f3f4f6; }
 .af-table td { padding: 7px 10px; vertical-align: middle; }
-.af-table .admin-input {
-  height: 34px; font-size: 13px; padding: 0 10px;
-  width: 100%; box-sizing: border-box;
-}
+.af-table .admin-input { height: 34px; font-size: 13px; padding: 0 10px; width: 100%; box-sizing: border-box; }
 .af-remove-btn {
   background: none; border: none; cursor: pointer;
   color: #dc2626; padding: 2px 4px; border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
 }
 .af-remove-btn:hover { background: #fef2f2; }
-.af-empty {
-  text-align: center; padding: 16px;
-  color: #aaa; font-size: 13px; display: none;
-}
+.af-empty { text-align: center; padding: 16px; color: #aaa; font-size: 13px; display: none; }
 
-/* ── Season modals (Add + Duplicate) ──
-   Both use the .season-modal class.
-   Visibility is driven by the .open class added by openOverlay()/closeOverlay().
-   No inline style.display manipulation needed. */
+/* ── Season modals ── */
 .season-modal {
   display: none;
   position: fixed; inset: 0; z-index: 2000;
@@ -421,7 +409,7 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
-/* ── Event Win Points toggle ── */
+/* ── Event Win Points toggle (pure JS, no checkbox) ── */
 .ew-toggle-row {
   margin-bottom: 18px;
   padding: 14px 16px;
@@ -437,13 +425,12 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  pointer-events: none; /* row handles the click */
+  pointer-events: none;
 }
 
 .ew-toggle-track {
   position: relative;
-  width: 42px;
-  height: 24px;
+  width: 42px; height: 24px;
   background: #d1d5db;
   border-radius: 999px;
   flex-shrink: 0;
@@ -453,14 +440,13 @@
 
 .ew-toggle-thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
   background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  /* no z-index needed — no overlapping input element */
 }
 .ew-toggle-track.ew-on .ew-toggle-thumb { transform: translateX(18px); }
 
@@ -470,37 +456,20 @@
 
 /* ── Max points bar ── */
 .max-points-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
-  background: #f3e5f5;
-  border: 1px solid #ce93d8;
+  background: #f3e5f5; border: 1px solid #ce93d8;
   border-radius: 10px;
-  margin-top: 6px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #555;
-  font-weight: 600;
+  margin-top: 6px; margin-bottom: 6px;
+  font-size: 13px; color: #555; font-weight: 600;
   flex-wrap: wrap;
 }
 .max-points-value {
-  font-size: 18px;
-  font-weight: 900;
-  color: #7b1fa2;
-  min-width: 28px;
-  text-align: center;
-  line-height: 1;
+  font-size: 18px; font-weight: 900; color: #7b1fa2;
+  min-width: 28px; text-align: center; line-height: 1;
 }
-.max-points-unit {
-  font-weight: 800;
-  color: #7b1fa2;
-}
-.max-points-note {
-  font-weight: 400;
-  color: #aaa;
-  font-size: 12px;
-}
+.max-points-unit  { font-weight: 800; color: #7b1fa2; }
+.max-points-note  { font-weight: 400; color: #aaa; font-size: 12px; }
 
 /* Responsive */
 @media (max-width: 860px) {

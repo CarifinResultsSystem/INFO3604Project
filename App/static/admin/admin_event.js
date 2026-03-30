@@ -1,4 +1,6 @@
+// ═══════════════════════════════════════════════════════════════
 // UTILITIES
+// ═══════════════════════════════════════════════════════════════
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -13,16 +15,17 @@ function ordinal(n) {
 function openOverlay(id)  { var el = document.getElementById(id); el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
 function closeOverlay(id) { var el = document.getElementById(id); el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
 
+// ═══════════════════════════════════════════════════════════════
 // SEASON MODALS
+// ═══════════════════════════════════════════════════════════════
 function openSeasonModal()           { openOverlay('seasonModal'); }
 function closeSeasonModal()          { closeOverlay('seasonModal'); }
-// FIX 1: Use openOverlay/closeOverlay (adds/removes .open class) instead of
-// setting style.display directly. This keeps all modal behaviour consistent
-// and lets the CSS .season-modal / .season-modal.open rules drive visibility.
 function openDuplicateSeasonModal()  { openOverlay('duplicateSeasonModal'); }
 function closeDuplicateSeasonModal() { closeOverlay('duplicateSeasonModal'); }
 
+// ═══════════════════════════════════════════════════════════════
 // YEAR FILTER
+// ═══════════════════════════════════════════════════════════════
 var yearIndex = (function () {
   var cur = new Date().getFullYear();
   var i = VALID_YEARS.indexOf(cur);
@@ -39,7 +42,9 @@ function updateYearUI() {
   filterTable();
 }
 
+// ═══════════════════════════════════════════════════════════════
 // TABLE FILTER / SORT
+// ═══════════════════════════════════════════════════════════════
 function filterTable() {
   var q    = (document.getElementById('eventSearch').value || '').trim().toLowerCase();
   var loc  = (document.getElementById('locationFilter').value || '').trim().toLowerCase();
@@ -72,7 +77,9 @@ function filterTable() {
   document.getElementById('noResultsMsg').style.display = visible === 0 ? 'block' : 'none';
 }
 
+// ═══════════════════════════════════════════════════════════════
 // DOM READY
+// ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function () {
 
   // Auto-dismiss toasts
@@ -107,8 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('locationFilter').addEventListener('change', filterTable);
   document.getElementById('eventSort').addEventListener('change', filterTable);
 
-  // FIX 1 (cont.): Kill Materialize on ALL selects we own, including the two
-  // inside the duplicate-season modal which now have proper IDs.
+  // Kill Materialize on protected selects
   if (window.M && M.FormSelect) {
     ['locationFilter', 'eventSort', 'sourceSeasonSelect', 'targetSeasonSelect'].forEach(function (id) {
       var el = document.getElementById(id);
@@ -134,13 +140,163 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-// STATE
+// ═══════════════════════════════════════════════════════════════
+// CREATE-FORM RULES STATE
+// ═══════════════════════════════════════════════════════════════
+var _createEwEnabled = false;
+var _createEwRules   = []; // [{placement, award, points}]
+var _createTeamGroups= []; // [{category, rows:[{label, points}]}]
+
+function toggleCreateRules() {
+  var body    = document.getElementById('createRulesBody');
+  var chevron = document.getElementById('createRulesChevron');
+  var open    = body.style.display === 'none';
+  body.style.display    = open ? 'block' : 'none';
+  chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function toggleCreateEW() {
+  _createEwEnabled = !_createEwEnabled;
+  document.getElementById('createEwTrack').classList.toggle('ew-on', _createEwEnabled);
+  document.getElementById('createEventWinSection').style.display = _createEwEnabled ? 'block' : 'none';
+  if (!_createEwEnabled) { _createEwRules = []; renderCreateEWTable(); }
+}
+
+function openCreateEWModal(idx) {
+  document.getElementById('eventWinModalContext').value = 'create';
+  document.getElementById('eventWinModalTitle').textContent = idx === null ? 'Add Event Win Rule' : 'Edit Event Win Rule';
+  document.getElementById('eventWinIdx').value = idx !== null ? idx : '';
+  if (idx !== null) {
+    var r = _createEwRules[idx];
+    document.getElementById('eventWinPlace').value = r.placement || '';
+    document.getElementById('eventWinAward').value = r.award     || '';
+    document.getElementById('eventWinPts').value   = r.points    || '';
+  } else {
+    document.getElementById('eventWinPlace').value = '';
+    document.getElementById('eventWinAward').value = '';
+    document.getElementById('eventWinPts').value   = '';
+  }
+  openOverlay('eventWinModal');
+  setTimeout(function () { document.getElementById('eventWinPlace').focus(); }, 60);
+}
+
+function openCreateTeamModal(idx) {
+  document.getElementById('teamModalContext').value = 'create';
+  document.getElementById('teamModalTitle').textContent = idx === null ? 'Add Team Category' : 'Edit Team Category';
+  document.getElementById('teamIdx').value = idx !== null ? idx : '';
+  if (idx !== null) {
+    var g = _createTeamGroups[idx];
+    document.getElementById('teamCat').value = g.category || '';
+    _afRows = g.rows.map(function (r) { return { pointsID: null, label: r.label || '', points: r.points || '' }; });
+  } else {
+    document.getElementById('teamCat').value = '';
+    _afRows = [{ pointsID: null, label: '', points: '' }];
+  }
+  renderAFRows();
+  openOverlay('teamModal');
+  setTimeout(function () { document.getElementById('teamCat').focus(); }, 60);
+}
+
+function renderCreateEWTable() {
+  var body = document.getElementById('createEWTableBody');
+  var wrap = document.getElementById('createEWTableWrap');
+  var mpty = document.getElementById('createEWEmpty');
+  body.innerHTML = '';
+  if (!_createEwRules.length) {
+    wrap.style.display = 'none'; mpty.style.display = 'block';
+  } else {
+    wrap.style.display = ''; mpty.style.display = 'none';
+    _createEwRules.forEach(function (r, i) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><strong>' + ordinal(r.placement) + ' Place</strong></td>' +
+        '<td>' + esc(r.award || '—') + '</td>' +
+        '<td>' + Number(r.points || 0) + ' pts</td>' +
+        '<td style="text-align:center;">' +
+          '<button type="button" class="rule-action-btn edit" onclick="openCreateEWModal(' + i + ')">' +
+            '<i class="material-icons" style="font-size:15px;">edit</i></button>' +
+          '<button type="button" class="rule-action-btn del" onclick="deleteCreateEWRule(' + i + ')">' +
+            '<i class="material-icons" style="font-size:15px;">delete</i></button>' +
+        '</td>';
+      body.appendChild(tr);
+    });
+  }
+}
+
+function deleteCreateEWRule(idx) {
+  if (!confirm('Remove this rule?')) return;
+  _createEwRules.splice(idx, 1);
+  renderCreateEWTable();
+}
+
+function renderCreateTeamTable() {
+  var body = document.getElementById('createTeamTableBody');
+  var wrap = document.getElementById('createTeamTableWrap');
+  var mpty = document.getElementById('createTeamEmpty');
+  body.innerHTML = '';
+  if (!_createTeamGroups.length) {
+    wrap.style.display = 'none'; mpty.style.display = 'block';
+  } else {
+    wrap.style.display = ''; mpty.style.display = 'none';
+    _createTeamGroups.forEach(function (g, gi) {
+      var catRow = document.createElement('tr');
+      catRow.className = 'team-category-row';
+      catRow.innerHTML =
+        '<td>' + esc(g.category) + '</td>' +
+        '<td><span style="color:#888;font-size:12px;">' + g.rows.length +
+          ' condition' + (g.rows.length !== 1 ? 's' : '') + '</span></td>' +
+        '<td style="text-align:center;">' +
+          '<button type="button" class="rule-action-btn edit" onclick="openCreateTeamModal(' + gi + ')">' +
+            '<i class="material-icons" style="font-size:15px;">edit</i></button>' +
+          '<button type="button" class="rule-action-btn del" onclick="deleteCreateTeamGroup(' + gi + ')">' +
+            '<i class="material-icons" style="font-size:15px;">delete</i></button>' +
+        '</td>';
+      body.appendChild(catRow);
+      g.rows.forEach(function (row) {
+        var sub = document.createElement('tr');
+        sub.className = 'team-subrow';
+        sub.innerHTML =
+          '<td style="padding-left:28px;"><span style="color:#ccc;margin-right:6px;">↳</span>' +
+            esc(row.label || '—') + '</td>' +
+          '<td>' + Number(row.points || 0) + ' pts</td><td></td>';
+        body.appendChild(sub);
+      });
+    });
+  }
+}
+
+function deleteCreateTeamGroup(gi) {
+  if (!confirm('Remove the "' + (_createTeamGroups[gi].category || 'this') + '" category?')) return;
+  _createTeamGroups.splice(gi, 1);
+  renderCreateTeamTable();
+}
+
+// Serialize create rules into hidden fields before form submit
+function serializeCreateRules() {
+  var ind = _createEwEnabled
+    ? _createEwRules.map(function (r) {
+        return { placement: Number(r.placement), label: r.award, points: Number(r.points) };
+      })
+    : [];
+  var team = [];
+  _createTeamGroups.forEach(function (g) {
+    g.rows.forEach(function (r) {
+      team.push({ conditionType: g.category, label: r.label, points: Number(r.points) });
+    });
+  });
+  document.getElementById('createRulesIndividualJSON').value = JSON.stringify(ind);
+  document.getElementById('createRulesTeamJSON').value       = JSON.stringify(team);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// EDIT-MODAL STATE
+// ═══════════════════════════════════════════════════════════════
 var _eventId         = null;
 var _eventWinRules   = [];  // [{pointsID, placement, award, points}]
 var _teamGroups      = [];  // [{category, rows:[{pointsID, label, points}]}]
 var _eventWinEnabled = false;
 
-// MAIN MODAL
 function openModal()  { openOverlay('eventModal'); document.body.classList.add('modal-open'); }
 function closeModal() {
   closeOverlay('eventModal');
@@ -159,7 +315,6 @@ function switchTab(tab) {
   document.getElementById('tabRulesBtn').classList.toggle('active', !isD);
 }
 
-// Read data attributes from the row
 function openEditFromRow(btn) {
   var row = btn.closest('tr');
   openEdit(
@@ -236,7 +391,7 @@ async function saveDetails() {
   }
 }
 
-// SAVE RULES
+// SAVE RULES (edit modal → PATCH to API)
 async function saveRules() {
   if (!_eventId) return;
 
@@ -260,13 +415,11 @@ async function saveRules() {
       })
     : [];
 
-  var payload = { individual: indPayload, team: teamFlat };
-
   try {
     var res = await fetch('/admin/events/' + _eventId + '/rules', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ individual: indPayload, team: teamFlat })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     window.location.reload();
@@ -275,15 +428,12 @@ async function saveRules() {
   }
 }
 
-// Toggle event win section visibility
+// EDIT-MODAL TOGGLE SLIDER
 function toggleEW() {
   _eventWinEnabled = !_eventWinEnabled;
   document.getElementById('ewTrack').classList.toggle('ew-on', _eventWinEnabled);
   document.getElementById('eventWinSection').style.display = _eventWinEnabled ? 'block' : 'none';
-  if (!_eventWinEnabled) {
-    _eventWinRules = [];
-    renderEventWinTable();
-  }
+  if (!_eventWinEnabled) { _eventWinRules = []; renderEventWinTable(); }
   updateMaxPoints();
 }
 
@@ -292,35 +442,27 @@ function toggleEventWinSection(enabled) {
   var track = document.getElementById('ewTrack');
   if (track) track.classList.toggle('ew-on', enabled);
   document.getElementById('eventWinSection').style.display = enabled ? 'block' : 'none';
-  if (!enabled) {
-    _eventWinRules = [];
-    renderEventWinTable();
-  }
+  if (!enabled) { _eventWinRules = []; renderEventWinTable(); }
   updateMaxPoints();
 }
 
-// Calculate and display max possible team points
 function updateMaxPoints() {
   var total = 0;
   _teamGroups.forEach(function (g) {
-    var maxInGroup = 0;
-    g.rows.forEach(function (r) {
-      var p = Number(r.points || 0);
-      if (p > maxInGroup) maxInGroup = p;
-    });
-    total += maxInGroup;
+    var mx = 0;
+    g.rows.forEach(function (r) { var p = Number(r.points || 0); if (p > mx) mx = p; });
+    total += mx;
   });
   var el = document.getElementById('maxTeamPoints');
   if (el) el.textContent = total % 1 === 0 ? total : total.toFixed(2);
 }
 
-// RENDER RULES TABLES
+// RENDER RULES (edit modal)
 function renderRules() {
-  var checkbox = document.getElementById('eventWinCheckbox');
-  if (checkbox) {
-    checkbox.checked = _eventWinEnabled;
-    toggleEventWinSection(_eventWinEnabled);
-  }
+  // Slider — no checkbox, just toggle track class
+  var track = document.getElementById('ewTrack');
+  if (track) track.classList.toggle('ew-on', _eventWinEnabled);
+  document.getElementById('eventWinSection').style.display = _eventWinEnabled ? 'block' : 'none';
   renderEventWinTable();
   renderTeamTable();
   updateMaxPoints();
@@ -342,9 +484,9 @@ function renderEventWinTable() {
         '<td>' + esc(r.award || '—') + '</td>' +
         '<td>' + Number(r.points || 0) + ' pts</td>' +
         '<td style="text-align:center;">' +
-          '<button type="button" class="rule-action-btn edit" onclick="openEventWinModal(' + i + ')" title="Edit">' +
+          '<button type="button" class="rule-action-btn edit" onclick="openEventWinModal(' + i + ')">' +
             '<i class="material-icons" style="font-size:15px;">edit</i></button>' +
-          '<button type="button" class="rule-action-btn del" onclick="deleteEventWinRule(' + i + ')" title="Delete">' +
+          '<button type="button" class="rule-action-btn del" onclick="deleteEventWinRule(' + i + ')">' +
             '<i class="material-icons" style="font-size:15px;">delete</i></button>' +
         '</td>';
       iBody.appendChild(tr);
@@ -369,9 +511,9 @@ function renderTeamTable() {
         '<td><span style="color:#888;font-size:12px;">' + g.rows.length +
           ' condition' + (g.rows.length !== 1 ? 's' : '') + '</span></td>' +
         '<td style="text-align:center;">' +
-          '<button type="button" class="rule-action-btn edit" onclick="openTeamModal(' + gi + ')" title="Edit">' +
+          '<button type="button" class="rule-action-btn edit" onclick="openTeamModal(' + gi + ')">' +
             '<i class="material-icons" style="font-size:15px;">edit</i></button>' +
-          '<button type="button" class="rule-action-btn del" onclick="deleteTeamGroup(' + gi + ')" title="Delete">' +
+          '<button type="button" class="rule-action-btn del" onclick="deleteTeamGroup(' + gi + ')">' +
             '<i class="material-icons" style="font-size:15px;">delete</i></button>' +
         '</td>';
       tBody.appendChild(catRow);
@@ -379,7 +521,8 @@ function renderTeamTable() {
         var sub = document.createElement('tr');
         sub.className = 'team-subrow';
         sub.innerHTML =
-          '<td style="padding-left:28px;"><span style="color:#ccc;margin-right:6px;">↳</span>' + esc(row.label || '—') + '</td>' +
+          '<td style="padding-left:28px;"><span style="color:#ccc;margin-right:6px;">↳</span>' +
+            esc(row.label || '—') + '</td>' +
           '<td>' + Number(row.points || 0) + ' pts</td><td></td>';
         tBody.appendChild(sub);
       });
@@ -388,10 +531,15 @@ function renderTeamTable() {
   updateMaxPoints();
 }
 
-// EVENT WIN RULE SUB-MODAL
+
+// ═══════════════════════════════════════════════════════════════
+// SHARED EVENT WIN SUB-MODAL
+// context = 'create' | 'edit'
+// ═══════════════════════════════════════════════════════════════
 function openEventWinModal(idx) {
-  document.getElementById('eventWinModalTitle').textContent =
-    idx === null ? 'Add Event Win Rule' : 'Edit Event Win Rule';
+  // called from edit-modal context
+  document.getElementById('eventWinModalContext').value = 'edit';
+  document.getElementById('eventWinModalTitle').textContent = idx === null ? 'Add Event Win Rule' : 'Edit Event Win Rule';
   document.getElementById('eventWinIdx').value = idx !== null ? idx : '';
   if (idx !== null) {
     var r = _eventWinRules[idx];
@@ -413,23 +561,27 @@ function saveEventWinRule() {
   var award = document.getElementById('eventWinAward').value.trim();
   var pts   = parseFloat(document.getElementById('eventWinPts').value);
   var idxS  = document.getElementById('eventWinIdx').value;
+  var ctx   = document.getElementById('eventWinModalContext').value; // 'create' | 'edit'
 
-  if (!place || place < 1)        { alert('Please enter a valid placement (1, 2, 3…)'); return; }
-  if (!award)                     { alert('Please enter an award name.'); return; }
-  if (isNaN(pts) || pts < 0)      { alert('Please enter a valid points value.'); return; }
+  if (!place || place < 1)   { alert('Please enter a valid placement (1, 2, 3…)'); return; }
+  if (!award)                { alert('Please enter an award name.'); return; }
+  if (isNaN(pts) || pts < 0) { alert('Please enter a valid points value.'); return; }
+
+  var rules = ctx === 'create' ? _createEwRules : _eventWinRules;
 
   var idx = idxS !== '' ? parseInt(idxS, 10) : null;
   if (idx === null) {
-    if (_eventWinRules.some(function (r) { return Number(r.placement) === place; })) {
+    if (rules.some(function (r) { return Number(r.placement) === place; })) {
       alert('A rule for ' + ordinal(place) + ' place already exists.'); return;
     }
-    _eventWinRules.push({ pointsID: null, placement: place, award: award, points: pts });
+    rules.push({ pointsID: null, placement: place, award: award, points: pts });
   } else {
-    _eventWinRules[idx] = { pointsID: _eventWinRules[idx].pointsID, placement: place, award: award, points: pts };
+    rules[idx] = { pointsID: (rules[idx] || {}).pointsID || null, placement: place, award: award, points: pts };
   }
-  _eventWinRules.sort(function (a, b) { return Number(a.placement) - Number(b.placement); });
+  rules.sort(function (a, b) { return Number(a.placement) - Number(b.placement); });
+
   closeEventWinModal();
-  renderEventWinTable();
+  if (ctx === 'create') { renderCreateEWTable(); } else { renderEventWinTable(); }
 }
 
 function deleteEventWinRule(idx) {
@@ -438,12 +590,17 @@ function deleteEventWinRule(idx) {
   renderEventWinTable();
 }
 
-// TEAM RULE SUB-MODAL
-var _afRows = []; // [{pointsID, label, points}]
+
+// ═══════════════════════════════════════════════════════════════
+// SHARED TEAM SUB-MODAL
+// context = 'create' | 'edit'
+// ═══════════════════════════════════════════════════════════════
+var _afRows = [];
 
 function openTeamModal(groupIdx) {
-  document.getElementById('teamModalTitle').textContent =
-    groupIdx === null ? 'Add Team Category' : 'Edit Team Category';
+  // called from edit-modal context
+  document.getElementById('teamModalContext').value = 'edit';
+  document.getElementById('teamModalTitle').textContent = groupIdx === null ? 'Add Team Category' : 'Edit Team Category';
   document.getElementById('teamIdx').value = groupIdx !== null ? groupIdx : '';
   if (groupIdx !== null) {
     var g = _teamGroups[groupIdx];
@@ -500,7 +657,9 @@ function removeAFRow(idx) { _afRows.splice(idx, 1); renderAFRows(); }
 function saveTeamRule() {
   var cat  = document.getElementById('teamCat').value.trim();
   var idxS = document.getElementById('teamIdx').value;
-  if (!cat)          { alert('Please enter a category name.'); return; }
+  var ctx  = document.getElementById('teamModalContext').value; // 'create' | 'edit'
+
+  if (!cat)            { alert('Please enter a category name.'); return; }
   if (!_afRows.length) { alert('Please add at least one condition.'); return; }
   for (var i = 0; i < _afRows.length; i++) {
     if (!_afRows[i].label.trim()) { alert('Row ' + (i+1) + ': description is required.'); return; }
@@ -508,24 +667,29 @@ function saveTeamRule() {
       alert('Row ' + (i+1) + ': enter a valid points value.'); return;
     }
   }
+
   var rows = _afRows.map(function (r) {
     return { pointsID: r.pointsID || null, label: r.label.trim(), points: parseFloat(r.points) };
   });
-  var idx = idxS !== '' ? parseInt(idxS, 10) : null;
+
+  var groups = ctx === 'create' ? _createTeamGroups : _teamGroups;
+  var idx    = idxS !== '' ? parseInt(idxS, 10) : null;
+
   if (idx === null) {
-    if (_teamGroups.some(function (g) { return g.category.toLowerCase() === cat.toLowerCase(); })) {
+    if (groups.some(function (g) { return g.category.toLowerCase() === cat.toLowerCase(); })) {
       alert('A category named "' + cat + '" already exists.'); return;
     }
-    _teamGroups.push({ category: cat, rows: rows });
+    groups.push({ category: cat, rows: rows });
   } else {
-    if (_teamGroups.some(function (g, gi) { return gi !== idx && g.category.toLowerCase() === cat.toLowerCase(); })) {
+    if (groups.some(function (g, gi) { return gi !== idx && g.category.toLowerCase() === cat.toLowerCase(); })) {
       alert('Another category named "' + cat + '" already exists.'); return;
     }
-    _teamGroups[idx].category = cat;
-    _teamGroups[idx].rows     = rows;
+    groups[idx].category = cat;
+    groups[idx].rows     = rows;
   }
+
   closeTeamModal();
-  renderTeamTable();
+  if (ctx === 'create') { renderCreateTeamTable(); } else { renderTeamTable(); }
 }
 
 function deleteTeamGroup(gi) {
