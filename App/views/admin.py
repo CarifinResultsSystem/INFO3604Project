@@ -12,6 +12,7 @@ from App.database import db
 from App.controllers.admin import assignRole
 from App.controllers.event import create_event, delete_event, update_event
 from App.controllers.participant import create_participant 
+from App.controllers.hr import get_institutions_per_year
 
 admin_views = Blueprint(
     "admin_views",
@@ -41,7 +42,8 @@ def admin_dashboard():
     return render_template(
         "admin/admin.html",
         user=current_user,
-        events=events
+        events=events,
+        institutions_per_year=get_institutions_per_year()
     )
 
 
