@@ -1,118 +1,112 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-
-/* ---------------- DASHBOARD ROOT ---------------- */
-
+/* DASHBOARD ROOT*/
 .dashboard-root {
-    font-family: 'DM Sans', sans-serif;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding-bottom: 40px;
+  font-family: 'DM Sans', sans-serif;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: 40px;
 }
 
-/* ---------------- PAGE HEADER ---------------- */
-
+/* PAGE HEADER*/
 .dashboard-header {
-    margin-bottom: 30px;
+  margin-bottom: 30px;
 }
 
 .dashboard-header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.6rem;
-    letter-spacing: 0.06em;
-    margin: 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.6rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  margin: 0;
 }
 
 .dashboard-subtitle {
-    font-size: 0.95rem;
-    color: #9e9e9e;
-    margin-top: 4px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
-/* ---------------- TOP ACTION CARD ---------------- */
-
+/* TOP ACTION CARD */
 .dashboard-action-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px;
-    margin-bottom: 30px;
-    border: 1px solid #f0f0f0;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
-    text-align: center;
-    transition: 0.2s ease;
-    cursor: pointer;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 30px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .dashboard-action-card:hover {
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 
 .dashboard-action-card span {
-    font-weight: 600;
-    font-size: 1rem;
-    color: #1565c0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--blue);
 }
 
-/* ---------------- STATS SECTION ---------------- */
-
+/*STATS*/
 .dashboard-stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 22px;
-    margin-bottom: 35px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  margin-bottom: 35px;
 }
-
-@media (max-width: 768px) {
-    .dashboard-stats {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* ---------------- STAT CARD ---------------- */
 
 .dashboard-stat-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px;
-    border: 1px solid #f0f0f0;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
-    text-align: center;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: center;
 }
 
 .dashboard-stat-label {
-    font-size: 0.95rem;
-    color: #666;
-    margin-bottom: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: #666;
+  margin-bottom: 12px;
 }
 
 .dashboard-stat-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    letter-spacing: 0.05em;
-    color: #7b1fa2;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 0.05em;
+  color: var(--purple);
 }
 
-/* Optional variation for error card */
-    .dashboard-stat-card.errors .dashboard-stat-number {
-    color: #e53935;
+.dashboard-stat-card.errors .dashboard-stat-number {
+  color: var(--red);
 }
 
-/* ---------------- PUBLIC DASHBOARD LINK ---------------- */
-
+/* PUBLIC DASHBOARD LINK*/
 .dashboard-public-link {
-    text-align: center;
-    margin-top: 10px;
+  text-align: center;
+  margin-top: 10px;
 }
 
 .dashboard-public-link a {
-    font-weight: 600;
-    text-decoration: none;
-    color: #1565c0;
-    transition: 0.2s ease;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--blue);
+  transition: color 0.2s;
 }
 
 .dashboard-public-link a:hover {
-    text-decoration: underline;
-    color: #0d47a1;
+  text-decoration: underline;
+  color: #0d47a1;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .dashboard-stats { grid-template-columns: 1fr; }
 }

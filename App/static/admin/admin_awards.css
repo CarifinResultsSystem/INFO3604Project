@@ -1,120 +1,97 @@
-.awards-root{
-  max-width:1200px;
-  margin:0 auto;
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ══════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════ */
+.awards-root {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-/* ---------- Overall Podium ---------- */
-
-.awards-overall{
-  margin-bottom:30px;
+/* ══════════════════════════════════════
+   OVERALL PODIUM
+══════════════════════════════════════ */
+.awards-overall {
+  margin-bottom: 30px;
 }
 
-.awards-panel{
-  padding:22px;
+.awards-panel {
+  padding: 22px;
 }
 
-.awards-podium{
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  gap:40px;
-  margin-top:24px;
+.awards-podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 40px;
+  margin-top: 24px;
 }
 
-.podium-place{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
+.podium-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.podium-name{
-  margin-top:10px;
-  font-weight:800;
-  color:#333;
+.podium-name {
+  margin-top: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  color: var(--text);
 }
 
-
-.podium-medal{
-  width:70px;
-  height:70px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  font-size:1.4rem;
-  color:white;
+.podium-medal {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: #fff;
 }
 
+/* ── Medal colours ── */
+.gold   { background: linear-gradient(135deg, #ffd54f, #ffb300); }
+.silver { background: linear-gradient(135deg, #e0e0e0, #9e9e9e); }
+.bronze { background: linear-gradient(135deg, #d7a86e, #8d5a2b); }
 
-.gold{
-  background:linear-gradient(135deg,#ffd54f,#ffb300);
+/* ── Podium height offsets ── */
+.first .podium-medal { transform: scale(1.2); }
+.second              { transform: translateY(15px); }
+.third               { transform: translateY(25px); }
+
+/* ══════════════════════════════════════
+   EVENT PANELS
+══════════════════════════════════════ */
+.awards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
 }
 
-.silver{
-  background:linear-gradient(135deg,#e0e0e0,#9e9e9e);
+.awards-list {
+  margin-top: 12px;
+  padding-left: 20px;
 }
 
-.bronze{
-  background:linear-gradient(135deg,#d7a86e,#8d5a2b);
+.awards-list li {
+  margin: 8px 0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
 }
 
+.awards-list li.gold   { color: #f9a825; }
+.awards-list li.silver { color: #757575; }
+.awards-list li.bronze { color: #8d5a2b; }
 
-.first .podium-medal{
-  transform:scale(1.2);
-}
-
-.second{
-  transform:translateY(15px);
-}
-
-.third{
-  transform:translateY(25px);
-}
-
-/* ---------- Event Panels ---------- */
-
-.awards-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-}
-
-
-.awards-list{
-  margin-top:12px;
-  padding-left:20px;
-}
-
-.awards-list li{
-  margin:8px 0;
-  font-weight:700;
-}
-
-.awards-list li.gold{
-  color:#f9a825;
-}
-
-.awards-list li.silver{
-  color:#757575;
-}
-
-.awards-list li.bronze{
-  color:#8d5a2b;
-}
-
-
-@media (max-width:800px){
-
-  .awards-podium{
-    gap:20px;
-  }
-
-  .podium-medal{
-    width:56px;
-    height:56px;
-    font-size:1.1rem;
-  }
-
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media (max-width: 800px) {
+  .awards-podium { gap: 20px; }
+  .podium-medal  { width: 56px; height: 56px; font-size: 1.1rem; }
 }
