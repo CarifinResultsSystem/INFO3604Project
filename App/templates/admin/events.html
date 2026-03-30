@@ -135,7 +135,7 @@
     </form>
   </div>
 
-  <!--  Events Table -->
+  <!-- Events Table -->
   <p class="section-label" style="margin-top:22px;">Existing Events</p>
   <div class="events-card">
     <div class="events-card-head">
@@ -252,6 +252,8 @@
   </div>
 
   <!-- Duplicate Season Modal -->
+  <!-- FIX 1: Uses openOverlay/closeOverlay via JS (no inline style.display).
+       Selects have IDs so Materialize can be explicitly destroyed on them. -->
   <div id="duplicateSeasonModal" class="season-modal" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeDuplicateSeasonModal()"></div>
     <div class="season-modal-card">
@@ -263,7 +265,7 @@
       <form method="POST" action="{{ url_for('admin_views.admin_events_duplicate_season') }}">
         <div class="sf-field" style="margin-bottom:14px;">
           <label class="sf-label">Copy events FROM</label>
-          <select name="sourceSeasonID" required
+          <select name="sourceSeasonID" id="sourceSeasonSelect" required
                   style="display:block;width:100%;height:40px;padding:0 10px;
                          background:#fff;border:1px solid #ccc;border-radius:6px;
                          font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;box-sizing:border-box;">
@@ -275,7 +277,7 @@
         </div>
         <div class="sf-field" style="margin-bottom:20px;">
           <label class="sf-label">Copy events INTO</label>
-          <select name="targetSeasonID" required
+          <select name="targetSeasonID" id="targetSeasonSelect" required
                   style="display:block;width:100%;height:40px;padding:0 10px;
                          background:#fff;border:1px solid #ccc;border-radius:6px;
                          font-size:14px;color:#333;appearance:auto;-webkit-appearance:auto;box-sizing:border-box;">
@@ -349,11 +351,12 @@
       <!-- Tab: Rules -->
       <div id="tabRules" class="event-modal-body" style="display:none;">
 
-        <!-- Event Win Points toggle -->
-        <div class="ew-toggle-row">
-          <label class="ew-toggle-label" for="eventWinCheckbox">
-            <span class="ew-toggle-track">
-              <input type="checkbox" id="eventWinCheckbox">
+        <!-- FIX 2: Removed `for="eventWinCheckbox"` from the label.
+             The input is nested inside the label, so `for` is redundant and
+             causes a double-toggle (click fires twice → checkbox flips on then off). -->
+        <div class="ew-toggle-row" onclick="toggleEW()">
+          <label class="ew-toggle-label">
+            <span class="ew-toggle-track" id="ewTrack">
               <span class="ew-toggle-thumb"></span>
             </span>
             <span class="ew-toggle-text">
@@ -361,7 +364,6 @@
               <span class="ew-toggle-sub">Award points to teams based on finishing position</span>
             </span>
           </label>
-        </div>
 
         <!-- Event Win Points Section (shown when checkbox is checked) -->
         <div id="eventWinSection" class="rules-section" style="display:none;">
@@ -431,7 +433,10 @@
         </div>
       </div>
 
-  <!-- Team Rule Sub-Modal  -->
+    </div><!-- /.event-modal-card -->
+  </div><!-- /#eventModal -->
+
+  <!-- Team Rule Sub-Modal -->
   <div id="teamModal" class="sub-modal-overlay" aria-hidden="true">
     <div class="sub-modal-backdrop" onclick="closeTeamModal()"></div>
     <div class="sub-modal-card sub-modal-card-wide" role="dialog">
@@ -525,16 +530,8 @@
 <script>var VALID_YEARS = {{ valid_years | tojson }};</script>
 <script src="{{ url_for('static', filename='admin/admin_event.js') }}"></script>
 <script>
-  function openDuplicateSeasonModal() {
-    const modal = document.getElementById('duplicateSeasonModal');
-    modal.setAttribute('aria-hidden', 'false');
-    modal.style.display = 'flex';
-  }
-  function closeDuplicateSeasonModal() {
-    const modal = document.getElementById('duplicateSeasonModal');
-    modal.setAttribute('aria-hidden', 'true');
-    modal.style.display = '';
-  }
+  function openDuplicateSeasonModal()  { openOverlay('duplicateSeasonModal'); }
+  function closeDuplicateSeasonModal() { closeOverlay('duplicateSeasonModal'); }
 </script>
 
 {% endblock %}

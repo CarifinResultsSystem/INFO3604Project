@@ -246,7 +246,9 @@
 }
 
 .select-wrapper:has(#locationFilter),
-.select-wrapper:has(#eventSort) { display: none !important; }
+.select-wrapper:has(#eventSort),
+.select-wrapper:has(#sourceSeasonSelect),
+.select-wrapper:has(#targetSeasonSelect) { display: none !important; }
 
 /* ══════════════════════════════════════
    MAIN EDIT MODAL
@@ -794,14 +796,16 @@
   background: #f9f5ff;
   border: 1px solid #e1d4f7;
   border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
 }
+.ew-toggle-row:hover { background: #f3eefe; }
 
 .ew-toggle-label {
   display: flex;
   align-items: center;
   gap: 14px;
-  cursor: pointer;
-  user-select: none;
+  pointer-events: none; /* row handles the click */
 }
 
 .ew-toggle-track {
@@ -835,9 +839,9 @@
   background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
-  pointer-events: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
+.ew-toggle-track.ew-on .ew-toggle-thumb { transform: translateX(18px); }
 
 .ew-toggle-track:has(input:checked) .ew-toggle-thumb { transform: translateX(18px); }
 
@@ -879,7 +883,6 @@
   font-weight: 600;
   flex-wrap: wrap;
 }
-
 .max-points-value {
   font-size: 1.1rem;
   font-weight: 900;
@@ -888,12 +891,10 @@
   text-align: center;
   line-height: 1;
 }
-
 .max-points-unit {
   font-weight: 800;
   color: var(--purple);
 }
-
 .max-points-note {
   font-weight: 400;
   color: var(--muted);

@@ -13,9 +13,14 @@ function ordinal(n) {
 function openOverlay(id)  { var el = document.getElementById(id); el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
 function closeOverlay(id) { var el = document.getElementById(id); el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
 
-// SEASON MODAL
-function openSeasonModal()  { openOverlay('seasonModal'); }
-function closeSeasonModal() { closeOverlay('seasonModal'); }
+// SEASON MODALS
+function openSeasonModal()           { openOverlay('seasonModal'); }
+function closeSeasonModal()          { closeOverlay('seasonModal'); }
+// FIX 1: Use openOverlay/closeOverlay (adds/removes .open class) instead of
+// setting style.display directly. This keeps all modal behaviour consistent
+// and lets the CSS .season-modal / .season-modal.open rules drive visibility.
+function openDuplicateSeasonModal()  { openOverlay('duplicateSeasonModal'); }
+function closeDuplicateSeasonModal() { closeOverlay('duplicateSeasonModal'); }
 
 // YEAR FILTER
 var yearIndex = (function () {
@@ -102,15 +107,16 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('locationFilter').addEventListener('change', filterTable);
   document.getElementById('eventSort').addEventListener('change', filterTable);
 
-  // Kill Materialize on our selects
+  // FIX 1 (cont.): Kill Materialize on ALL selects we own, including the two
+  // inside the duplicate-season modal which now have proper IDs.
   if (window.M && M.FormSelect) {
-    ['locationFilter','eventSort'].forEach(function (id) {
+    ['locationFilter', 'eventSort', 'sourceSeasonSelect', 'targetSeasonSelect'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       try { var inst = M.FormSelect.getInstance(el); if (inst) inst.destroy(); } catch (e) {}
     });
     M.FormSelect.init(document.querySelectorAll(
-      'select:not(#seasonSelect):not(#eventSort):not(#locationFilter)'
+      'select:not(#seasonSelect):not(#eventSort):not(#locationFilter):not(#sourceSeasonSelect):not(#targetSeasonSelect)'
     ));
   }
 
@@ -118,31 +124,24 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if (document.getElementById('eventWinModal').classList.contains('open')) { closeEventWinModal(); return; }
-    if (document.getElementById('teamModal').classList.contains('open')) { closeTeamModal(); return; }
+    if (document.getElementById('teamModal').classList.contains('open'))     { closeTeamModal();     return; }
+    if (document.getElementById('duplicateSeasonModal').classList.contains('open')) { closeDuplicateSeasonModal(); return; }
+    if (document.getElementById('seasonModal').classList.contains('open'))   { closeSeasonModal();   return; }
     closeModal();
-    closeSeasonModal();
   });
-
-  // Event win points checkbox
-  var ewCheckbox = document.getElementById('eventWinCheckbox');
-  if (ewCheckbox) {
-    ewCheckbox.addEventListener('change', function () {
-      toggleEventWinSection(this.checked);
-    });
-  }
 
   updateYearUI();
 });
 
 
 // STATE
-var _eventId       = null;
-var _eventWinRules = [];  // [{pointsID, placement, award, points}]
-var _teamGroups    = [];  // [{category, rows:[{pointsID, label, points}]}]
+var _eventId         = null;
+var _eventWinRules   = [];  // [{pointsID, placement, award, points}]
+var _teamGroups      = [];  // [{category, rows:[{pointsID, label, points}]}]
 var _eventWinEnabled = false;
 
 // MAIN MODAL
-function openModal()  { openOverlay('eventModal');  document.body.classList.add('modal-open'); }
+function openModal()  { openOverlay('eventModal'); document.body.classList.add('modal-open'); }
 function closeModal() {
   closeOverlay('eventModal');
   document.body.classList.remove('modal-open');
@@ -180,8 +179,8 @@ async function openEdit(eventId, eventName, eventDate, eventTime, eventLocation)
   document.getElementById('detailTime').value     = eventTime     || '';
   document.getElementById('detailLocation').value = eventLocation || '';
 
-  _eventWinRules = [];
-  _teamGroups    = [];
+  _eventWinRules   = [];
+  _teamGroups      = [];
   _eventWinEnabled = false;
 
   try {
@@ -189,7 +188,6 @@ async function openEdit(eventId, eventName, eventDate, eventTime, eventLocation)
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
 
-    // Individual rules → now stored as "event win" rules
     _eventWinRules = (data.individual || []).map(function (r) {
       return { pointsID: r.pointsID, placement: r.placement, award: r.label || '', points: r.points };
     });
@@ -255,7 +253,6 @@ async function saveRules() {
     });
   });
 
-  // Only send event-win (individual) rules if the checkbox is enabled
   var indPayload = _eventWinEnabled
     ? _eventWinRules.map(function (r) {
         return { pointsID: r.pointsID || null, placement: Number(r.placement),
@@ -279,12 +276,23 @@ async function saveRules() {
 }
 
 // Toggle event win section visibility
+function toggleEW() {
+  _eventWinEnabled = !_eventWinEnabled;
+  document.getElementById('ewTrack').classList.toggle('ew-on', _eventWinEnabled);
+  document.getElementById('eventWinSection').style.display = _eventWinEnabled ? 'block' : 'none';
+  if (!_eventWinEnabled) {
+    _eventWinRules = [];
+    renderEventWinTable();
+  }
+  updateMaxPoints();
+}
+
 function toggleEventWinSection(enabled) {
   _eventWinEnabled = enabled;
-  var section = document.getElementById('eventWinSection');
-  section.style.display = enabled ? 'block' : 'none';
+  var track = document.getElementById('ewTrack');
+  if (track) track.classList.toggle('ew-on', enabled);
+  document.getElementById('eventWinSection').style.display = enabled ? 'block' : 'none';
   if (!enabled) {
-    // Clear rules when disabling so they're not saved
     _eventWinRules = [];
     renderEventWinTable();
   }
@@ -294,9 +302,6 @@ function toggleEventWinSection(enabled) {
 // Calculate and display max possible team points
 function updateMaxPoints() {
   var total = 0;
-
-  // Sum the max points per team category (just the highest points row per category,
-  // since each category is an OR condition)
   _teamGroups.forEach(function (g) {
     var maxInGroup = 0;
     g.rows.forEach(function (r) {
@@ -305,20 +310,17 @@ function updateMaxPoints() {
     });
     total += maxInGroup;
   });
-
   var el = document.getElementById('maxTeamPoints');
   if (el) el.textContent = total % 1 === 0 ? total : total.toFixed(2);
 }
 
 // RENDER RULES TABLES
 function renderRules() {
-  // Event Win checkbox state
   var checkbox = document.getElementById('eventWinCheckbox');
   if (checkbox) {
     checkbox.checked = _eventWinEnabled;
     toggleEventWinSection(_eventWinEnabled);
   }
-
   renderEventWinTable();
   renderTeamTable();
   updateMaxPoints();
@@ -394,8 +396,8 @@ function openEventWinModal(idx) {
   if (idx !== null) {
     var r = _eventWinRules[idx];
     document.getElementById('eventWinPlace').value = r.placement || '';
-    document.getElementById('eventWinAward').value = r.award || '';
-    document.getElementById('eventWinPts').value   = r.points  || '';
+    document.getElementById('eventWinAward').value = r.award     || '';
+    document.getElementById('eventWinPts').value   = r.points    || '';
   } else {
     document.getElementById('eventWinPlace').value = '';
     document.getElementById('eventWinAward').value = '';
@@ -412,9 +414,9 @@ function saveEventWinRule() {
   var pts   = parseFloat(document.getElementById('eventWinPts').value);
   var idxS  = document.getElementById('eventWinIdx').value;
 
-  if (!place || place < 1) { alert('Please enter a valid placement (1, 2, 3…)'); return; }
-  if (!award)               { alert('Please enter an award name.'); return; }
-  if (isNaN(pts) || pts < 0){ alert('Please enter a valid points value.'); return; }
+  if (!place || place < 1)        { alert('Please enter a valid placement (1, 2, 3…)'); return; }
+  if (!award)                     { alert('Please enter an award name.'); return; }
+  if (isNaN(pts) || pts < 0)      { alert('Please enter a valid points value.'); return; }
 
   var idx = idxS !== '' ? parseInt(idxS, 10) : null;
   if (idx === null) {
@@ -498,7 +500,7 @@ function removeAFRow(idx) { _afRows.splice(idx, 1); renderAFRows(); }
 function saveTeamRule() {
   var cat  = document.getElementById('teamCat').value.trim();
   var idxS = document.getElementById('teamIdx').value;
-  if (!cat) { alert('Please enter a category name.'); return; }
+  if (!cat)          { alert('Please enter a category name.'); return; }
   if (!_afRows.length) { alert('Please add at least one condition.'); return; }
   for (var i = 0; i < _afRows.length; i++) {
     if (!_afRows[i].label.trim()) { alert('Row ' + (i+1) + ': description is required.'); return; }
