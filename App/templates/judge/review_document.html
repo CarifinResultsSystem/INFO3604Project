@@ -8,71 +8,138 @@
 
 
 <div class="review-root">
+
     <div class="review-header">
         <h1>
             <i class="material-icons">description</i>
             {{ document.filename }}
         </h1>
+        {% if table_data.total_errors > 0 %}
+        <span class="error-summary-badge">
+            <i class="material-icons">error_outline</i>
+            {{ table_data.total_errors }} error{{ 's' if table_data.total_errors != 1 }}
+        </span>
+        {% endif %}
     </div>
-    
+
+    {% if table_data.load_error %}
+    <div class="info-message" style="border-left-color:#c62828; background:#ffebee;">
+        <i class="material-icons" style="color:#c62828;">warning</i>
+        Could not load document: {{ table_data.load_error }}
+    </div>
+    {% else %}
 
     <div class="review-table-container">
         <div class="review-table-wrapper">
             <table class="review-data-table" id="reviewTable">
                 <thead>
                     <tr>
-                        {% for column in table_data.columns %}
-                        <th>{{ column }}</th>
+                        <th class="col-rule">Rule</th>
+                        {% for inst in table_data.institutions %}
+                        <th>{{ inst }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in table_data.rows %}
-                    {% set outer_loop = loop %}
-                    <tr {% if loop.index0 > 0 and table_data.rows[loop.index0][0] == 'TOTAL' %}class="total-row"{% endif %}>
-                        {% for cell in row %}
-                            {% set row_idx = outer_loop.index0 %}
-                            {% set col_idx = loop.index0 %}
-                            {% set error_key = row_idx ~ ',' ~ col_idx %}
-                            
-                            {% if table_data.error_map and error_key in table_data.error_map %}
-                                {% set error = table_data.error_map[error_key] %}
-                                <td class="{% if cell is number %}numeric{% endif %} error-cell" 
-                                    data-tooltip="{{ error.message }}"
-                                    data-error-type="{{ error.error_type }}">
-                                    {% if cell is number %}
-                                        {{ "%.2f"|format(cell) }}
-                                        {% if error.error_type == 'Total Mismatch' %}
-                                            <span class="error-badge">!</span>
-                                        {% endif %}
-                                    {% else %}
-                                        {{ cell }}
+                {% for challenge in table_data.challenges %}
+                    <tr class="challenge-row">
+                        <td colspan="{{ table_data.institutions | length + 1 }}">
+                            <i class="material-icons row-icon">emoji_events</i>
+                            {{ challenge.name }}
+                        </td>
+                    </tr>
+
+                    {% for event in challenge.events %}
+                        {% if event.name %}
+                        <tr class="event-row">
+                            <td colspan="{{ table_data.institutions | length + 1 }}">
+                                <i class="material-icons row-icon">flag</i>
+                                {{ event.name }}
+                            </td>
+                        </tr>
+                        {% endif %}
+
+                        {% for rule in event.rules %}
+                        <tr class="rule-row">
+                            <td class="col-rule rule-label">{{ rule.label }}</td>
+                            {% for inst in table_data.institutions %}
+                                {% set score = rule.scores[inst] %}
+                                {% set ns = namespace(has_error=false, err_msg='') %}
+                                {% for err in table_data.errors %}
+                                    {% if err.error_type != 'Total Mismatch'
+                                        and err.institution == inst
+                                        and err.get('rule', '') == rule.label %}
+                                        {% set ns.has_error = true %}
+                                        {% set ns.err_msg   = err.message %}
                                     {% endif %}
+                                {% endfor %}
+                                <td class="numeric{% if ns.has_error %} error-cell{% endif %}"
+                                    {% if ns.has_error %}data-tooltip="{{ ns.err_msg }}" title="{{ ns.err_msg }}"{% endif %}>
+                                    {{ "%.2f"|format(score) }}
+                                    {% if ns.has_error %}<span class="error-badge">!</span>{% endif %}
                                 </td>
-                            {% else %}
-                                {% if cell is number %}
-                                <td class="numeric">{{ "%.2f"|format(cell) }}</td>
-                                {% else %}
-                                <td>{{ cell }}</td>
-                                {% endif %}
-                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+
+                        {% if not loop.last %}
+                        <tr class="spacer-row">
+                            <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                        </tr>
+                        {% endif %}
+
+                    {% endfor %}
+
+                    {% if not loop.last %}
+                    <tr class="spacer-row spacer-challenge">
+                        <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                    </tr>
+                    {% endif %}
+
+                {% endfor %}{# /challenges #}
+
+                    {# ── TOTAL POINTS ── #}
+                    <tr class="total-row">
+                        <td class="col-rule total-label">TOTAL POINTS</td>
+                        {% for inst in table_data.institutions %}
+                            {% set reported   = table_data.totals[inst] %}
+                            {% set calculated = table_data.calculated_totals[inst] %}
+                            {% set mismatch   = ((reported - calculated) | abs) >= 0.01 %}
+                            <td class="numeric total-cell{% if mismatch %} error-cell{% endif %}"
+                                {% if mismatch %}
+                                data-tooltip="Mismatch: reported {{ '%.2f'|format(reported) }} vs calculated {{ '%.2f'|format(calculated) }}"
+                                title="Mismatch: reported {{ '%.2f'|format(reported) }} vs calculated {{ '%.2f'|format(calculated) }}"
+                                {% endif %}>
+                                {{ "%.2f"|format(reported) }}
+                                {% if mismatch %}<span class="error-badge">!</span>{% endif %}
+                            </td>
                         {% endfor %}
                     </tr>
-                    {% endfor %}
+
+                    {# ── RANKING ── #}
+                    <tr class="ranking-row">
+                        <td class="col-rule ranking-label">RANKING</td>
+                        {% for inst in table_data.institutions %}
+                        <td class="numeric ranking-cell">{{ table_data.rankings[inst] }}</td>
+                        {% endfor %}
+                    </tr>
+
                 </tbody>
             </table>
         </div>
     </div>
-    
+
+    {% endif %}{# /load_error #}
+
     <div class="review-actions-bar">
         <div class="action-group">
             <a href="{{ url_for('judge_views.view_system_results', documentID=document.id) }}" class="btn btn-outline">
                 <i class="material-icons">visibility</i> View System Graded Results
             </a>
-            <button class="btn btn-outline" >
+            <a href="{{ url_for('judge_views.download_document', documentID=document.id) }}"class="btn btn-outline">
                 <i class="material-icons">download</i> Download Manual Scores
-            </button>
-            <a href="{{ url_for('judge_views.edit_score_document', documentID=document.id) }}" class="btn btn-outline" >
+            </a>
+            <a href="{{ url_for('judge_views.edit_score_document', documentID=document.id) }}" class="btn btn-outline">
                 <i class="material-icons">edit</i> Edit Score Sheet
             </a>
         </div>
@@ -81,51 +148,34 @@
 
 <script>
 function showToast(message, type = 'info') {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
     }
-    
+    const icons = { success: 'check_circle', error: 'error', info: 'info' };
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
-    let icon = 'info';
-    if (type === 'success') icon = 'check_circle';
-    if (type === 'error') icon = 'error';
-    
     toast.innerHTML = `
-        <i class="material-icons toast-icon">${icon}</i>
+        <i class="material-icons toast-icon">${icons[type] || 'info'}</i>
         <span>${message}</span>
         <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
     `;
-    
-    toastContainer.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 5000);
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
 }
 
-// Auto-show toast if there are errors
+
 {% if table_data.total_errors > 0 %}
-document.addEventListener('DOMContentLoaded', function() {
-    showToast('Found {{ table_data.total_errors }} error(s) in this document. Hover over highlighted cells for details.', 'error');
+document.addEventListener('DOMContentLoaded', function () {
+    showToast(
+        'Found {{ table_data.total_errors }} error{{ "s" if table_data.total_errors != 1 }} in this document. Hover over highlighted cells for details.',
+        'error'
+    );
 });
 {% endif %}
 
-// Add fallback for browsers that don't support data-tooltip
-document.addEventListener('DOMContentLoaded', function() {
-    var errorCells = document.querySelectorAll('.error-cell');
-    errorCells.forEach(function(cell) {
-        var tooltip = cell.getAttribute('data-tooltip');
-        if (tooltip) {
-            cell.setAttribute('title', tooltip); // Fallback to native title
-        }
-    });
-});
+
 </script>
 {% endblock %}
