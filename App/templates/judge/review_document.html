@@ -136,9 +136,9 @@
             <a href="{{ url_for('judge_views.view_system_results', documentID=document.id) }}" class="btn btn-outline">
                 <i class="material-icons">visibility</i> View System Graded Results
             </a>
-            <button class="btn btn-outline" onclick="showToast('Download not yet implemented.', 'info')">
+            <a href="{{ url_for('judge_views.download_document', documentID=document.id) }}"class="btn btn-outline">
                 <i class="material-icons">download</i> Download Manual Scores
-            </button>
+            </a>
             <a href="{{ url_for('judge_views.edit_score_document', documentID=document.id) }}" class="btn btn-outline">
                 <i class="material-icons">edit</i> Edit Score Sheet
             </a>

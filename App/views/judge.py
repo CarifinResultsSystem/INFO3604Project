@@ -1,6 +1,6 @@
 import os
 import re
-from flask import Blueprint, render_template, url_for, jsonify, request
+from flask import Blueprint, render_template, url_for, jsonify, request, abort, send_file, current_app
 from flask_jwt_extended import jwt_required, current_user
 from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
@@ -480,6 +480,29 @@ def debug_points(documentID):
         "document_labels":    doc_labels,
     })
 
+
+#Modified from scoretaker
+@judge_views.route('/judge/document/<int:documentID>', methods=['GET'])
+@jwt_required()
+def download_document(documentID):
+    doc = ScoreDocument.query.filter_by(
+        documentID=documentID
+    ).first_or_404()
+    
+    filename = os.path.basename(doc.storedPath)
+    root = os.path.dirname(current_app.root_path)
+    file_path = os.path.join(root, 'uploads', filename)
+    
+    if not os.path.isfile(file_path):
+        abort(404, description=f"Document file not found: {doc.originalFilename}")
+    
+    return send_file(
+        file_path,
+        as_attachment=False,
+        download_name=doc.originalFilename
+    )
+    
+    
 @judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET', 'POST'])
 @jwt_required()
 def edit_score_document(documentID):
