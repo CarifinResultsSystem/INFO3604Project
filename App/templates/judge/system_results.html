@@ -165,9 +165,32 @@
 
                         {% for rule in event.rules %}
                         <tr class="rule-row">
-                            <td class="col-rule rule-label">{{ rule.label }}</td>
+                            <td class="col-rule rule-label">
+                                {{ rule.label }}
+                                {% if rule.max_points is not none %}
+                                <span class="rule-max-hint" title="Maximum points for this rule">
+                                    max&nbsp;{{ rule.max_points }}
+                                </span>
+                                {% endif %}
+                            </td>
                             {% for inst in table_data.institutions %}
-                            <td class="numeric">{{ "%.2f"|format(rule.scores[inst]) }}</td>
+                                {% set corrected = rule.scores[inst] %}
+                                {% set original  = rule.original_scores[inst] if rule.original_scores is defined else corrected %}
+                                {% set changed   = ((corrected - original) | abs) >= 0.01 %}
+                                {% if changed %}
+                                <td class="numeric corrected-cell"
+                                    data-original="Originally reported: {{ '%.2f'|format(original) }}"
+                                    title="Originally reported: {{ '%.2f'|format(original) }}">
+                                    {{ "%.2f"|format(corrected) }}
+                                    {% if corrected < original %}
+                                    <span class="diff-indicator diff-negative" title="Reduced from {{ '%.2f'|format(original) }}"></span>
+                                    {% else %}
+                                    <span class="diff-indicator diff-positive" title="Increased from {{ '%.2f'|format(original) }}"></span>
+                                    {% endif %}
+                                </td>
+                                {% else %}
+                                <td class="numeric">{{ "%.2f"|format(corrected) }}</td>
+                                {% endif %}
                             {% endfor %}
                         </tr>
                         {% endfor %}

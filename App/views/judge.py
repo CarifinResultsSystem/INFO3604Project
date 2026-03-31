@@ -18,6 +18,10 @@ def _all_inst_empty(row, inst_cols):
             return False
     return True
 
+#Ensures there is no unneccesary whitespace
+def _normalise_label(label):
+    return re.sub(r'\s+', ' ', label).strip().lower()
+
 #Returns a dict from the PointsRulesTable for use in identify_cell_errors
 def _get_points_rule_lookup():
     lookup = {}
@@ -30,6 +34,19 @@ def _get_points_rule_lookup():
     except Exception as e:
         print(f"Warning: could not load PointsRules from DB: {e}")
     return lookup
+
+#helper function to get point rules range
+def _get_max_points_for_label(spreadsheet_label, points_lookup):
+    normalised = _normalise_label(spreadsheet_label)
+
+    if normalised in points_lookup:
+        return points_lookup[normalised]
+
+    matches = [(k, v) for k, v in points_lookup.items() if k in normalised]
+    if matches:
+        best_key, best_pts = max(matches, key=lambda kv: len(kv[0]))
+        return best_pts
+    return None
 
 #Used to parse the document, 
 def parse_hierarchical_document(file_path):
@@ -196,8 +213,7 @@ def identify_cell_errors(unconfirmed_doc):
         for challenge in parsed['challenges']:
             for event in challenge['events']:
                 for rule in event['rules']:
-                    label_key = rule['label'].strip().lower()
-                    max_pts   = points_lookup.get(label_key)
+                    max_pts = _get_max_points_for_label(rule['label'], points_lookup)
 
                     for inst in parsed['institutions']:
                         v = rule['scores'].get(inst)
@@ -279,17 +295,55 @@ def get_system_calculated_results(document):
         if parsed is None:
             return None, []
 
+        points_lookup = _get_points_rule_lookup()
+        institutions  = parsed['institutions']
+
+        for challenge in parsed['challenges']:
+            for event in challenge['events']:
+                for rule in event['rules']:
+                    max_pts = _get_max_points_for_label(rule['label'], points_lookup)
+                    rule['original_scores'] = dict(rule['scores'])  # reported values before clamping
+                    rule['max_points']       = max_pts
+                    for inst in institutions:
+                        v = rule['scores'].get(inst, 0.0)
+                        if v < 0:
+                            v = 0.0
+                        if max_pts is not None and v > max_pts:
+                            v = max_pts
+                        rule['scores'][inst] = v
+
+        corrected_totals = {inst: 0.0 for inst in institutions}
+        for challenge in parsed['challenges']:
+            for event in challenge['events']:
+                for rule in event['rules']:
+                    for inst in institutions:
+                        corrected_totals[inst] += rule['scores'].get(inst, 0.0)
+        corrected_totals = {inst: round(v, 2) for inst, v in corrected_totals.items()}
+
+        sorted_insts = sorted(institutions, key=lambda i: corrected_totals[i], reverse=True)
+        corrected_rankings = {}
+        rank = 1
+        for i, inst in enumerate(sorted_insts):
+            if i > 0 and corrected_totals[inst] == corrected_totals[sorted_insts[i - 1]]:
+                corrected_rankings[inst] = corrected_rankings[sorted_insts[i - 1]]
+            else:
+                corrected_rankings[inst] = rank
+            rank += 1
+
+        parsed['calculated_totals']   = corrected_totals
+        parsed['calculated_rankings'] = corrected_rankings
+
         comparison_data = []
-        for inst in parsed['institutions']:
-            original = parsed['totals'].get(inst, 0.0)
-            corrected = parsed['calculated_totals'].get(inst, 0.0)
-            diff = round(corrected - original, 2)
+        for inst in institutions:
+            original  = parsed['totals'].get(inst, 0.0)
+            corrected = corrected_totals[inst]
+            diff      = round(corrected - original, 2)
             comparison_data.append({
-                'institution': inst,
-                'original_value': original,
+                'institution':     inst,
+                'original_value':  original,
                 'corrected_value': corrected,
-                'difference': diff,
-                'matches': abs(diff) < 0.01,
+                'difference':      diff,
+                'matches':         abs(diff) < 0.01,
             })
 
         return parsed, comparison_data
@@ -396,6 +450,35 @@ def review_score_document(documentID):
         }
 
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
+
+@judge_views.route('/judge/debug-points/<int:documentID>')
+@jwt_required()
+def debug_points(documentID):
+    document = get_score_document(documentID)
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+
+    lookup = _get_points_rule_lookup()
+    parsed = parse_hierarchical_document(document.storedPath)
+
+    doc_labels = []
+    if parsed:
+        for challenge in parsed["challenges"]:
+            for event in challenge["events"]:
+                for rule in event["rules"]:
+                    normalised = _normalise_label(rule["label"])
+                    resolved = _get_max_points_for_label(rule["label"], lookup)
+                    doc_labels.append({
+                        "raw_label":   rule["label"],
+                        "normalised":  normalised,
+                        "max_pts":     resolved,
+                        "lookup_hit":  resolved is not None,
+                    })
+
+    return jsonify({
+        "points_rule_lookup": {k: v for k, v in lookup.items()},
+        "document_labels":    doc_labels,
+    })
 
 @judge_views.route('/judge/review/<int:documentID>/edit', methods=['GET', 'POST'])
 @jwt_required()
