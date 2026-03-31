@@ -248,42 +248,6 @@
         </div>
     </div>
 
-    {% if table_data.comparison_data %}
-    <div class="comparison-section">
-        <h3><i class="material-icons">compare_arrows</i> Total Points Comparison</h3>
-        <table class="comparison-table">
-            <thead>
-                <tr>
-                    <th>Institution</th>
-                    <th>Reported Total</th>
-                    <th>System Total</th>
-                    <th>Difference</th>
-                    <th>Match?</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for c in table_data.comparison_data %}
-            <tr>
-                <td>{{ c.institution }}</td>
-                <td>{{ "%.2f"|format(c.original_value) }}</td>
-                <td>{{ "%.2f"|format(c.corrected_value) }}</td>
-                <td>
-                    {% if c.difference != 'N/A' %}
-                        {% if c.difference > 0 %}+{% endif %}{{ "%.2f"|format(c.difference) }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
-                <td class="{{ 'match-yes' if c.matches else 'match-no' }}">
-                    {{ '✓' if c.matches else '✗' }}
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-
     {% endif %}
 
     <div class="review-actions-bar">

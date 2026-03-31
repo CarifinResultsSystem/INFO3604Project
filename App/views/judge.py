@@ -1,9 +1,10 @@
 import os
+import re
 from flask import Blueprint, render_template, url_for, jsonify, request
 from flask_jwt_extended import jwt_required, current_user
 from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
-from App.models import ScoreDocument
+from App.models import ScoreDocument, PointsRules
 import pandas as pd
 import numpy as np
 
@@ -16,6 +17,19 @@ def _all_inst_empty(row, inst_cols):
         if pd.notna(val) and str(val).strip() != '':
             return False
     return True
+
+#Returns a dict from the PointsRulesTable for use in identify_cell_errors
+def _get_points_rule_lookup():
+    lookup = {}
+    try:
+        for pr in PointsRules.query.all():
+            if pr.label:
+                key = re.sub(r'\s+', ' ', pr.label).strip().lower()
+                if key not in lookup or pr.points > lookup[key]:
+                    lookup[key] = pr.points
+    except Exception as e:
+        print(f"Warning: could not load PointsRules from DB: {e}")
+    return lookup
 
 #Used to parse the document, 
 def parse_hierarchical_document(file_path):
@@ -159,7 +173,7 @@ def identify_cell_errors(unconfirmed_doc):
         parsed = parse_hierarchical_document(unconfirmed_doc.storedPath)
         if parsed is None:
             return []
- 
+
         error_cells = []
         
         #Check each institution's total
@@ -175,6 +189,52 @@ def identify_cell_errors(unconfirmed_doc):
                     'error_type': 'Total Mismatch',
                     'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
                 })
+                
+        points_lookup = _get_points_rule_lookup()
+
+        #Compare scores to point rules
+        for challenge in parsed['challenges']:
+            for event in challenge['events']:
+                for rule in event['rules']:
+                    label_key = rule['label'].strip().lower()
+                    max_pts   = points_lookup.get(label_key)
+
+                    for inst in parsed['institutions']:
+                        v = rule['scores'].get(inst)
+
+                        if v is None or (isinstance(v, float) and np.isnan(v)):
+                            continue 
+
+                        if v < 0:
+                            error_cells.append({
+                                'institution': inst,
+                                'challenge':   challenge['name'],
+                                'event':       event['name'],
+                                'rule':        rule['label'],
+                                'value':       v,
+                                'max_points':  max_pts,
+                                'error_type':  'Out of Range',
+                                'message':     (
+                                    f"Score {v} for '{rule['label']}' is below the minimum of 0"
+                                    + (f" under '{event['name']}'" if event['name'] else '')
+                                ),
+                            })
+
+                        elif max_pts is not None and v > max_pts:
+                            error_cells.append({
+                                'institution': inst,
+                                'challenge':   challenge['name'],
+                                'event':       event['name'],
+                                'rule':        rule['label'],
+                                'value':       v,
+                                'max_points':  max_pts,
+                                'error_type':  'Out of Range',
+                                'message':     (
+                                    f"Score {v} exceeds the maximum of {max_pts} for '{rule['label']}'"
+                                    + (f" under '{event['name']}'" if event['name'] else '')
+                                ),
+                            })
+    
         return error_cells
     except Exception as e:
         print(f"Error in identify_cell_errors: {e}")
@@ -197,20 +257,15 @@ def identify_all_cell_errors(unconfirmed_doc):
                         if v is None or (isinstance(v, float) and np.isnan(v)):
                             all_errors.append({
                                 'institution': inst,
-                                'event': event['name'],
-                                'rule': rule['label'],
-                                'value': v,
-                                'error_type': 'Missing Value',
-                                'message': f"Missing value for '{rule['label']}' under '{event['name']}'"
-                            })
-                        elif isinstance(v, (int, float)) and v < 0:
-                            all_errors.append({
-                                'institution': inst,
-                                'event': event['name'],
-                                'rule': rule['label'],
-                                'value': v,
-                                'error_type': 'Negative Value',
-                                'message': f"Negative value ({v}) for '{rule['label']}'"
+                                'challenge':   challenge['name'],
+                                'event':       event['name'],
+                                'rule':        rule['label'],
+                                'value':       v,
+                                'error_type':  'Missing Value',
+                                'message':     (
+                                    f"Missing value for '{rule['label']}'"
+                                    + (f" under '{event['name']}'" if event['name'] else '')
+                                ),
                             })
         return all_errors
     except Exception as e:
@@ -365,7 +420,23 @@ def edit_score_document(documentID):
             return jsonify({"error": "Invalid request body. Expected JSON with a 'rows' key."}), 400
 
         try:
-            existing_df = pd.read_excel(document.storedPath)
+            file_ext = os.path.splitext(document.storedPath)[1].lower()
+
+            # Read with the correct engine based on actual file extension
+            engine_map = {
+                '.xlsx': 'openpyxl',
+                '.xls':  'xlrd',
+                '.xlsm': 'openpyxl',
+                '.xlsb': 'pyxlsb',
+            }
+            if file_ext in engine_map:
+                existing_df = pd.read_excel(document.storedPath, engine=engine_map[file_ext])
+            elif file_ext == '.csv':
+                existing_df = pd.read_csv(document.storedPath)
+            else:
+                # Last-resort: let pandas sniff the engine
+                existing_df = pd.read_excel(document.storedPath)
+
             columns = existing_df.columns.tolist()
             
             submitted_rows = data['rows']
@@ -386,7 +457,19 @@ def edit_score_document(documentID):
 
             coerced_rows = [[coerce(cell) for cell in row] for row in submitted_rows]
             updated_df = pd.DataFrame(coerced_rows, columns=columns)
-            updated_df.to_excel(document.storedPath, index=False)
+
+            if file_ext == '.csv':
+                updated_df.to_csv(document.storedPath, index=False)
+            elif file_ext == '.xls':
+                updated_df.to_excel(document.storedPath, index=False, engine='xlwt')
+            elif file_ext in ('.xlsm', '.xlsb'):
+                new_path = os.path.splitext(document.storedPath)[0] + '.xlsx'
+                updated_df.to_excel(new_path, index=False, engine='openpyxl')
+                document.storedPath = new_path
+                db.session.commit()
+            else:
+                updated_df.to_excel(document.storedPath, index=False, engine='openpyxl')
+
             return jsonify({"message": "Document saved successfully."}), 200
 
         except Exception as e:
