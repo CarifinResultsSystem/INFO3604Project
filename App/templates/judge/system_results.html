@@ -18,48 +18,10 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        margin-left: 15px;
+        margin-left: 12px;
+        vertical-align: middle;
     }
-    
-    .corrected-cell {
-        position: relative;
-    }
-    
-    .corrected-cell:hover::after {
-        content: attr(data-original);
-        position: absolute;
-        background: #333;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        top: -25px;
-        left: 50%;
-        transform: translateX(-50%);
-        white-space: nowrap;
-        z-index: 1000;
-    }
-    
-    .diff-indicator {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-left: 5px;
-    }
-    
-    .diff-positive {
-        background-color: #2e7d32;
-    }
-    
-    .diff-negative {
-        background-color: #c62828;
-    }
-    
-    .diff-zero {
-        background-color: #9e9e9e;
-    }
-    
+
     .info-message {
         background: #e3f2fd;
         border-left: 4px solid #1976d2;
@@ -71,79 +33,261 @@
         gap: 12px;
         font-size: 0.95rem;
     }
+
+    .corrected-cell {
+        position: relative;
+        cursor: help;
+    }
+    .corrected-cell::after {
+        content: attr(data-original);
+        position: absolute;
+        background: #333;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        white-space: nowrap;
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+    .corrected-cell:hover::after { opacity: 1; }
+
+    /* Small coloured dot showing direction of correction */
+    .diff-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-left: 5px;
+        vertical-align: middle;
+    }
+    .diff-positive { background-color: #2e7d32; }
+    .diff-negative { background-color: #c62828; }
+    .diff-zero     { background-color: #9e9e9e; }
+
+    /* Comparison summary table below the main grid */
+    .comparison-section {
+        margin-top: 28px;
+        padding: 0 4px;
+    }
+    .comparison-section h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-primary, #212121);
+    }
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+        padding: 8px 14px;
+        border: 1px solid var(--border-color, #e0e0e0);
+        text-align: center;
+    }
+    .comparison-table th {
+        background: var(--surface-alt, #f5f5f5);
+        font-weight: 600;
+    }
+    .comparison-table td.match-yes  { color: #2e7d32; font-weight: 600; }
+    .comparison-table td.match-no   { color: #c62828; font-weight: 600; }
 </style>
 
 <div class="review-root">
+
     <div class="review-header">
         <h1>
             <i class="material-symbols-outlined">calculate</i>
             {{ document.filename }}
+            <span class="system-badge">
+                <i class="material-icons" style="font-size:14px;">auto_fix_high</i>
+                System Results
+            </span>
         </h1>
     </div>
-    
+
+    <div class="info-message">
+        <i class="material-icons" style="color:#1976d2;">info</i>
+        Totals and rankings below are recalculated by the system from individual rule scores.
+        Corrected cells are highlighted — hover for the originally reported value.
+    </div>
+
+    {% if table_data.load_error %}
+    <div class="info-message" style="border-left-color:#c62828; background:#ffebee;">
+        <i class="material-icons" style="color:#c62828;">warning</i>
+        Could not load document: {{ table_data.load_error }}
+    </div>
+    {% else %}
 
     <div class="review-table-container">
         <div class="review-table-wrapper">
             <table class="review-data-table" id="reviewTable">
+
                 <thead>
                     <tr>
-                        {% for column in table_data.columns %}
-                        <th>{{ column }}</th>
+                        <th class="col-rule">Rule</th>
+                        {% for inst in table_data.institutions %}
+                        <th>{{ inst }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
+
                 <tbody>
-                    {% for row in table_data.rows %}
-                    {% set outer_loop = loop %}
-                    <tr {% if loop.index0 == table_data.total_row_index %}class="total-row"{% endif %}>
-                        {% for cell in row %}
-                            {% if loop.first %}
-                                <td>{{ cell }}</td>
-                            {% elif cell is number %}
-                                {% set row_idx = outer_loop.index0 %}
-                                {% set col_idx = loop.index0 %}
-                                
-                                <!-- Check if this is a corrected cell (in TOTAL row) -->
-                                {% if row_idx == table_data.total_row_index and table_data.comparison_data %}
-                                    {% set inst_index = col_idx - 1 %}
-                                    {% if inst_index >= 0 and inst_index < table_data.comparison_data|length %}
-                                        {% set comp = table_data.comparison_data[inst_index] %}
-                                        {% if not comp.matches %}
-                                            <td class="numeric corrected-cell" 
-                                                data-original="Original: {{ comp.original_value }}">
-                                                {{ "%.2f"|format(cell) }}
-                                                {% if comp.difference != 'N/A' %}
-                                                    {% if comp.difference > 0 %}
-                                                        <span class="diff-indicator diff-positive" title="Increased by {{ comp.difference }}"></span>
-                                                    {% elif comp.difference < 0 %}
-                                                        <span class="diff-indicator diff-negative" title="Decreased by {{ comp.difference|abs }}"></span>
-                                                    {% else %}
-                                                        <span class="diff-indicator diff-zero" title="No change"></span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            </td>
+                {% for challenge in table_data.challenges %}
+
+                    <tr class="challenge-row">
+                        <td colspan="{{ table_data.institutions | length + 1 }}">
+                            <i class="material-icons row-icon">emoji_events</i>
+                            {{ challenge.name }}
+                        </td>
+                    </tr>
+
+                    {% for event in challenge.events %}
+
+                        {% if event.name %}
+                        <tr class="event-row">
+                            <td colspan="{{ table_data.institutions | length + 1 }}">
+                                <i class="material-icons row-icon">flag</i>
+                                {{ event.name }}
+                            </td>
+                        </tr>
+                        {% endif %}
+
+                        {% for rule in event.rules %}
+                        <tr class="rule-row">
+                            <td class="col-rule rule-label">{{ rule.label }}</td>
+                            {% for inst in table_data.institutions %}
+                            <td class="numeric">{{ "%.2f"|format(rule.scores[inst]) }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+
+                        {% if not loop.last %}
+                        <tr class="spacer-row">
+                            <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                        </tr>
+                        {% endif %}
+
+                    {% endfor %}
+
+                    {% if not loop.last %}
+                    <tr class="spacer-row spacer-challenge">
+                        <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                    </tr>
+                    {% endif %}
+
+                {% endfor %}
+
+                    <tr class="total-row">
+                        <td class="col-rule total-label">TOTAL POINTS</td>
+                        {% for inst in table_data.institutions %}
+                            {% set ns = namespace(comp=none) %}
+                            {% for c in table_data.comparison_data %}
+                                {% if c.institution == inst %}{% set ns.comp = c %}{% endif %}
+                            {% endfor %}
+                            {% if ns.comp and not ns.comp.matches %}
+                                <td class="numeric total-cell corrected-cell"
+                                    data-original="Originally reported: {{ '%.2f'|format(ns.comp.original_value) }}"
+                                    title="Originally reported: {{ '%.2f'|format(ns.comp.original_value) }}">
+                                    {{ "%.2f"|format(ns.comp.corrected_value) }}
+                                    {% if ns.comp.difference != 'N/A' %}
+                                        {% if ns.comp.difference > 0 %}
+                                            <span class="diff-indicator diff-positive"
+                                                title="Increased by {{ '%.2f'|format(ns.comp.difference) }}"></span>
+                                        {% elif ns.comp.difference < 0 %}
+                                            <span class="diff-indicator diff-negative"
+                                                title="Decreased by {{ '%.2f'|format(ns.comp.difference | abs) }}"></span>
                                         {% else %}
-                                            <td class="numeric">{{ "%.2f"|format(cell) }}</td>
+                                            <span class="diff-indicator diff-zero"></span>
                                         {% endif %}
-                                    {% else %}
-                                        <td class="numeric">{{ "%.2f"|format(cell) }}</td>
                                     {% endif %}
-                                {% else %}
-                                    <td class="numeric">{{ "%.2f"|format(cell) }}</td>
-                                {% endif %}
+                                </td>
                             {% else %}
-                                <td>{{ cell }}</td>
+                                <td class="numeric total-cell">
+                                    {{ "%.2f"|format(table_data.calculated_totals[inst]) }}
+                                </td>
                             {% endif %}
                         {% endfor %}
                     </tr>
-                    {% endfor %}
+
+                    <tr class="ranking-row">
+                        <td class="col-rule ranking-label">RANKING</td>
+                        {% for inst in table_data.institutions %}
+                            {% set rep_rank  = table_data.rankings[inst] | string %}
+                            {% set calc_rank = table_data.calculated_rankings[inst] | string %}
+                            {% set rank_changed = rep_rank != calc_rank %}
+                            <td class="numeric ranking-cell{% if rank_changed %} corrected-cell{% endif %}"
+                                {% if rank_changed %}
+                                data-original="Originally reported: {{ rep_rank }}"
+                                title="Originally reported: {{ rep_rank }}"
+                                {% endif %}>
+                                {{ calc_rank }}
+                                {% if rank_changed %}
+                                    {% if calc_rank | int < rep_rank | int %}
+                                        <span class="diff-indicator diff-positive" title="Rank improved"></span>
+                                    {% else %}
+                                        <span class="diff-indicator diff-negative" title="Rank worsened"></span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
                 </tbody>
             </table>
         </div>
     </div>
-    
+
+    {% if table_data.comparison_data %}
+    <div class="comparison-section">
+        <h3><i class="material-icons">compare_arrows</i> Total Points Comparison</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Institution</th>
+                    <th>Reported Total</th>
+                    <th>System Total</th>
+                    <th>Difference</th>
+                    <th>Match?</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in table_data.comparison_data %}
+            <tr>
+                <td>{{ c.institution }}</td>
+                <td>{{ "%.2f"|format(c.original_value) }}</td>
+                <td>{{ "%.2f"|format(c.corrected_value) }}</td>
+                <td>
+                    {% if c.difference != 'N/A' %}
+                        {% if c.difference > 0 %}+{% endif %}{{ "%.2f"|format(c.difference) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td class="{{ 'match-yes' if c.matches else 'match-no' }}">
+                    {{ '✓' if c.matches else '✗' }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
     <div class="review-actions-bar">
-        <div class="action-group" style="justify-content: center; width: 100%;">
+        <div class="action-group" style="justify-content:center; width:100%;">
             <button class="btn btn-upload-final" onclick="uploadAsFinal()">
                 <i class="material-icons">upload_file</i>
                 Upload as Final Results
@@ -158,67 +302,45 @@
 
 <script>
 function uploadAsFinal() {
-    if (confirm('Upload these system-calculated results as final? This will replace any existing final results.')) {
+    if (confirm('Upload these system-calculated results as final? This cannot be undone.')) {
         performFinalization(true);
     }
 }
 
 function performFinalization(useSystemResults) {
-    showToast('Processing...', 'info');
-    
+    showToast('Processing…', 'info');
     fetch('/judge/finalize/{{ document.id }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ use_system_results: useSystemResults })
     })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('Failed to finalize');
-        }
-    })
+    .then(r => r.ok ? r.json() : Promise.reject())
     .then(data => {
         showToast(data.message || 'Successfully uploaded as final results!', 'success');
-        // Optionally redirect after successful finalization
         setTimeout(() => {
             window.location.href = "{{ url_for('judge_views.review_scores') }}";
         }, 2000);
     })
-    .catch(error => {
-        showToast('Failed to upload as final results.', 'error');
-        console.error('Error:', error);
-    });
+    .catch(() => showToast('Failed to upload as final results.', 'error'));
 }
 
 function showToast(message, type = 'info') {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
     }
-    
+    const icons = { success: 'check_circle', error: 'error', info: 'info' };
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
-    let icon = 'info';
-    if (type === 'success') icon = 'check_circle';
-    if (type === 'error') icon = 'error';
-    
     toast.innerHTML = `
-        <i class="material-icons toast-icon">${icon}</i>
+        <i class="material-icons toast-icon">${icons[type] || 'info'}</i>
         <span>${message}</span>
         <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
     `;
-    
-    toastContainer.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 5000);
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
 }
 </script>
 {% endblock %}
