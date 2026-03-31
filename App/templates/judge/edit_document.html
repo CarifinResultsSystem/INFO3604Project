@@ -6,9 +6,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='judge/review.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='scoretaker/archives.css') }}">
 
-<style>
-</style>
-
 <div class="review-root">
     <div class="review-header">
         <h1>
@@ -23,58 +20,110 @@
         </div>
     </div>
 
+    {% if table_data.load_error %}
+    <div class="info-message" style="border-left-color:#c62828; background:#ffebee;">
+        <i class="material-icons" style="color:#c62828;">warning</i>
+        Could not load document: {{ table_data.load_error }}
+    </div>
+    {% else %}
+
     <div class="review-table-container">
         <div class="review-table-wrapper">
             <table class="review-data-table" id="reviewTable">
                 <thead>
                     <tr>
-                        {% for column in table_data.columns %}
-                        <th>{{ column }}</th>
+                        <th class="col-rule">Rule</th>
+                        {% for inst in table_data.institutions %}
+                        <th>{{ inst }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody id="editableBody">
-                    {% for row in table_data.rows %}
-                    <tr data-row-index="{{ loop.index0 }}">
-                        {% for cell in row %}
-                            {% if loop.first %}
-                                <td class="row-label">{{ cell }}</td>
-                            {% elif cell is number %}
+                {% for challenge in table_data.challenges %}
+                    <tr class="challenge-row" data-type="challenge">
+                        <td colspan="{{ table_data.institutions | length + 1 }}">
+                            <i class="material-icons row-icon">emoji_events</i>
+                            {{ challenge.name }}
+                        </td>
+                    </tr>
+
+                    {% for event in challenge.events %}
+                        {% if event.name %}
+                        <tr class="event-row" data-type="event">
+                            <td colspan="{{ table_data.institutions | length + 1 }}">
+                                <i class="material-icons row-icon">flag</i>
+                                {{ event.name }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% for rule in event.rules %}
+                        <tr class="rule-row" data-type="rule"
+                            data-challenge="{{ challenge.name }}"
+                            data-event="{{ event.name }}"
+                            data-rule="{{ rule.label }}">
+                            <td class="col-rule row-label">{{ rule.label }}</td>
+                            {% for inst in table_data.institutions %}
+                                {% set score = rule.scores[inst] %}
                                 <td class="editable numeric"
-                                    data-original="{{ cell }}"
-                                    data-col-index="{{ loop.index0 }}">
+                                    data-institution="{{ inst }}"
+                                    data-original="{{ score }}">
                                     <input
                                         type="number"
                                         class="numeric"
-                                        value="{{ cell }}"
+                                        value="{{ score }}"
                                         step="any"
-                                        data-original="{{ cell }}"
+                                        min="0"
+                                        data-original="{{ score }}"
                                         oninput="onCellEdit(this)"
                                     >
                                 </td>
-                            {% else %}
-                                <td class="editable"
-                                    data-original="{{ cell }}"
-                                    data-col-index="{{ loop.index0 }}">
-                                    <input
-                                        type="text"
-                                        value="{{ cell if cell is not none else '' }}"
-                                        data-original="{{ cell if cell is not none else '' }}"
-                                        oninput="onCellEdit(this)"
-                                    >
-                                </td>
-                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                        {% if not loop.last %}
+                        <tr class="spacer-row">
+                            <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                        </tr>
+                        {% endif %}
+
+                    {% endfor %}
+                    {% if not loop.last %}
+                    <tr class="spacer-row spacer-challenge">
+                        <td colspan="{{ table_data.institutions | length + 1 }}"></td>
+                    </tr>
+                    {% endif %}
+
+                {% endfor %}
+                    <tr class="total-row" id="totalRow">
+                        <td class="col-rule total-label">TOTAL POINTS</td>
+                        {% for inst in table_data.institutions %}
+                        <td class="numeric total-cell"
+                            id="total-{{ loop.index0 }}"
+                            data-institution="{{ inst }}">
+                            {{ "%.2f"|format(table_data.calculated_totals[inst]) }}
+                        </td>
                         {% endfor %}
                     </tr>
-                    {% endfor %}
+                    <tr class="ranking-row" id="rankingRow">
+                        <td class="col-rule ranking-label">RANKING</td>
+                        {% for inst in table_data.institutions %}
+                        <td class="numeric ranking-cell"
+                            id="rank-{{ loop.index0 }}"
+                            data-institution="{{ inst }}">
+                            {{ table_data.rankings[inst] }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
                 </tbody>
             </table>
         </div>
     </div>
+    {% endif %}
 
     <div class="review-actions-bar">
         <div class="edit-action-group">
-            <button class="btn btn-upload-final" id="btnUpload" onclick="uploadAsFinal()">
+            <button class="btn btn-upload-final" id="btnUpload">
                 <i class="material-icons">upload_file</i>
                 Upload as Final Results
             </button>
@@ -91,41 +140,119 @@
 </div>
 
 <script>
+const INSTITUTIONS = {{ table_data.institutions | tojson }};
 let hasUnsavedChanges = false;
 
+
+function recalculateTotals() {
+    const sums = {};
+    INSTITUTIONS.forEach(inst => sums[inst] = 0);
+
+    document.querySelectorAll('#editableBody tr.rule-row').forEach(tr => {
+        tr.querySelectorAll('td.editable').forEach(td => {
+            const inst  = td.dataset.institution;
+            const input = td.querySelector('input');
+            const val   = parseFloat(input ? input.value : 0) || 0;
+            if (inst in sums) sums[inst] += val;
+        });
+    });
+
+    
+    INSTITUTIONS.forEach((inst, idx) => {
+        const cell = document.getElementById(`total-${idx}`);
+        if (cell) cell.textContent = sums[inst].toFixed(2);
+    });
+
+    
+    const sorted = [...INSTITUTIONS].sort((a, b) => sums[b] - sums[a]);
+    const ranks  = {};
+    let rank = 1;
+    sorted.forEach((inst, i) => {
+        if (i > 0 && sums[inst] === sums[sorted[i - 1]]) {
+            ranks[inst] = ranks[sorted[i - 1]];
+        } else {
+            ranks[inst] = rank;
+        }
+        rank++;
+    });
+
+    INSTITUTIONS.forEach((inst, idx) => {
+        const cell = document.getElementById(`rank-${idx}`);
+        if (cell) cell.textContent = ranks[inst];
+    });
+}
+
+
 function onCellEdit(input) {
-    const td = input.closest('td');
-    const original = input.dataset.original;
-    const current  = input.value;
+    const td       = input.closest('td');
+    const original = parseFloat(input.dataset.original) || 0;
+    const current  = parseFloat(input.value) || 0;
+    const changed  = Math.abs(current - original) >= 0.001;
 
-    const isChanged = String(current) !== String(original);
-    td.classList.toggle('cell-changed', isChanged);
+    td.classList.toggle('cell-changed', changed);
 
-    // Track unsaved state
-    const anyChanged = [...document.querySelectorAll('.editable.cell-changed')].length > 0;
-    hasUnsavedChanges = anyChanged;
-    document.getElementById('unsavedBadge').classList.toggle('visible', anyChanged);
+    hasUnsavedChanges = document.querySelectorAll('.editable.cell-changed').length > 0;
+    document.getElementById('unsavedBadge').classList.toggle('visible', hasUnsavedChanges);
+
+    recalculateTotals();
+}
+
+function collectRows() {
+    const cols = ['Rule', ...INSTITUTIONS];
+    const rows = [];
+    document.querySelectorAll('#editableBody tr').forEach(tr => {
+        const type = tr.dataset.type;
+
+        if (type === 'challenge' || type === 'event') {
+            const label = tr.querySelector('td')?.textContent?.trim()
+                           .replace(/^[\s\S]*?\s/, '')
+                           || '';
+            const td = tr.querySelector('td');
+            const text = td ? [...td.childNodes]
+                .filter(n => n.nodeType === 3)
+                .map(n => n.textContent.trim())
+                .join('').trim() : '';
+            rows.push([text, ...INSTITUTIONS.map(() => '')]);
+
+        } else if (type === 'rule') {
+            const label = tr.querySelector('td.row-label')?.textContent?.trim() || '';
+            const scoreRow = [label];
+            tr.querySelectorAll('td.editable').forEach(td => {
+                const input = td.querySelector('input');
+                scoreRow.push(input ? (parseFloat(input.value) || 0) : 0);
+            });
+            rows.push(scoreRow);
+
+        } else {
+            rows.push(INSTITUTIONS.map(() => '').concat(['']));
+        }
+    });
+
+    const totalRow = ['TOTAL POINTS'];
+    INSTITUTIONS.forEach((inst, idx) => {
+        const cell = document.getElementById(`total-${idx}`);
+        totalRow.push(cell ? (parseFloat(cell.textContent) || 0) : 0);
+    });
+    rows.push(totalRow);
+
+    const rankRow = ['RANKING'];
+    INSTITUTIONS.forEach((inst, idx) => {
+        const cell = document.getElementById(`rank-${idx}`);
+        rankRow.push(cell ? cell.textContent.trim() : '');
+    });
+    rows.push(rankRow);
+
+    return rows;
 }
 
 function saveChanges() {
-    const rows = [];
-    document.querySelectorAll('#editableBody tr').forEach(tr => {
-        const rowData = [];
-        tr.querySelectorAll('td').forEach(td => {
-            const input = td.querySelector('input');
-            rowData.push(input ? input.value : td.textContent.trim());
-        });
-        rows.push(rowData);
-    });
-
     fetch(window.location.pathname, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows })
+        body: JSON.stringify({ rows: collectRows() })
     })
     .then(r => {
         if (r.ok) {
-            // Mark all cells as saved (update originals)
             document.querySelectorAll('.editable input').forEach(input => {
                 input.dataset.original = input.value;
                 input.closest('td').classList.remove('cell-changed');
@@ -134,7 +261,8 @@ function saveChanges() {
             document.getElementById('unsavedBadge').classList.remove('visible');
             showToast('Changes saved successfully.', 'success');
         } else {
-            showToast('Failed to save changes.', 'error');
+            r.json().then(d => showToast(d.error || 'Failed to save changes.', 'error'))
+                    .catch(() => showToast('Failed to save changes.', 'error'));
         }
     })
     .catch(() => showToast('Network error. Could not save.', 'error'));
@@ -150,20 +278,20 @@ function discardChanges() {
     });
     hasUnsavedChanges = false;
     document.getElementById('unsavedBadge').classList.remove('visible');
+    recalculateTotals();
     showToast('Changes discarded.', 'info');
 }
 
 function uploadAsFinal() {
     if (hasUnsavedChanges) {
-        if (!confirm('You have unsaved changes. Save and upload as final results?')) {
-            return;
-        }
-        // First save changes, then finalize
-        saveChanges();
-        // Small delay to ensure save completes
-        setTimeout(() => {
-            performFinalization(false); // false = use current document, not system results
-        }, 500);
+        if (!confirm('You have unsaved changes. Save and upload as final results?')) return;
+        fetch(window.location.pathname, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: collectRows() })
+        })
+        .then(r => r.ok ? performFinalization(false) : showToast('Save failed — could not upload.', 'error'))
+        .catch(() => showToast('Network error. Could not save.', 'error'));
     } else {
         if (!confirm('Upload this document as final results? This cannot be undone.')) return;
         performFinalization(false);
@@ -171,68 +299,48 @@ function uploadAsFinal() {
 }
 
 function performFinalization(useSystemResults) {
-    showToast('Processing...', 'info');
-    
+    showToast('Processing…', 'info');
     fetch('/judge/finalize/{{ document.id }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ use_system_results: useSystemResults })
     })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('Failed to finalize');
-        }
-    })
+    .then(r => r.ok ? r.json() : Promise.reject())
     .then(data => {
         showToast(data.message || 'Successfully uploaded as final results!', 'success');
-        // Optionally redirect or update UI
+        if (data.redirect_url) {
+            setTimeout(() => { window.location.href = data.redirect_url; }, 1800);
+        }
     })
-    .catch(error => {
-        showToast('Failed to upload as final results.', 'error');
-        console.error('Error:', error);
-    });
+    .catch(() => showToast('Failed to upload as final results.', 'error'));
 }
 
-// Warn on navigation with unsaved changes
 window.addEventListener('beforeunload', e => {
-    if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
+    if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; }
 });
 
 function showToast(message, type = 'info') {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
     }
-
+    const icons = { success: 'check_circle', error: 'error', info: 'info' };
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-
-    let icon = 'info';
-    if (type === 'success') icon = 'check_circle';
-    if (type === 'error')   icon = 'error';
-
     toast.innerHTML = `
-        <i class="material-icons toast-icon">${icon}</i>
+        <i class="material-icons toast-icon">${icons[type] || 'info'}</i>
         <span>${message}</span>
         <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
     `;
-
-    toastContainer.appendChild(toast);
+    container.appendChild(toast);
     setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const btnUpload = document.getElementById('btnUpload');
-    if (btnUpload) {
-        btnUpload.onclick = uploadAsFinal;
-    }
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('btnUpload').addEventListener('click', uploadAsFinal);
+    recalculateTotals();
 });
 </script>
 {% endblock %}
