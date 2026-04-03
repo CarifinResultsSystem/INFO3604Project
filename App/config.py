@@ -16,5 +16,6 @@ def load_config(app, overrides):
     app.config["JWT_COOKIE_SAMESITE"] = "None"
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False
     app.config['FLASK_ADMIN_SWATCH'] = 'darkly'
+    app.config['SQL_ALCHEMY_DATABASE_URI'] = 'postgresql://carifinprsdatabase_user:W5rK0XhJmxpTln6RaCegrxEeOFhErHqR@dpg-d768nl6slomc738dtnd0-a/carifinprsdatabase'
     for key in overrides:
         app.config[key] = overrides[key]
