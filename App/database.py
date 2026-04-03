@@ -16,6 +16,7 @@ def init_db(app):
         app.config['SQLALCHEMY_DATABASE_URI'] = uri.replace('postgres://', 'postgresql://', 1)
     
     db.init_app(app)
+    print("DATABASE URI:", app.config.get('SQLALCHEMY_DATABASE_URI'))
     with app.app_context():
         db.create_all()
         seed_db()
