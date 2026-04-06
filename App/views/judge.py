@@ -52,9 +52,9 @@ def _get_max_points_for_label(spreadsheet_label, points_lookup):
 def parse_hierarchical_document(file_path):
     ext = os.path.splitext(file_path)[1].lower()
     if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(file_path)
+        df = pd.read_excel(file_path, header=1)
     else:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, header=1)
 
     if df.empty or 'Rule' not in df.columns:
         return None
