@@ -5,7 +5,7 @@
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/events.png') }}">
 {% endblock %}
 
-{% block content %}
+{% block content %}a
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_events.css') }}">
@@ -16,11 +16,6 @@
     <h1>Events</h1>
     <span class="dash-subtitle">
       Create, Edit &amp; Manage Events &nbsp;·&nbsp;
-      <a href="{{ url_for('admin_views.admin_challenges') }}"
-         style="color:#7b1fa2;font-weight:600;text-decoration:none;">
-        <i class="material-icons" style="font-size:13px;vertical-align:-2px;">emoji_events</i>
-        Manage Challenges
-      </a>
     </span>
   </div>
 
