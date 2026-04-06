@@ -11,13 +11,13 @@
 
 <div class="dash-root admin-root">
 
-  <!-- ================= HEADER ================= -->
+  <!-- HEADER -->
   <div class="dash-heading">
     <h1>Institutions &amp; Participants</h1>
     <span class="dash-subtitle">Register Institutions, Add Participants</span>
   </div>
 
-  <!-- ================= TOASTS ================= -->
+  <!-- TOASTS -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div id="toast-container">
@@ -34,7 +34,7 @@
     {% endif %}
   {% endwith %}
 
-  <!-- ================= STATS TOP ================= -->
+  <!-- STATS -->
   <div class="inst-top-stats">
     <div class="admin-stat-card">
       <div class="stat-label">Total Institutions</div>
@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  <!-- ================= FORMS (FULL WIDTH, STACKED) ================= -->
+  <!-- REGISTRATION FORMS -->
   <div class="inst-forms-stack">
 
     <!-- Institution Registration -->
@@ -55,20 +55,17 @@
         <h2>Institution Registration</h2>
         <div class="admin-panel-meta">Add New Institution</div>
       </div>
-
       <form method="POST" action="{{ url_for('admin_views.admin_institutions') }}" class="admin-form">
         <div class="inst-form-grid-2">
           <div class="admin-form-row">
             <label>Institution Name</label>
             <input class="admin-input" type="text" name="institutionName" required placeholder="e.g. Scotiabank">
           </div>
-
           <div class="admin-form-row">
             <label>Location</label>
             <input class="admin-input" type="text" name="institutionLocation" required placeholder="e.g. Port of Spain">
           </div>
         </div>
-
         <div class="admin-form-actions">
           <button class="dash-card-btn btn-purple" type="submit">
             <i class="material-icons" style="font-size:16px;">add</i>
@@ -84,21 +81,16 @@
         <h2>Participant Registration</h2>
         <div class="admin-panel-meta">Assign Participant, Register for Events</div>
       </div>
-
       <form method="POST" action="{{ url_for('admin_views.admin_participants_create') }}" class="admin-form participant-form">
-
         <div class="participant-grid">
-
           <div class="admin-form-row">
             <label>First Name</label>
             <input class="admin-input" type="text" name="firstName" required>
           </div>
-
           <div class="admin-form-row">
             <label>Last Name</label>
             <input class="admin-input" type="text" name="lastName" required>
           </div>
-
           <div class="admin-form-row">
             <label>Gender</label>
             <select name="gender" class="admin-input browser-default" required>
@@ -108,12 +100,10 @@
               <option value="Other">Other</option>
             </select>
           </div>
-
           <div class="admin-form-row">
             <label>Date of Birth</label>
             <input class="admin-input" type="date" name="dateOfBirth" required>
           </div>
-
           <div class="admin-form-row">
             <label>Institution</label>
             <select name="institutionID" class="admin-input browser-default" required>
@@ -123,7 +113,6 @@
               {% endfor %}
             </select>
           </div>
-
           <div class="admin-form-row">
             <label>Season</label>
             <select id="seasonEventFilter" class="admin-input browser-default"
@@ -134,7 +123,6 @@
               {% endfor %}
             </select>
           </div>
-
           <div class="admin-form-row events-checkbox-group">
             <label>Register for Events</label>
             <div id="eventsCheckboxGrid" class="events-checkbox-grid">
@@ -149,253 +137,361 @@
               </span>
             </div>
           </div>
-
           <div class="admin-form-row">
             <label>Participant Location</label>
             <input class="admin-input" type="text" name="location" required placeholder="e.g. Chaguanas">
           </div>
-
         </div>
-
         <div class="admin-form-actions">
           <button class="dash-card-btn btn-purple participant-btn" type="submit">
             <i class="material-icons" style="font-size:16px;">person_add</i>
             Add Participant
           </button>
         </div>
-
       </form>
     </div>
 
   </div>
 
-  <!-- ================= DIRECTORY ================= -->
-  <p class="section-label" style="margin-top:22px;">Directory</p>
-
-  <div class="dir-card">
-
-    <div class="dir-card-head">
-      <div>
-        <div class="dir-card-title">Directory</div>
-        <div class="dir-card-sub">Search, sort, and filter institutions + participants.</div>
-      </div>
-
-      <div class="dir-controls">
-        <input id="dirSearch" class="dir-search" type="text"
-              placeholder="Search institution, participant, gender, location, event...">
-
-        <div class="dir-sortbox">
-          <span class="dir-sortlabel">Sort</span>
-          <select id="dirSort" class="dir-select">
-            <option value="az" selected>Participant A → Z</option>
-            <option value="za">Participant Z → A</option>
-          </select>
-        </div>
-
-        <div class="dir-sortbox">
-          <span class="dir-sortlabel">Institution</span>
-          <select id="dirInstFilter" class="dir-select">
-            <option value="" selected>All</option>
-            {% for inst in institutions %}
-              <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="dir-sortbox">
-          <span class="dir-sortlabel">Event</span>
-          <select id="dirEventFilter" class="dir-select">
-            <option value="" selected>All</option>
-            {% for e in events %}
-              <option value="{{ e.eventID }}">{{ e.eventName }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="dir-sortbox">
-          <span class="dir-sortlabel">Challenge</span>
-          <select id="dirChallengeFilter" class="dir-select">
-            <option value="" selected>All</option>
-            {% for ch in challenges %}
-              <option value="{{ ch.challengeID }}">{{ ch.challengeName }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
+  <!-- INSTITUTIONS TABLE -->
+  <p class="section-label" style="margin-top:28px;">Institutions</p>
+  <div class="admin-panel">
+    <div class="admin-panel-head">
+      <h2>All Institutions</h2>
+      <input id="instSearch" class="dir-search" type="text"
+             placeholder="Search institutions…" style="max-width:280px;">
     </div>
-
-    <div class="dir-table-wrap">
-      <table class="dir-table" id="dirTable">
+    <div class="lb-table-wrap">
+      <table class="lb-table" id="instTable">
         <thead>
           <tr>
-            <th style="width:220px;">Institution</th>
-            <th style="width:180px;">Inst. Location</th>
-            <th>Participant</th>
-            <th style="width:110px;">Gender</th>
-            <th style="width:140px;">DOB</th>
-            <th style="width:180px;">Participant Location</th>
-            <th style="width:260px;">Events</th>
-            <th style="width:260px;">Challenges</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th style="width:140px;">Actions</th>
           </tr>
         </thead>
-
-        <tbody id="dirBody">
-          {% if (participants or [])|length == 0 %}
-            <tr>
-              <td colspan="8" class="dir-empty">No participants yet.</td>
-            </tr>
+        <tbody id="instBody">
+          {% for inst in institutions %}
+          <tr data-inst-id="{{ inst.institutionID }}"
+              data-search="{{ (inst.insName ~ ' ' ~ inst.insLocation)|lower }}">
+            <td class="inst-name-cell">{{ inst.insName }}</td>
+            <td class="inst-loc-cell">{{ inst.insLocation }}</td>
+            <td>
+              <a href="#"
+                 style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                 onclick="openInstEdit(event,{{ inst.institutionID }},{{ inst.insName|tojson }},{{ inst.insLocation|tojson }});return false;">
+                <i class="material-icons" style="font-size:15px;">edit</i>Edit
+              </a>
+              <a href="#"
+                 style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                 onclick="deleteInstitution(event,{{ inst.institutionID }},{{ inst.insName|tojson }});return false;">
+                <i class="material-icons" style="font-size:15px;">delete</i>Delete
+              </a>
+            </td>
+          </tr>
           {% else %}
-            {% for p in participants %}
-              {% set instName = (p.institution.insName if p.institution is defined and p.institution else '') %}
-              {% set instLoc  = (p.institution.insLocation if p.institution is defined and p.institution else '') %}
-
-              {% set evNames = (p.events | map(attribute='eventName') | list) if p.events else [] %}
-              {% set evIds = (p.events | map(attribute='eventID') | list) if p.events else [] %}
-              {% set evNamesText = evNames | join(', ') if evNames|length else '-' %}
-              {% set evIdsText = evIds | join(',') if evIds|length else '' %}
-
-              {% set chNames = (p.challenges | map(attribute='challengeName') | list) if p.challenges else [] %}
-              {% set chIds   = (p.challenges | map(attribute='challengeID')   | list) if p.challenges else [] %}
-              {% set chNamesText = chNames | join(', ') if chNames|length else '' %}
-              {% set chIdsText   = chIds   | join(',') if chIds|length   else '' %}
-
-              <tr class="dir-row"
-                  data-inst-id="{{ p.institutionID }}"
-                  data-event-ids="{{ evIdsText }}"
-                  data-name="{{ ((p.firstName ~ ' ' ~ p.lastName)|lower) }}"
-                  data-search="{{ ((instName ~ ' ' ~ instLoc ~ ' ' ~ p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ evNamesText ~ ' ' ~ chNamesText)|lower) }}">
-                <td class="dir-strong">{{ instName }}</td>
-                <td>{{ instLoc }}</td>
-                <td class="dir-strong">{{ p.firstName }} {{ p.lastName }}</td>
-                <td>{{ p.gender }}</td>
-                <td>
-                  <span class="dir-chip">{{ p.dateOfBirth }}</span>
-                </td>
-                <td>{{ p.location }}</td>
-                <td>
-                  {% if evNames|length %}
-                    {% for name in evNames %}
-                      <span class="dir-chip dir-chip-purple">{{ name }}</span>
-                    {% endfor %}
-                  {% else %}
-                    <span class="dir-muted">-</span>
-                  {% endif %}
-                </td>
-                <td data-challenge-ids="{{ chIdsText }}">
-                  {% if chNames|length %}
-                    {% for cname in chNames %}
-                      <span style="display:inline-block;padding:2px 9px;margin:2px 2px 2px 0;
-                                   background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;
-                                   font-size:11px;font-weight:600;color:#2e7d32;">{{ cname }}</span>
-                    {% endfor %}
-                  {% else %}
-                    <span class="dir-muted">-</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          {% endif %}
+          <tr><td colspan="3" style="text-align:center;padding:24px;color:#999;">No institutions yet.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
-
   </div>
 
+  <!-- PARTICIPANTS TABLE -->
+  <p class="section-label" style="margin-top:28px;">Participants</p>
+  <div class="admin-panel">
+    <div class="admin-panel-head">
+      <h2>All Participants</h2>
+      <input id="partSearch" class="dir-search" type="text"
+             placeholder="Search participants…" style="max-width:280px;">
+    </div>
+    <div class="lb-table-wrap">
+      <table class="lb-table" id="partTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Gender</th>
+            <th>DOB</th>
+            <th>Location</th>
+            <th>Institution</th>
+            <th style="width:140px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="partBody">
+          {% for p in participants %}
+          {% set inst_name = p.institution.insName if p.institution else '—' %}
+          <tr data-part-id="{{ p.participantID }}"
+              data-search="{{ (p.firstName ~ ' ' ~ p.lastName ~ ' ' ~ p.gender ~ ' ' ~ p.location ~ ' ' ~ inst_name)|lower }}">
+            <td>{{ p.firstName }} {{ p.lastName }}</td>
+            <td>{{ p.gender }}</td>
+            <td>{{ p.dateOfBirth }}</td>
+            <td>{{ p.location }}</td>
+            <td>{{ inst_name }}</td>
+            <td>
+              <a href="#"
+                 style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                 onclick="openPartEdit(event,{{ p.participantID|tojson }},{{ p.firstName|tojson }},{{ p.lastName|tojson }},{{ p.gender|tojson }},{{ p.dateOfBirth|string|tojson }},{{ p.location|tojson }},{{ p.institutionID|tojson }});return false;">
+                <i class="material-icons" style="font-size:15px;">edit</i>Edit
+              </a>
+              <a href="#"
+                 style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                 onclick="deleteParticipant(event,{{ p.participantID|tojson }},{{ p.firstName|tojson }},{{ p.lastName|tojson }});return false;">
+                <i class="material-icons" style="font-size:15px;">delete</i>Delete
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">No participants yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INSTITUTION EDIT MODAL -->
+  <div id="instEditModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span class="modal-title">Edit Institution</span>
+        <button class="modal-close-btn" onclick="closeInstEdit()" aria-label="Close">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <form id="instEditForm">
+        <div class="modal-body">
+          <div class="admin-form-row" style="margin-bottom:14px;">
+            <label class="modal-label">Institution Name</label>
+            <input class="admin-input modal-input" type="text" name="insName"
+                   id="instEditName" placeholder="e.g. Scotiabank" required>
+          </div>
+          <div class="admin-form-row">
+            <label class="modal-label">Location</label>
+            <input class="admin-input modal-input" type="text" name="insLocation"
+                   id="instEditLoc" placeholder="e.g. Port of Spain" required>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="modal-btn modal-btn-cancel" onclick="closeInstEdit()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-save" id="instSaveBtn">
+            <i class="material-icons" style="font-size:16px;">save</i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PARTICIPANT EDIT MODAL -->
+  <div id="partEditModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span class="modal-title">Edit Participant</span>
+        <button class="modal-close-btn" onclick="closePartEdit()" aria-label="Close">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <form id="partEditForm">
+        <div class="modal-body">
+          <div class="modal-grid-2">
+            <div class="admin-form-row">
+              <label class="modal-label">First Name</label>
+              <input class="admin-input modal-input" type="text" name="firstName"
+                     id="partEditFirst" placeholder="First name" required>
+            </div>
+            <div class="admin-form-row">
+              <label class="modal-label">Last Name</label>
+              <input class="admin-input modal-input" type="text" name="lastName"
+                     id="partEditLast" placeholder="Last name" required>
+            </div>
+            <div class="admin-form-row">
+              <label class="modal-label">Gender</label>
+              <select name="gender" id="partEditGender" class="admin-input modal-input browser-default">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="admin-form-row">
+              <label class="modal-label">Date of Birth</label>
+              <input class="admin-input modal-input" type="date" name="dateOfBirth" id="partEditDob">
+            </div>
+            <div class="admin-form-row">
+              <label class="modal-label">Location</label>
+              <input class="admin-input modal-input" type="text" name="location"
+                     id="partEditLoc" placeholder="e.g. Chaguanas" required>
+            </div>
+            <div class="admin-form-row">
+              <label class="modal-label">Institution</label>
+              <select name="institutionID" id="partEditInst" class="admin-input modal-input browser-default">
+                {% for inst in institutions %}
+                  <option value="{{ inst.institutionID }}">{{ inst.insName }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="modal-btn modal-btn-cancel" onclick="closePartEdit()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-save" id="partSaveBtn">
+            <i class="material-icons" style="font-size:16px;">save</i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>{# end dash-root #}
+
 <script>
-  // ---------- Toasts ----------
-  document.querySelectorAll('.toast').forEach(toast => {
-    setTimeout(() => {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  });
-
-  // ---------- Materialize selects ----------
-  document.addEventListener('DOMContentLoaded', function () {
-    if (window.M && M.FormSelect) {
-      ['seasonEventFilter'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        try { var inst = M.FormSelect.getInstance(el); if (inst) inst.destroy(); } catch(e) {}
-      });
-      var selects = document.querySelectorAll('select:not(.browser-default):not(#seasonEventFilter)');
-      M.FormSelect.init(selects);
-    }
-  });
-
-  // ---------- Participant form: Filter events by season ----------
+  /* ── season filter ── */
   function filterEventsBySeason(seasonId) {
-    const labels = document.querySelectorAll('#eventsCheckboxGrid .event-checkbox');
+    const labels      = document.querySelectorAll('#eventsCheckboxGrid .event-checkbox');
     const placeholder = document.getElementById('eventsPlaceholder');
     let visible = 0;
-
-    labels.forEach(function(label) {
-      const match = label.getAttribute('data-season') === String(seasonId);
+    labels.forEach(label => {
+      const match = label.dataset.season === String(seasonId);
       label.style.display = match ? '' : 'none';
       if (!match) label.querySelector('input[type="checkbox"]').checked = false;
       if (match) visible++;
     });
-
-    placeholder.style.display = visible === 0 ? 'block' : 'none';
-    placeholder.textContent = visible === 0
+    placeholder.style.display  = visible === 0 ? 'block' : 'none';
+    placeholder.textContent    = visible === 0
       ? (seasonId ? 'No events for this season.' : 'Select a season to see events.')
       : '';
   }
 
-  // ---------- Directory table search/filter/sort ----------
-  const dirSearch        = document.getElementById('dirSearch');
-  const dirSort          = document.getElementById('dirSort');
-  const dirInstFilter    = document.getElementById('dirInstFilter');
-  const dirEventFilter   = document.getElementById('dirEventFilter');
-  const dirBody          = document.getElementById('dirBody');
+  /* ── table search ── */
+  document.getElementById('instSearch').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('#instBody tr[data-inst-id]').forEach(r =>
+      r.style.display = (!q || r.dataset.search.includes(q)) ? '' : 'none'
+    );
+  });
 
-  function applyDirFilters() {
-    const q           = (dirSearch?.value || '').trim().toLowerCase();
-    const instId      = (dirInstFilter?.value || '').trim();
-    const eventId     = (dirEventFilter?.value || '').trim();
-    const challengeId = (document.getElementById('dirChallengeFilter')?.value || '').trim();
+  document.getElementById('partSearch').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('#partBody tr[data-part-id]').forEach(r =>
+      r.style.display = (!q || r.dataset.search.includes(q)) ? '' : 'none'
+    );
+  });
 
-    document.querySelectorAll('.dir-row').forEach(row => {
-      const blob    = row.getAttribute('data-search') || '';
-      const rowInst = row.getAttribute('data-inst-id') || '';
+  /* ── modal helpers ── */
+  function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+  function hideModal(id) { document.getElementById(id).style.display = 'none'; }
 
-      const rowEvents = (row.getAttribute('data-event-ids') || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
+  ['instEditModal', 'partEditModal'].forEach(id =>
+    document.getElementById(id).addEventListener('click', function (e) {
+      if (e.target === this) hideModal(id);
+    })
+  );
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { hideModal('instEditModal'); hideModal('partEditModal'); }
+  });
 
-      const chCell = row.querySelector('td[data-challenge-ids]');
-      const rowChallenges = chCell
-        ? (chCell.getAttribute('data-challenge-ids') || '').split(',').map(s => s.trim()).filter(Boolean)
-        : [];
+  /* ── institution edit ── */
+  let _instId      = null;
+  let _instRow     = null;
 
-      const matchesQ         = !q           || blob.includes(q);
-      const matchesInst      = !instId      || rowInst === instId;
-      const matchesEvent     = !eventId     || rowEvents.includes(eventId);
-      const matchesChallenge = !challengeId || rowChallenges.includes(String(challengeId));
+  function openInstEdit(e, id, name, loc) {
+    e.preventDefault();
+    _instId  = id;
+    _instRow = e.currentTarget.closest('tr');
+    document.getElementById('instEditName').value = name;
+    document.getElementById('instEditLoc').value  = loc;
+    showModal('instEditModal');
+  }
+  function closeInstEdit() { hideModal('instEditModal'); }
 
-      row.style.display = (matchesQ && matchesInst && matchesEvent && matchesChallenge) ? '' : 'none';
-    });
+  document.getElementById('instEditForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = document.getElementById('instSaveBtn');
+    btn.disabled = true;
+    try {
+      const fd  = new FormData(this);
+      const res = await fetch(`/admin/institutions/${_instId}/update`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        if (_instRow) {
+          _instRow.querySelector('.inst-name-cell').textContent = data.insName;
+          _instRow.querySelector('.inst-loc-cell').textContent  = data.insLocation;
+          _instRow.dataset.search = (data.insName + ' ' + data.insLocation).toLowerCase();
+        }
+        closeInstEdit();
+      } else {
+        alert(data.error || 'Could not save. Please try again.');
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ── institution delete ── */
+  function deleteInstitution(e, id, name) {
+    e.preventDefault();
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.action = `/admin/institutions/${id}/delete`;
+    document.body.appendChild(f);
+    f.submit();
   }
 
-  function applyDirSort() {
-    const mode = dirSort?.value || 'az';
-    if (!dirBody) return;
+  /* ── participant edit ── */
+  let _partId = null;
 
-    const rows = Array.from(dirBody.querySelectorAll('.dir-row'));
-    rows.sort((a, b) => {
-      const an = a.getAttribute('data-name') || '';
-      const bn = b.getAttribute('data-name') || '';
-      return (mode === 'za') ? bn.localeCompare(an) : an.localeCompare(bn);
-    });
+  function openPartEdit(e, id, first, last, gender, dob, loc, instID) {
+    e.preventDefault();
+    _partId = id;
+    document.getElementById('partEditFirst').value  = first;
+    document.getElementById('partEditLast').value   = last;
+    document.getElementById('partEditGender').value = gender;
+    document.getElementById('partEditDob').value    = dob;
+    document.getElementById('partEditLoc').value    = loc;
+    document.getElementById('partEditInst').value   = String(instID);
+    showModal('partEditModal');
+  }
+  function closePartEdit() { hideModal('partEditModal'); }
 
-    rows.forEach(r => dirBody.appendChild(r));
+  document.getElementById('partEditForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = document.getElementById('partSaveBtn');
+    btn.disabled = true;
+    try {
+      const fd  = new FormData(this);
+      const res = await fetch(`/admin/participants/${_partId}/update`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        location.reload();
+      } else {
+        alert(data.error || 'Could not save. Please try again.');
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ── participant delete ── */
+  function deleteParticipant(e, id, first, last) {
+    e.preventDefault();
+    if (!confirm(`Delete "${first} ${last}"? This cannot be undone.`)) return;
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.action = `/admin/participants/${id}/delete`;
+    document.body.appendChild(f);
+    f.submit();
   }
 
-  if (dirSearch)          dirSearch.addEventListener('input',  applyDirFilters);
-  if (dirInstFilter)      dirInstFilter.addEventListener('change', applyDirFilters);
-  if (dirEventFilter)     dirEventFilter.addEventListener('change', applyDirFilters);
-  document.getElementById('dirChallengeFilter')?.addEventListener('change', applyDirFilters);
-  if (dirSort)            dirSort.addEventListener('change', applyDirSort);
+  /* ── toast auto-dismiss ── */
+  document.querySelectorAll('.toast').forEach(t => {
+    setTimeout(() => {
+      t.style.transition = 'opacity 0.4s';
+      t.style.opacity    = '0';
+      setTimeout(() => t.remove(), 400);
+    }, 4000);
+  });
 </script>
 
 {% endblock %}

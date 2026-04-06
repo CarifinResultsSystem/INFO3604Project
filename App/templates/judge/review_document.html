@@ -66,13 +66,13 @@
                                 {% set score = rule.scores[inst] %}
                                 {% set ns = namespace(has_error=false, err_msg='') %}
                                 {% for err in table_data.errors %}
-                                    {% if err.error_type != 'Total Mismatch'
-                                        and err.institution == inst
-                                        and err.get('rule', '') == rule.label %}
-                                        {% set ns.has_error = true %}
-                                        {% set ns.err_msg   = err.message %}
-                                    {% endif %}
-                                {% endfor %}
+                                {% if err.error_type != 'Total Mismatch'
+                                    and err.institution == inst
+                                    and err.get('rule') == rule.label %}
+                                    {% set ns.has_error = true %}
+                                    {% set ns.err_msg   = err.message %}
+                                {% endif %}
+                            {% endfor %}
                                 <td class="numeric{% if ns.has_error %} error-cell{% endif %}"
                                     {% if ns.has_error %}data-tooltip="{{ ns.err_msg }}" title="{{ ns.err_msg }}"{% endif %}>
                                     {{ "%.2f"|format(score) }}

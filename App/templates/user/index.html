@@ -117,28 +117,45 @@
         </a>
       </div>
 
-      <!-- Latest Event Results -->
+      <!-- Latest Season Stats -->
       <div class="dash-card">
         <div class="dash-card-header">
           <div class="dash-card-icon icon-results">
             <i class="material-icons">assignment_turned_in</i>
           </div>
-          <div class="dash-card-title">Latest Event Results</div>
+          <div class="dash-card-title">
+            Latest Season
+            {% if latest_season %}
+              <span style="font-size:0.8rem; font-weight:400; color:#999; margin-left:6px;">
+                {{ latest_season.year }}
+              </span>
+            {% endif %}
+          </div>
         </div>
-        <ul class="results-list">
-          <li>
-            <span class="result-event">100m Sprint</span>
-            <span class="result-winner">T. Pemberton — 9.94s</span>
-          </li>
-          <li>
-            <span class="result-event">Long Jump</span>
-            <span class="result-winner">M. Baptiste — 8.12m</span>
-          </li>
-          <li>
-            <span class="result-event">4×400m Relay</span>
-            <span class="result-winner">TTO — 3:01.4</span>
-          </li>
-        </ul>
+
+        {% if latest_season %}
+          <ul class="results-list">
+            <li>
+              <span class="result-event">
+                <i class="material-icons" style="font-size:16px; vertical-align:middle;">apartment</i>
+                Institutions
+              </span>
+              <span class="result-winner">{{ season_institution_count }} registered</span>
+            </li>
+            <li>
+              <span class="result-event">
+                <i class="material-icons" style="font-size:16px; vertical-align:middle;">group</i>
+                Participants
+              </span>
+              <span class="result-winner">{{ season_participant_count }} registered</span>
+            </li>
+          </ul>
+        {% else %}
+          <div style="color:#999; font-size:0.95rem; margin-top:8px;">
+            No season data available.
+          </div>
+        {% endif %}
+
         <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}" class="dash-card-btn btn-blue">
           <i class="material-icons" style="font-size:16px">leaderboard</i>
           View Leaderboard
@@ -153,12 +170,20 @@
           </div>
           <div class="dash-card-title">Happening Now</div>
         </div>
-        <div class="now-badge">
-          <span class="pulse-dot"></span>
-          Live
-        </div>
-        <div class="now-event">200m Women's Final</div>
-        <div class="now-meta">Hasely Crawford Stadium &nbsp;·&nbsp; Heat 3 of 3</div>
+
+        {% if happening_now %}
+          <div class="now-badge">
+            <span class="pulse-dot"></span>
+            Live
+          </div>
+          <div class="now-event">{{ happening_now.eventName }}</div>
+          <div class="now-meta">{{ happening_now.location }} &nbsp;·&nbsp; {{ happening_now.time.strftime('%I:%M %p') }}</div>
+        {% else %}
+          <div class="now-event" style="color:#999; font-size:0.95rem; margin-top:8px;">
+            No events currently in progress.
+          </div>
+        {% endif %}
+
         <a href="{{ url_for('schedule_views.get_schedule_page') }}" class="dash-card-btn btn-red">
           <i class="material-icons" style="font-size:16px">event</i>
           View Schedule
@@ -173,29 +198,25 @@
           </div>
           <div class="dash-card-title">Up Next</div>
         </div>
-        <ul class="upnext-list">
-          <li>
-            <span class="upnext-time">2:30</span>
-            <div class="upnext-info">
-              <div class="upnext-name">110m Hurdles — Men's Final</div>
-              <div class="upnext-loc">Track A</div>
-            </div>
-          </li>
-          <li>
-            <span class="upnext-time">3:00</span>
-            <div class="upnext-info">
-              <div class="upnext-name">Shot Put — Women's Final</div>
-              <div class="upnext-loc">Field Zone B</div>
-            </div>
-          </li>
-          <li>
-            <span class="upnext-time">3:45</span>
-            <div class="upnext-info">
-              <div class="upnext-name">4×100m Relay — Mixed</div>
-              <div class="upnext-loc">Main Track</div>
-            </div>
-          </li>
-        </ul>
+
+        {% if up_next %}
+          <ul class="upnext-list">
+            {% for event in up_next %}
+              <li>
+                <span class="upnext-time">{{ event.time.strftime('%I:%M') }}</span>
+                <div class="upnext-info">
+                  <div class="upnext-name">{{ event.eventName }}</div>
+                  <div class="upnext-loc">{{ event.location }}</div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div style="color:#999; font-size:0.95rem; margin-top:8px; padding:8px 0;">
+            No upcoming events scheduled for today.
+          </div>
+        {% endif %}
+
         <a href="{{ url_for('schedule_views.get_schedule_page') }}" class="dash-card-btn btn-green">
           <i class="material-icons" style="font-size:16px">event</i>
           View Schedule
