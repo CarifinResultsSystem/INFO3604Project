@@ -480,36 +480,6 @@ def review_score_document(documentID):
 
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
-@judge_views.route('/judge/debug-points/<int:documentID>')
-@jwt_required()
-def debug_points(documentID):
-    document = get_score_document(documentID)
-    if not document:
-        return jsonify({"error": "Document not found"}), 404
-
-    lookup = _get_points_rule_lookup()
-    parsed = parse_hierarchical_document(document.storedPath)
-
-    doc_labels = []
-    if parsed:
-        for challenge in parsed["challenges"]:
-            for event in challenge["events"]:
-                for rule in event["rules"]:
-                    normalised = _normalise_label(rule["label"])
-                    resolved = _get_max_points_for_label(rule["label"], lookup)
-                    doc_labels.append({
-                        "raw_label":   rule["label"],
-                        "normalised":  normalised,
-                        "max_pts":     resolved,
-                        "lookup_hit":  resolved is not None,
-                    })
-
-    return jsonify({
-        "points_rule_lookup": {k: v for k, v in lookup.items()},
-        "document_labels":    doc_labels,
-    })
-
-
 #Modified from scoretaker
 @judge_views.route('/judge/document/<int:documentID>', methods=['GET'])
 @jwt_required()
