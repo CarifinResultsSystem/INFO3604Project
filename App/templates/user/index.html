@@ -117,28 +117,45 @@
         </a>
       </div>
 
-      <!-- Latest Event Results -->
+      <!-- Latest Season Stats -->
       <div class="dash-card">
         <div class="dash-card-header">
           <div class="dash-card-icon icon-results">
             <i class="material-icons">assignment_turned_in</i>
           </div>
-          <div class="dash-card-title">Latest Event Results</div>
+          <div class="dash-card-title">
+            Latest Season
+            {% if latest_season %}
+              <span style="font-size:0.8rem; font-weight:400; color:#999; margin-left:6px;">
+                {{ latest_season.year }}
+              </span>
+            {% endif %}
+          </div>
         </div>
-        <ul class="results-list">
-          <li>
-            <span class="result-event">100m Sprint</span>
-            <span class="result-winner">T. Pemberton — 9.94s</span>
-          </li>
-          <li>
-            <span class="result-event">Long Jump</span>
-            <span class="result-winner">M. Baptiste — 8.12m</span>
-          </li>
-          <li>
-            <span class="result-event">4×400m Relay</span>
-            <span class="result-winner">TTO — 3:01.4</span>
-          </li>
-        </ul>
+
+        {% if latest_season %}
+          <ul class="results-list">
+            <li>
+              <span class="result-event">
+                <i class="material-icons" style="font-size:16px; vertical-align:middle;">apartment</i>
+                Institutions
+              </span>
+              <span class="result-winner">{{ season_institution_count }} registered</span>
+            </li>
+            <li>
+              <span class="result-event">
+                <i class="material-icons" style="font-size:16px; vertical-align:middle;">group</i>
+                Participants
+              </span>
+              <span class="result-winner">{{ season_participant_count }} registered</span>
+            </li>
+          </ul>
+        {% else %}
+          <div style="color:#999; font-size:0.95rem; margin-top:8px;">
+            No season data available.
+          </div>
+        {% endif %}
+
         <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}" class="dash-card-btn btn-blue">
           <i class="material-icons" style="font-size:16px">leaderboard</i>
           View Leaderboard
