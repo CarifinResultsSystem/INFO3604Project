@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
-  
+
 </head>
 
 <body>
@@ -103,26 +103,36 @@
         <h1>Create Account</h1>
         <p>Register with your username and email.</p>
       </div>
-      <form method="POST" action="/register" style="display:flex;flex-direction:column;gap:14px;">
+      <form id="signup-form" method="POST" action="/register"
+            style="display:flex;flex-direction:column;gap:14px;"
+            novalidate>
         <div class="form-field">
           <label for="signup-username">Username</label>
           <input type="text" id="signup-username" name="username"
-                 placeholder="Choose a Username" autocomplete="username" required>
+                 placeholder="Choose a Username" autocomplete="username"
+                 required oninput="clearError('username-error')">
+          <span class="field-error" id="username-error"></span>
         </div>
         <div class="form-field">
           <label for="signup-email">Email</label>
           <input type="email" id="signup-email" name="email"
-                 placeholder="you@example.com" autocomplete="email" required>
+                 placeholder="you@example.com" autocomplete="email"
+                 required oninput="clearError('email-error')">
+          <span class="field-error" id="email-error"></span>
         </div>
         <div class="form-field">
           <label for="signup-password">Password</label>
           <input type="password" id="signup-password" name="password"
-                 placeholder="••••••••" autocomplete="new-password" required>
+                 placeholder="••••••••" autocomplete="new-password"
+                 required oninput="clearError('password-error')">
+          <span class="field-error" id="password-error"></span>
         </div>
         <div class="form-field">
           <label for="signup-confirm">Confirm Password</label>
           <input type="password" id="signup-confirm" name="confirm_password"
-                 placeholder="••••••••" autocomplete="new-password" required>
+                 placeholder="••••••••" autocomplete="new-password"
+                 required oninput="clearError('confirm-error')">
+          <span class="field-error" id="confirm-error"></span>
         </div>
         <button type="submit" class="auth-submit-btn">Create Account</button>
       </form>
@@ -140,6 +150,16 @@
   </div>
 </div>
 
+<style>
+  .field-error {
+    display: block;
+    font-size: 12px;
+    color: #e53935;
+    margin-top: 4px;
+    min-height: 16px;
+  }
+</style>
+
 <script>
   function switchTab(name, btn) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -147,6 +167,74 @@
     btn.classList.add('active');
     document.getElementById('panel-' + name).classList.add('active');
   }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = msg;
+  }
+
+  function clearError(id) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  }
+
+  // Debounced username availability check against a lightweight API endpoint
+  let usernameTimer = null;
+  document.getElementById('signup-username').addEventListener('input', function () {
+    clearTimeout(usernameTimer);
+    const val = this.value.trim();
+    if (!val) return;
+    usernameTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`/api/check-username?username=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data.taken) {
+          showError('username-error', 'That username is already taken.');
+        } else {
+          clearError('username-error');
+        }
+      } catch (_) {
+        // silently ignore — server will validate on submit anyway
+      }
+    }, 400);
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', function (e) {
+    let valid = true;
+
+    const username = document.getElementById('signup-username').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const confirm  = document.getElementById('signup-confirm').value;
+
+    if (!username) {
+      showError('username-error', 'Username is required.');
+      valid = false;
+    }
+
+    if (!email) {
+      showError('email-error', 'Email is required.');
+      valid = false;
+    }
+
+    if (!password) {
+      showError('password-error', 'Password is required.');
+      valid = false;
+    } else if (password.length < 6) {
+      showError('password-error', 'Password must be at least 6 characters.');
+      valid = false;
+    }
+
+    if (password && confirm && password !== confirm) {
+      showError('confirm-error', 'Passwords do not match.');
+      valid = false;
+    }
+
+    // Also block if the async username check already flagged the field
+    if (document.getElementById('username-error').textContent) valid = false;
+
+    if (!valid) e.preventDefault();
+  });
 </script>
 </body>
 </html>

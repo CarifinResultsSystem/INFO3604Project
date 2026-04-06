@@ -71,7 +71,6 @@ def register_action():
     existing_username = db.session.execute(
         db.select(User).filter_by(username=username)
     ).scalar_one_or_none()
-
     if existing_username:
         flash('That username is already taken.', 'error')
         return redirect(url_for('auth_views.login_page'))
@@ -79,7 +78,6 @@ def register_action():
     existing_email = db.session.execute(
         db.select(User).filter_by(email=email)
     ).scalar_one_or_none()
-
     if existing_email:
         flash('An account with that email already exists.', 'error')
         return redirect(url_for('auth_views.login_page'))
@@ -89,13 +87,13 @@ def register_action():
     except ValueError as e:
         flash(str(e), 'error')
         return redirect(url_for('auth_views.login_page'))
-    except Exception:
+    except Exception as e:
+        import traceback; traceback.print_exc()
         flash('An unexpected error occurred. Please try again.', 'error')
         return redirect(url_for('auth_views.login_page'))
 
     token = login(username, password)
     if not token:
-        # Account created but auto-login failed — send to login page
         flash('Account created! Please sign in.', 'success')
         return redirect(url_for('auth_views.login_page'))
 
@@ -126,6 +124,18 @@ def identify_page():
 '''
 API Routes
 '''
+
+@auth_views.route('/api/check-username', methods=['GET'])
+def check_username():
+    """Live username availability check used by the signup form."""
+    username = request.args.get('username', '').strip()
+    if not username:
+        return jsonify(taken=False)
+    taken = db.session.execute(
+        db.select(User).filter_by(username=username)
+    ).scalar_one_or_none() is not None
+    return jsonify(taken=taken)
+
 
 @auth_views.route('/api/login', methods=['POST'])
 def user_login_api():
