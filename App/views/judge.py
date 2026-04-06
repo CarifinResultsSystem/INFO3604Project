@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, url_for, jsonify, request, abort, 
 from flask_jwt_extended import jwt_required, current_user
 from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
-from App.models import ScoreDocument, PointsRules
+from App.models import ScoreDocument, PointsRules, Event
 import pandas as pd
 import numpy as np
 
@@ -27,10 +27,14 @@ def _get_points_rule_lookup():
     lookup = {}
     try:
         for pr in PointsRules.query.all():
-            if pr.label:
-                key = re.sub(r'\s+', ' ', pr.label).strip().lower()
-                if key not in lookup or pr.points > lookup[key]:
-                    lookup[key] = pr.points
+            # Index by category for team rules, label for individual rules
+            key_raw = pr.category if pr.ruleType == 'team' and pr.category else pr.label
+            if not key_raw:
+                continue
+            key = re.sub(r'\s+', ' ', key_raw).strip().lower()
+            # Keep the highest points value per key
+            if key not in lookup or pr.points > lookup[key]:
+                lookup[key] = pr.points
     except Exception as e:
         print(f"Warning: could not load PointsRules from DB: {e}")
     return lookup
@@ -42,11 +46,25 @@ def _get_max_points_for_label(spreadsheet_label, points_lookup):
     if normalised in points_lookup:
         return points_lookup[normalised]
 
-    matches = [(k, v) for k, v in points_lookup.items() if k in normalised]
+    matches = [(k, v) for k, v in points_lookup.items() if normalised in k]
     if matches:
-        best_key, best_pts = max(matches, key=lambda kv: len(kv[0]))
-        return best_pts
+        return max(v for _, v in matches)
+
     return None
+
+#helper function to get max event points
+def _get_event_max_lookup():
+    lookup = {}
+    try:
+        events = Event.query.all()
+        for ev in events:
+            team_max = max((pr.points for pr in (ev.points_rules or []) if pr.ruleType == 'team'), default=0)
+            win_max  = max((pr.points for pr in (ev.points_rules or []) if pr.ruleType == 'individual'), default=0)
+            key = re.sub(r'\s+', ' ', ev.eventName).strip().lower()
+            lookup[key] = max(team_max, win_max)
+    except Exception as e:
+        print(f"Warning: could not load event max lookup: {e}")
+    return lookup
 
 #Used to parse the document, 
 def parse_hierarchical_document(file_path):
@@ -56,8 +74,8 @@ def parse_hierarchical_document(file_path):
     else:
         df = pd.read_csv(file_path, header=1)
 
-    if df.empty or 'Rule' not in df.columns:
-        return None
+    df = df.rename(columns={df.columns[0]: 'Rule'})
+    df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 
     institutions = [c for c in df.columns if c != 'Rule']
 
@@ -72,7 +90,7 @@ def parse_hierarchical_document(file_path):
         rule_str = str(rule_val).strip() if pd.notna(rule_val) else ''
 
         if rule_str == '':
-            # blank / spacer row – skip
+            current_event = None
             continue
 
         rule_upper = rule_str.upper()
@@ -104,32 +122,42 @@ def parse_hierarchical_document(file_path):
                 v = row[inst]
                 scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
 
-            rule_entry = {'label': rule_str, 'scores': scores}
-
-            if current_event is not None:
-                current_event['rules'].append(rule_entry)
-            elif current_challenge is not None:
-                if not current_challenge['events'] or current_challenge['events'][-1].get('_direct'):
-                    if not current_challenge['events'] or not current_challenge['events'][-1].get('_direct'):
-                        direct_event = {'name': '', 'rules': [], '_direct': True}
-                        current_challenge['events'].append(direct_event)
-                        current_event = direct_event
-                    current_event['rules'].append(rule_entry)
-                else:
-                    current_event['rules'].append(rule_entry)
+            # Event-level total row — open a new event but don't add to summation
+            if current_event is None and current_challenge is not None:
+                current_event = {'name': rule_str, 'rules': [], 'event_scores': scores, '_direct': True}
+                current_challenge['events'].append(current_event)
             else:
-                if not challenges:
-                    challenges.append({'name': '', 'events': []})
-                    current_challenge = challenges[-1]
-                orphan_event = {'name': '', 'rules': [rule_entry], '_direct': True}
-                current_challenge['events'].append(orphan_event)
+                rule_entry = {'label': rule_str, 'scores': scores}
+                if current_event is not None:
+                    current_event['rules'].append(rule_entry)
+                elif current_challenge is not None:
+                    if not current_challenge['events'] or current_challenge['events'][-1].get('_direct'):
+                        if not current_challenge['events'] or not current_challenge['events'][-1].get('_direct'):
+                            direct_event = {'name': '', 'rules': [], '_direct': True}
+                            current_challenge['events'].append(direct_event)
+                            current_event = direct_event
+                        current_event['rules'].append(rule_entry)
+                    else:
+                        current_event['rules'].append(rule_entry)
+                else:
+                    if not challenges:
+                        challenges.append({'name': '', 'events': []})
+                        current_challenge = challenges[-1]
+                    orphan_event = {'name': '', 'rules': [rule_entry], '_direct': True}
+                    current_challenge['events'].append(orphan_event)
 
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
         for event in challenge['events']:
-            for rule in event['rules']:
+            if event['rules']:
+                # Sum from individual rules
+                for rule in event['rules']:
+                    for inst in institutions:
+                        calculated_totals[inst] += rule['scores'].get(inst, 0.0)
+            elif event.get('event_scores'):
+                # No sub-rules — use the event-level total row directly
                 for inst in institutions:
-                    calculated_totals[inst] += rule['scores'].get(inst, 0.0)
+                    calculated_totals[inst] += event['event_scores'].get(inst, 0.0)
     calculated_totals = {inst: round(v, 2) for inst, v in calculated_totals.items()}
 
     sorted_insts = sorted(institutions, key=lambda i: calculated_totals[i], reverse=True)
@@ -192,8 +220,7 @@ def identify_cell_errors(unconfirmed_doc):
             return []
 
         error_cells = []
-        
-        #Check each institution's total
+
         for inst in parsed['institutions']:
             reported = parsed['totals'].get(inst, 0.0)
             calculated = parsed['calculated_totals'].get(inst, 0.0)
@@ -206,21 +233,27 @@ def identify_cell_errors(unconfirmed_doc):
                     'error_type': 'Total Mismatch',
                     'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
                 })
-                
-        points_lookup = _get_points_rule_lookup()
 
-        #Compare scores to point rules
+        points_lookup = _get_points_rule_lookup()
+        global_max = max(points_lookup.values()) if points_lookup else None
+        event_max_lookup = _get_event_max_lookup()
+
         for challenge in parsed['challenges']:
             for event in challenge['events']:
+                event_key = re.sub(r'\s+', ' ', event['name']).strip().lower()
+                event_max = event_max_lookup.get(event_key)
+
                 for rule in event['rules']:
                     max_pts = _get_max_points_for_label(rule['label'], points_lookup)
+                    if max_pts is None:
+                        max_pts = event_max   # fall back to event total as ceiling
+                    if max_pts is None:
+                        max_pts = global_max  # last resort
 
                     for inst in parsed['institutions']:
                         v = rule['scores'].get(inst)
-
                         if v is None or (isinstance(v, float) and np.isnan(v)):
-                            continue 
-
+                            continue
                         if v < 0:
                             error_cells.append({
                                 'institution': inst,
@@ -228,14 +261,10 @@ def identify_cell_errors(unconfirmed_doc):
                                 'event':       event['name'],
                                 'rule':        rule['label'],
                                 'value':       v,
-                                'max_points':  max_pts,
+                                'max_points':  event_max,
                                 'error_type':  'Out of Range',
-                                'message':     (
-                                    f"Score {v} for '{rule['label']}' is below the minimum of 0"
-                                    + (f" under '{event['name']}'" if event['name'] else '')
-                                ),
+                                'message':     f"Score {v} for '{rule['label']}' is below the minimum of 0",
                             })
-
                         elif max_pts is not None and v > max_pts:
                             error_cells.append({
                                 'institution': inst,
@@ -243,17 +272,15 @@ def identify_cell_errors(unconfirmed_doc):
                                 'event':       event['name'],
                                 'rule':        rule['label'],
                                 'value':       v,
-                                'max_points':  max_pts,
+                                'max_points':  event_max,
                                 'error_type':  'Out of Range',
-                                'message':     (
-                                    f"Score {v} exceeds the maximum of {max_pts} for '{rule['label']}'"
-                                    + (f" under '{event['name']}'" if event['name'] else '')
-                                ),
+                                'message':     f"Score {v} exceeds the maximum of {event_max} for '{rule['label']}' under '{event['name']}'",
                             })
-    
+
         return error_cells
     except Exception as e:
         print(f"Error in identify_cell_errors: {e}")
+        import traceback; traceback.print_exc()
         return []
 
 
@@ -295,14 +322,24 @@ def get_system_calculated_results(document):
         if parsed is None:
             return None, []
 
-        points_lookup = _get_points_rule_lookup()
-        institutions  = parsed['institutions']
+        points_lookup    = _get_points_rule_lookup()
+        event_max_lookup = _get_event_max_lookup()
+        global_max       = max(points_lookup.values()) if points_lookup else None
+        institutions     = parsed['institutions']
 
         for challenge in parsed['challenges']:
             for event in challenge['events']:
+                event_key = re.sub(r'\s+', ' ', event['name']).strip().lower()
+                event_max = event_max_lookup.get(event_key)
+
                 for rule in event['rules']:
                     max_pts = _get_max_points_for_label(rule['label'], points_lookup)
-                    rule['original_scores'] = dict(rule['scores'])  # reported values before clamping
+                    if max_pts is None:
+                        max_pts = event_max
+                    if max_pts is None:
+                        max_pts = global_max
+
+                    rule['original_scores'] = dict(rule['scores'])
                     rule['max_points']       = max_pts
                     for inst in institutions:
                         v = rule['scores'].get(inst, 0.0)
@@ -315,9 +352,13 @@ def get_system_calculated_results(document):
         corrected_totals = {inst: 0.0 for inst in institutions}
         for challenge in parsed['challenges']:
             for event in challenge['events']:
-                for rule in event['rules']:
+                if event['rules']:
+                    for rule in event['rules']:
+                        for inst in institutions:
+                            corrected_totals[inst] += rule['scores'].get(inst, 0.0)
+                elif event.get('event_scores'):
                     for inst in institutions:
-                        corrected_totals[inst] += rule['scores'].get(inst, 0.0)
+                        corrected_totals[inst] += event['event_scores'].get(inst, 0.0)
         corrected_totals = {inst: round(v, 2) for inst, v in corrected_totals.items()}
 
         sorted_insts = sorted(institutions, key=lambda i: corrected_totals[i], reverse=True)
@@ -422,6 +463,8 @@ def review_score_document(documentID):
             raise Exception("Could not parse document")
 
         errors = identify_all_cell_errors(document)
+        print(f"DEBUG errors: {errors}")
+        print(f"DEBUG points_lookup: {_get_points_rule_lookup()}")
 
         table_data = {
             'institutions':       parsed['institutions'],
@@ -448,6 +491,15 @@ def review_score_document(documentID):
             'total_errors': 0,
             'load_error': str(e),
         }
+
+    print(f"DEBUG errors: {errors}")
+    print(f"DEBUG lookup: {_get_points_rule_lookup()}")
+    for challenge in parsed['challenges']:
+        for event in challenge['events']:
+            print(f"DEBUG event: {event['name']}, rules: {[r['label'] for r in event['rules']]}")
+            for rule in event['rules']:
+                max_pts = _get_max_points_for_label(rule['label'], _get_points_rule_lookup())
+                print(f"  rule='{rule['label']}' max_pts={max_pts} scores={rule['scores']}")
 
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
@@ -527,54 +579,54 @@ def edit_score_document(documentID):
 
         try:
             file_ext = os.path.splitext(document.storedPath)[1].lower()
-
-            # Read with the correct engine based on actual file extension
-            engine_map = {
-                '.xlsx': 'openpyxl',
-                '.xls':  'xlrd',
-                '.xlsm': 'openpyxl',
-                '.xlsb': 'pyxlsb',
-            }
-            if file_ext in engine_map:
-                existing_df = pd.read_excel(document.storedPath, engine=engine_map[file_ext])
-            elif file_ext == '.csv':
-                existing_df = pd.read_csv(document.storedPath)
-            else:
-                # Last-resort: let pandas sniff the engine
-                existing_df = pd.read_excel(document.storedPath)
-
-            columns = existing_df.columns.tolist()
-            
             submitted_rows = data['rows']
 
-            if len(submitted_rows) != len(existing_df):
-                return jsonify({
-                    "error": f"Row count mismatch: expected {len(existing_df)}, received {len(submitted_rows)}."
-                }), 400
+            if file_ext in ('.xlsx', '.xls', '.xlsm', '.xlsb'):
+                raw_df = pd.read_excel(document.storedPath, header=None)
+            else:
+                raw_df = pd.read_csv(document.storedPath, header=None)
 
-            if any(len(row) != len(columns) for row in submitted_rows):
-                return jsonify({"error": "Column count mismatch in one or more rows."}), 400
+            raw_rows = raw_df.values.tolist()
+            preserved_prefix = [raw_rows[0]]
 
-            def coerce(val):
-                try:
-                    return float(val)
-                except (ValueError, TypeError):
-                    return val if val not in ('', None) else np.nan
+            header_label = str(raw_rows[1][0]).strip() if len(raw_rows) > 1 else 'Event / Institution'
+            remaining_raw = raw_rows[1:]
 
-            coerced_rows = [[coerce(cell) for cell in row] for row in submitted_rows]
-            updated_df = pd.DataFrame(coerced_rows, columns=columns)
+
+            header_positions = [
+                i for i, r in enumerate(remaining_raw)
+                if str(r[0]).strip() == header_label
+            ]
+
+            final_rows = [raw_rows[0]]
+            submitted_idx = 0
+            for i, raw_row in enumerate(remaining_raw):
+                if i in header_positions:
+                    final_rows.append(raw_row)
+                else:
+                    if submitted_idx < len(submitted_rows):
+                        final_rows.append(submitted_rows[submitted_idx])
+                        submitted_idx += 1
+
+            n_cols = len(raw_rows[1]) if len(raw_rows) > 1 else len(submitted_rows[0])
+            # Pad/trim rows to consistent column count
+            final_rows = [
+                (row + [''] * n_cols)[:n_cols] for row in final_rows
+            ]
+
+            updated_df = pd.DataFrame(final_rows)
 
             if file_ext == '.csv':
-                updated_df.to_csv(document.storedPath, index=False)
+                updated_df.to_csv(document.storedPath, index=False, header=False)
             elif file_ext == '.xls':
-                updated_df.to_excel(document.storedPath, index=False, engine='xlwt')
+                updated_df.to_excel(document.storedPath, index=False, header=False, engine='xlwt')
             elif file_ext in ('.xlsm', '.xlsb'):
                 new_path = os.path.splitext(document.storedPath)[0] + '.xlsx'
-                updated_df.to_excel(new_path, index=False, engine='openpyxl')
+                updated_df.to_excel(new_path, index=False, header=False, engine='openpyxl')
                 document.storedPath = new_path
                 db.session.commit()
             else:
-                updated_df.to_excel(document.storedPath, index=False, engine='openpyxl')
+                updated_df.to_excel(document.storedPath, index=False, header=False, engine='openpyxl')
 
             return jsonify({"message": "Document saved successfully."}), 200
 

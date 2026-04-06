@@ -49,7 +49,8 @@
 
                     {% for event in challenge.events %}
                         {% if event.name %}
-                        <tr class="event-row" data-type="event">
+                        <tr class="event-row" data-type="event"
+                            data-event-scores="{{ event.event_scores | tojson if event.event_scores is defined else '{}' }}">
                             <td colspan="{{ table_data.institutions | length + 1 }}">
                                 <i class="material-icons row-icon">flag</i>
                                 {{ event.name }}
@@ -203,16 +204,32 @@ function collectRows() {
     document.querySelectorAll('#editableBody tr').forEach(tr => {
         const type = tr.dataset.type;
 
-        if (type === 'challenge' || type === 'event') {
-            const label = tr.querySelector('td')?.textContent?.trim()
-                           .replace(/^[\s\S]*?\s/, '')
-                           || '';
+        if (type === 'challenge') {
             const td = tr.querySelector('td');
             const text = td ? [...td.childNodes]
                 .filter(n => n.nodeType === 3)
                 .map(n => n.textContent.trim())
                 .join('').trim() : '';
             rows.push([text, ...INSTITUTIONS.map(() => '')]);
+
+        } else if (type === 'event') {
+            const td = tr.querySelector('td');
+            const text = td ? [...td.childNodes]
+                .filter(n => n.nodeType === 3)
+                .map(n => n.textContent.trim())
+                .join('').trim() : '';
+            // If event has stored scores (new format event-total row), emit them
+            const rawScores = tr.dataset.eventScores;
+            if (rawScores && rawScores !== '{}') {
+                try {
+                    const scoresObj = JSON.parse(rawScores);
+                    rows.push([text, ...INSTITUTIONS.map(inst => scoresObj[inst] ?? '')]);
+                } catch {
+                    rows.push([text, ...INSTITUTIONS.map(() => '')]);
+                }
+            } else {
+                rows.push([text, ...INSTITUTIONS.map(() => '')]);
+            }
 
         } else if (type === 'rule') {
             const label = tr.querySelector('td.row-label')?.textContent?.trim() || '';
