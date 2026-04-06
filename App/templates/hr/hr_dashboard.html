@@ -273,10 +273,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function pollStats() {
+    const token = localStorage.getItem('access_token');   // adjust key to match your app
     fetch("{{ url_for('hr_views.hr_stats') }}", {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
     })
     .then(r => {
       if (!r.ok) throw new Error('Poll failed');
@@ -286,10 +290,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const instEl  = document.getElementById('stat-institutions');
       const partEl  = document.getElementById('stat-participants');
       const reptEl  = document.getElementById('stat-reports');
+      const errEl = document.getElementById('stat-errors');
 
       if (instEl) animateCount(instEl, data.institutions_this_year ?? 0);
       if (partEl) animateCount(partEl, data.participants_this_year ?? 0);
       if (reptEl) animateCount(reptEl, data.reports_count ?? 0);
+      if (errEl) animateCount(errEl, data.open_errors ?? 0);
 
       if (data.institutions_per_year) {
         updateChart(data.institutions_per_year);
@@ -336,15 +342,21 @@ document.addEventListener('DOMContentLoaded', function () {
     let errorsHTML = '';
     if (errors.length) {
       const maxVal = Math.max(...errors.map(e => e.count), 1);
-      errorsHTML = errors.map(e =>
-        '<div class="error-bar-row">'
-        + '<span class="error-bar-label">' + e.type + '</span>'
-        + '<div class="error-bar-track"><div class="error-bar-fill" style="width:' + (e.count/maxVal*100).toFixed(1) + '%"></div></div>'
-        + '<span class="error-bar-count">' + e.count + '</span>'
-        + '</div>'
-      ).join('');
+      errorsHTML = errors.map(e => {
+        const open     = e.open     ?? e.count;
+        const resolved = e.resolved ?? 0;
+        return '<div class="error-bar-row">'
+          + '<span class="error-bar-label">' + e.type + '</span>'
+          + '<div class="error-bar-track">'
+          +   '<div class="error-bar-fill" style="width:' + (e.count / maxVal * 100).toFixed(1) + '%"></div>'
+          + '</div>'
+          + '<span class="error-bar-count">' + e.count + ' total</span>'
+          + '<span class="error-bar-resolved" style="color:#16a34a;font-size:0.78rem;margin-left:6px;">✓ ' + resolved + '</span>'
+          + '<span class="error-bar-open" style="color:#dc2626;font-size:0.78rem;margin-left:4px;">● ' + open + ' open</span>'
+          + '</div>';
+      }).join('');
     } else {
-      errorsHTML = '<div class="report-placeholder"><i class="material-icons">check_circle_outline</i>No error data available. Error summaries appear after judges review scores.</div>';
+      errorsHTML = '<div class="report-placeholder"><i class="material-icons">check_circle_outline</i>No error data available.</div>';
     }
 
     bodyEl.innerHTML =
