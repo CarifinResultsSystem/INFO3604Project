@@ -31,9 +31,6 @@ class ScoreDocument(db.Model):
         backref=db.backref("score_documents", lazy=True, cascade="all, delete-orphan"),
         lazy=True,
     )
-    
-    def __init__(self, fileName, fileData):
-        self.originalFilename = fileName
 
     def get_json(self):
         return {
