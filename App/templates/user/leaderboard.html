@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='user/leaderboard.css') }}">
 
-
 <div class="dash-root">
 
   <!-- PAGE HEADING -->
@@ -19,7 +18,7 @@
     <h1>Leaderboard</h1>
     <span class="dash-subtitle">
       <i class="material-icons">update</i>
-      Last Updated: June 14, 2025 at 3:42 PM
+      <span id="lastUpdatedText">Loading…</span>
     </span>
   </div>
 
@@ -28,11 +27,8 @@
     <div class="lb-season-select">
       <i class="material-icons">calendar_today</i>
       <span>Season:</span>
-      <select id="seasonSelect" onchange="changeSeason(this.value)">
-        <option value="2025" selected>2025</option>
-        <option value="2024">2024</option>
-        <option value="2023">2023</option>
-        <option value="2022">2022</option>
+      <select id="seasonSelect" onchange="onSeasonChange(this.value)" disabled>
+        <option>—</option>
       </select>
     </div>
 
@@ -49,312 +45,375 @@
   <!-- EVENT TABS -->
   <p class="section-label">Events</p>
   <div class="event-tabs-wrap">
-    <div class="event-tabs" id="eventTabs">
-      <button class="event-tab active" onclick="switchEvent('overall', this)">Overall</button>
-      <button class="event-tab" onclick="switchEvent('sprint', this)">100m Sprint</button>
-      <button class="event-tab" onclick="switchEvent('longjump', this)">Long Jump</button>
-      <button class="event-tab" onclick="switchEvent('relay', this)">4×400m Relay</button>
-      <button class="event-tab" onclick="switchEvent('hurdles', this)">110m Hurdles</button>
-      <button class="event-tab" onclick="switchEvent('shotput', this)">Shot Put</button>
-    </div>
+    <div class="event-tabs" id="eventTabs"></div>
   </div>
 
-  <!-- OVERALL -->
-  <div id="panel-overall" class="lb-panel active">
-    <div id="table-overall" class="lb-table-wrap">
-      <table class="lb-table" data-event="overall">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">1 482</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">UTT</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">1 361</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">1 244</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">NALIS Academy</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">1 102</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">TCC</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">987</span></td></tr>
-          <tr><td><span class="place-badge place-n">6</span></td><td><span class="institution-name">SBCS</span></td><td><span class="event-tag">Overall</span></td><td><span class="points-val">874</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-overall" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">Overall Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-overall"></div>
-    </div>
+  <!-- STATES -->
+  <div id="lb-loading" style="padding:3rem;text-align:center;color:#9e9e9e;">
+    <i class="material-icons" style="font-size:2.2rem;animation:spin 1s linear infinite;display:block;margin-bottom:8px;">autorenew</i>
+    Loading leaderboard…
+  </div>
+  <div id="lb-error" style="display:none;padding:2rem;text-align:center;color:#e53935;"></div>
+  <div id="lb-empty" style="display:none;padding:2rem;text-align:center;color:#9e9e9e;">
+    <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;">hourglass_empty</i>
+    No confirmed results available for this season yet.
   </div>
 
-  <!-- 100m SPRINT -->
-  <div id="panel-sprint" class="lb-panel">
-    <div id="table-sprint" class="lb-table-wrap">
-      <table class="lb-table" data-event="sprint">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">100m Sprint</span></td><td><span class="points-val">320</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">UTT</span></td><td><span class="event-tag">100m Sprint</span></td><td><span class="points-val">280</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">TCC</span></td><td><span class="event-tag">100m Sprint</span></td><td><span class="points-val">245</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">100m Sprint</span></td><td><span class="points-val">210</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">SBCS</span></td><td><span class="event-tag">100m Sprint</span></td><td><span class="points-val">180</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-sprint" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">100m Sprint Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-sprint"></div>
-    </div>
-  </div>
-
-  <!-- LONG JUMP -->
-  <div id="panel-longjump" class="lb-panel">
-    <div id="table-longjump" class="lb-table-wrap">
-      <table class="lb-table" data-event="longjump">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">UTT</span></td><td><span class="event-tag">Long Jump</span></td><td><span class="points-val">305</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">Long Jump</span></td><td><span class="points-val">270</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">Long Jump</span></td><td><span class="points-val">238</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">NALIS Academy</span></td><td><span class="event-tag">Long Jump</span></td><td><span class="points-val">200</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">SBCS</span></td><td><span class="event-tag">Long Jump</span></td><td><span class="points-val">170</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-longjump" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">Long Jump Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-longjump"></div>
-    </div>
-  </div>
-
-  <!-- 4×400m RELAY -->
-  <div id="panel-relay" class="lb-panel">
-    <div id="table-relay" class="lb-table-wrap">
-      <table class="lb-table" data-event="relay">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">4×400m Relay</span></td><td><span class="points-val">298</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">4×400m Relay</span></td><td><span class="points-val">260</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">NALIS Academy</span></td><td><span class="event-tag">4×400m Relay</span></td><td><span class="points-val">222</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">UTT</span></td><td><span class="event-tag">4×400m Relay</span></td><td><span class="points-val">195</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">TCC</span></td><td><span class="event-tag">4×400m Relay</span></td><td><span class="points-val">165</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-relay" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">4×400m Relay Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-relay"></div>
-    </div>
-  </div>
-
-  <!-- 110m HURDLES -->
-  <div id="panel-hurdles" class="lb-panel">
-    <div id="table-hurdles" class="lb-table-wrap">
-      <table class="lb-table" data-event="hurdles">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">NALIS Academy</span></td><td><span class="event-tag">110m Hurdles</span></td><td><span class="points-val">312</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">UTT</span></td><td><span class="event-tag">110m Hurdles</span></td><td><span class="points-val">275</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">110m Hurdles</span></td><td><span class="points-val">240</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">SBCS</span></td><td><span class="event-tag">110m Hurdles</span></td><td><span class="points-val">208</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">110m Hurdles</span></td><td><span class="points-val">178</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-hurdles" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">110m Hurdles Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-hurdles"></div>
-    </div>
-  </div>
-
-  <!-- SHOT PUT -->
-  <div id="panel-shotput" class="lb-panel">
-    <div id="table-shotput" class="lb-table-wrap">
-      <table class="lb-table" data-event="shotput">
-        <thead>
-          <tr>
-            <th onclick="sortTable(this, 0)">Place</th>
-            <th onclick="sortTable(this, 1)">Institution</th>
-            <th onclick="sortTable(this, 2)">Event</th>
-            <th onclick="sortTable(this, 3)">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="place-badge place-1">1</span></td><td><span class="institution-name">SBCS</span></td><td><span class="event-tag">Shot Put</span></td><td><span class="points-val">286</span></td></tr>
-          <tr><td><span class="place-badge place-2">2</span></td><td><span class="institution-name">TCC</span></td><td><span class="event-tag">Shot Put</span></td><td><span class="points-val">255</span></td></tr>
-          <tr><td><span class="place-badge place-3">3</span></td><td><span class="institution-name">COSTAATT</span></td><td><span class="event-tag">Shot Put</span></td><td><span class="points-val">220</span></td></tr>
-          <tr><td><span class="place-badge place-n">4</span></td><td><span class="institution-name">UWI St. Augustine</span></td><td><span class="event-tag">Shot Put</span></td><td><span class="points-val">192</span></td></tr>
-          <tr><td><span class="place-badge place-n">5</span></td><td><span class="institution-name">NALIS Academy</span></td><td><span class="event-tag">Shot Put</span></td><td><span class="points-val">168</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="chart-shotput" class="lb-chart-wrap" style="display:none;">
-      <div class="lb-chart-title">Shot Put Points — 2025 Season</div>
-      <div class="bar-chart" id="bars-shotput"></div>
-    </div>
-  </div>
+  <!-- PANELS -->
+  <div id="lb-panels" style="display:none;"></div>
 
 </div>
 
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
 <script>
-  /* STATE */
-  let currentEvent = 'overall';
-  let currentView  = 'table';
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+const state = {
+  year:    null,
+  event:   'overall',
+  view:    'table',
+  apiData: null,
+};
 
-  /* EVENT TABS */
-  function switchEvent(name, btn) {
-    document.querySelectorAll('.event-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('panel-' + name).classList.add('active');
-    currentEvent = name;
-    applyView();
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => fetchAndRender(null));
+
+/* ─────────────────────────────────────────────
+   FETCH + RENDER
+───────────────────────────────────────────── */
+async function fetchAndRender(year) {
+  showState('loading');
+
+  const url = year ? `/api/leaderboard?year=${year}` : '/api/leaderboard';
+  let data;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    showState('error', 'Could not load leaderboard data: ' + err.message);
+    return;
   }
 
-  /* TABLE / CHART TOGGLE */
-  function switchView(view) {
-    currentView = view;
-    document.getElementById('btnTable').classList.toggle('active', view === 'table');
-    document.getElementById('btnChart').classList.toggle('active', view === 'chart');
-    applyView();
+  state.apiData = data;
+  state.year    = data.season_year;
+
+  // Populate / sync the season selector
+  buildSeasonSelect(data.available_years, data.season_year);
+
+  if (!data.leaderboard || data.leaderboard.length === 0) {
+    showState('empty');
+    return;
   }
 
-  function applyView() {
-    const tableEl = document.getElementById('table-' + currentEvent);
-    const chartEl = document.getElementById('chart-' + currentEvent);
-    if (!tableEl || !chartEl) return;
+  // If the previously active event no longer exists in the new season, fall back to overall
+  const validSlugs = ['overall', ...(data.challenges || []).map(slugify)];
+  if (!validSlugs.includes(state.event)) state.event = 'overall';
 
-    if (currentView === 'table') {
-      tableEl.style.display = '';
-      chartEl.style.display = 'none';
-    } else {
-      tableEl.style.display = 'none';
-      chartEl.style.display = '';
-      buildChart(currentEvent);
-    }
-  }
+  buildEventTabs(data.challenges);
+  buildPanels(data.challenges, data.leaderboard);
 
-  /* BUILD BAR CHART from table data */
-  function buildChart(eventKey) {
-    const container = document.getElementById('bars-' + eventKey);
-    if (!container) return;
-    container.innerHTML = '';
+  showState('panels');
+  setActiveTab(state.event);
+  applyView();
 
-    const table = document.querySelector('#table-' + eventKey + ' .lb-table tbody');
-    const rows  = Array.from(table.querySelectorAll('tr'));
+  document.getElementById('lastUpdatedText').textContent =
+    `Season ${data.season_year} · confirmed results`;
+}
 
-    // Get all points to compute max
-    const pts = rows.map(r => {
-      const raw = r.cells[3].querySelector('.points-val').textContent.replace(/\s/g, '');
-      return parseInt(raw, 10);
-    });
-    const max = Math.max(...pts);
+/* ─────────────────────────────────────────────
+   SEASON SELECTOR
+   Rebuilds options only when the years list changes
+   so the user's selection isn't clobbered mid-pick.
+───────────────────────────────────────────── */
+function buildSeasonSelect(years, activeYear) {
+  const sel = document.getElementById('seasonSelect');
 
-    rows.forEach((row, i) => {
-      const institution = row.cells[1].querySelector('.institution-name').textContent;
-      const points      = pts[i];
-      const pct         = Math.round((points / max) * 100);
-      const rankClass   = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+  const existing = Array.from(sel.options).map(o => parseInt(o.value, 10)).filter(Boolean);
+  const sameList = years.length === existing.length && years.every((y, i) => y === existing[i]);
 
-      const barRow = document.createElement('div');
-      barRow.className = 'bar-row';
-      barRow.innerHTML = `
-        <span class="bar-rank">${i + 1}</span>
-        <span class="bar-label" title="${institution}">${institution}</span>
-        <div class="bar-track">
-          <div class="bar-fill ${rankClass}" style="width: 0%">
-            <span>${points.toLocaleString()}</span>
-          </div>
-        </div>`;
-      container.appendChild(barRow);
-
-      // Animate in
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          barRow.querySelector('.bar-fill').style.width = pct + '%';
-        });
-      });
-    });
-  }
-
-  /* TABLE SORTING */
-  function sortTable(th, colIndex) {
-    const table   = th.closest('table');
-    const tbody   = table.querySelector('tbody');
-    const rows    = Array.from(tbody.querySelectorAll('tr'));
-    const headers = Array.from(th.closest('tr').querySelectorAll('th'));
-    const isAsc   = th.classList.contains('sorted-asc');
-
-    // Reset all headers
-    headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
-    th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
-
-    rows.sort((a, b) => {
-      let aVal = a.cells[colIndex].textContent.trim();
-      let bVal = b.cells[colIndex].textContent.trim();
-
-      // Numeric sort for Place and Points columns
-      if (colIndex === 0 || colIndex === 3) {
-        aVal = parseInt(aVal.replace(/\s/g, ''), 10) || 0;
-        bVal = parseInt(bVal.replace(/\s/g, ''), 10) || 0;
-        return isAsc ? bVal - aVal : aVal - bVal;
-      }
-      return isAsc
-        ? bVal.localeCompare(aVal)
-        : aVal.localeCompare(bVal);
-    });
-
-    rows.forEach(r => tbody.appendChild(r));
-    // Re-update place badges after sort
-    updatePlaceBadges(tbody);
-  }
-
-  function updatePlaceBadges(tbody) {
-    Array.from(tbody.querySelectorAll('tr')).forEach((row, i) => {
-      const badge = row.cells[0].querySelector('.place-badge');
-      if (!badge) return;
-      badge.className = 'place-badge ' + (i < 3 ? `place-${i+1}` : 'place-n');
+  if (!sameList) {
+    sel.innerHTML = '';
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value       = y;
+      opt.textContent = y;
+      sel.appendChild(opt);
     });
   }
 
-  /* SEASON  */
-  function changeSeason(year) {
-    document.querySelectorAll('.lb-chart-title').forEach(el => {
-      el.textContent = el.textContent.replace(/\d{4}/, year);
-    });
-  }
+  sel.value    = activeYear;   // highlight the correct year
+  sel.disabled = years.length <= 1; // no point enabling if only one option
+}
 
-  document.addEventListener('DOMContentLoaded', () => {
-    buildChart('overall');
+function onSeasonChange(year) {
+  // Keep whatever tab & view the user had open
+  fetchAndRender(parseInt(year, 10));
+}
+
+/* ─────────────────────────────────────────────
+   EVENT TABS
+───────────────────────────────────────────── */
+function buildEventTabs(challenges) {
+  const tabs = document.getElementById('eventTabs');
+  tabs.innerHTML = '';
+
+  const items = [
+    { key: 'overall', label: 'Overall' },
+    ...(challenges || []).map(c => ({ key: slugify(c), label: c })),
+  ];
+
+  items.forEach(({ key, label }) => {
+    const btn = document.createElement('button');
+    btn.className        = 'event-tab';
+    btn.dataset.eventKey = key;
+    btn.textContent      = label;
+    btn.onclick = () => {
+      state.event = key;
+      setActiveTab(key);
+      applyView();
+    };
+    tabs.appendChild(btn);
   });
+}
+
+function setActiveTab(eventKey) {
+  document.querySelectorAll('.event-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.eventKey === eventKey)
+  );
+  document.querySelectorAll('.lb-panel').forEach(p =>
+    p.classList.toggle('active', p.dataset.panelKey === eventKey)
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PANELS  (one per event key)
+───────────────────────────────────────────── */
+function buildPanels(challenges, leaderboard) {
+  const container = document.getElementById('lb-panels');
+  container.innerHTML = '';
+
+  const items = [
+    { key: 'overall', label: 'Overall' },
+    ...(challenges || []).map(c => ({ key: slugify(c), label: c })),
+  ];
+
+  items.forEach(({ key, label }) => {
+    const panel = document.createElement('div');
+    panel.className        = 'lb-panel';
+    panel.dataset.panelKey = key;
+
+    // Table wrapper
+    const tableWrap = document.createElement('div');
+    tableWrap.id        = 'table-' + key;
+    tableWrap.className = 'lb-table-wrap';
+    tableWrap.innerHTML = buildTableHTML(key, label, leaderboard, challenges);
+
+    // Chart wrapper (built lazily on first switch)
+    const chartWrap = document.createElement('div');
+    chartWrap.id            = 'chart-' + key;
+    chartWrap.className     = 'lb-chart-wrap';
+    chartWrap.style.display = 'none';
+    chartWrap.innerHTML = `
+      <div class="lb-chart-title">${escHtml(label)} Points — ${state.year} Season</div>
+      <div class="bar-chart" id="bars-${key}"></div>`;
+
+    panel.appendChild(tableWrap);
+    panel.appendChild(chartWrap);
+    container.appendChild(panel);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   TABLE HTML
+───────────────────────────────────────────── */
+function buildTableHTML(eventKey, eventLabel, leaderboard, challenges) {
+  // Resolve points for each institution under this event key
+  const rows = leaderboard.map(entry => {
+    let pts;
+    if (eventKey === 'overall') {
+      pts = entry.total_points;
+    } else {
+      const matchedChallenge = (challenges || []).find(c => slugify(c) === eventKey);
+      pts = matchedChallenge !== undefined
+        ? (entry.challenge_points?.[matchedChallenge] ?? 0)
+        : 0;
+    }
+    return { institution: entry.institution, points: pts };
+  });
+
+  // Sort descending, then assign ranks with tie-handling
+  rows.sort((a, b) => b.points - a.points);
+  let r = 1;
+  rows.forEach((row, i) => {
+    row.rank = (i > 0 && row.points === rows[i - 1].points)
+      ? rows[i - 1].rank
+      : r;
+    r++;
+  });
+
+  const badgeCls = r => r === 1 ? 'place-1' : r === 2 ? 'place-2' : r === 3 ? 'place-3' : 'place-n';
+
+  const tbody = rows.map(row => `
+    <tr>
+      <td><span class="place-badge ${badgeCls(row.rank)}">${row.rank}</span></td>
+      <td><span class="institution-name">${escHtml(row.institution)}</span></td>
+      <td><span class="event-tag">${escHtml(eventLabel)}</span></td>
+      <td><span class="points-val">${fmt(row.points)}</span></td>
+    </tr>`).join('');
+
+  return `
+    <table class="lb-table" data-event="${eventKey}">
+      <thead>
+        <tr>
+          <th onclick="sortTable(this,0)">Place</th>
+          <th onclick="sortTable(this,1)">Institution</th>
+          <th onclick="sortTable(this,2)">Event</th>
+          <th onclick="sortTable(this,3)">Points</th>
+        </tr>
+      </thead>
+      <tbody>${tbody}</tbody>
+    </table>`;
+}
+
+/* ─────────────────────────────────────────────
+   VIEW TOGGLE
+───────────────────────────────────────────── */
+function switchView(view) {
+  state.view = view;
+  document.getElementById('btnTable').classList.toggle('active', view === 'table');
+  document.getElementById('btnChart').classList.toggle('active', view === 'chart');
+  applyView();
+}
+
+function applyView() {
+  const key     = state.event;
+  const tableEl = document.getElementById('table-' + key);
+  const chartEl = document.getElementById('chart-' + key);
+  if (!tableEl || !chartEl) return;
+
+  if (state.view === 'table') {
+    tableEl.style.display = '';
+    chartEl.style.display = 'none';
+  } else {
+    tableEl.style.display = 'none';
+    chartEl.style.display = '';
+    buildChart(key);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   BAR CHART
+───────────────────────────────────────────── */
+function buildChart(eventKey) {
+  const container = document.getElementById('bars-' + eventKey);
+  if (!container) return;
+  container.innerHTML = '';  // clear for re-draws on season switch
+
+  const tbody = document.querySelector(`#table-${eventKey} .lb-table tbody`);
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const pts  = rows.map(r =>
+    parseFloat(r.cells[3].querySelector('.points-val').textContent.replace(/[^\d.]/g, '')) || 0
+  );
+  const max = Math.max(...pts, 1);
+
+  rows.forEach((row, i) => {
+    const label    = row.cells[1].querySelector('.institution-name').textContent;
+    const points   = pts[i];
+    const pct      = Math.round((points / max) * 100);
+    const rankCls  = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+
+    const barRow = document.createElement('div');
+    barRow.className = 'bar-row';
+    barRow.innerHTML = `
+      <span class="bar-rank">${i + 1}</span>
+      <span class="bar-label" title="${escHtml(label)}">${escHtml(label)}</span>
+      <div class="bar-track">
+        <div class="bar-fill ${rankCls}" style="width:0%">
+          <span>${fmt(points)}</span>
+        </div>
+      </div>`;
+    container.appendChild(barRow);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      barRow.querySelector('.bar-fill').style.width = pct + '%';
+    }));
+  });
+}
+
+/* ─────────────────────────────────────────────
+   TABLE SORT
+───────────────────────────────────────────── */
+function sortTable(th, colIndex) {
+  const table   = th.closest('table');
+  const tbody   = table.querySelector('tbody');
+  const rows    = Array.from(tbody.querySelectorAll('tr'));
+  const headers = Array.from(th.closest('tr').querySelectorAll('th'));
+  const isAsc   = th.classList.contains('sorted-asc');
+
+  headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+  th.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+  rows.sort((a, b) => {
+    let aVal = a.cells[colIndex].textContent.trim();
+    let bVal = b.cells[colIndex].textContent.trim();
+    if (colIndex === 0 || colIndex === 3) {
+      aVal = parseFloat(aVal.replace(/[^\d.]/g, '')) || 0;
+      bVal = parseFloat(bVal.replace(/[^\d.]/g, '')) || 0;
+      return isAsc ? bVal - aVal : aVal - bVal;
+    }
+    return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
+  updatePlaceBadges(tbody);
+}
+
+function updatePlaceBadges(tbody) {
+  Array.from(tbody.querySelectorAll('tr')).forEach((row, i) => {
+    const badge = row.cells[0].querySelector('.place-badge');
+    if (!badge) return;
+    badge.className = 'place-badge ' + (i < 3 ? `place-${i + 1}` : 'place-n');
+  });
+}
+
+/* ─────────────────────────────────────────────
+   STATE DISPLAY
+───────────────────────────────────────────── */
+function showState(which, msg) {
+  document.getElementById('lb-loading').style.display = which === 'loading' ? '' : 'none';
+  document.getElementById('lb-error'  ).style.display = which === 'error'   ? '' : 'none';
+  document.getElementById('lb-empty'  ).style.display = which === 'empty'   ? '' : 'none';
+  document.getElementById('lb-panels' ).style.display = which === 'panels'  ? '' : 'none';
+
+  if (which === 'error') {
+    document.getElementById('lb-error').innerHTML =
+      `<i class="material-icons">error_outline</i><p>${escHtml(msg)}</p>`;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   UTILS
+───────────────────────────────────────────── */
+function slugify(str) {
+  return String(str).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+function fmt(n) {
+  return Number(n).toLocaleString('en-TT', { maximumFractionDigits: 2 });
+}
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;') .replace(/"/g, '&quot;');
+}
 </script>
 
 {% endblock %}

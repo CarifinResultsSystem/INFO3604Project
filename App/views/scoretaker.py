@@ -7,8 +7,9 @@ from flask import send_file
 import openpyxl
 from io import BytesIO
 
-from App.models import Event, Institution
+from App.models import Event, Institution, Season
 from App.models.challenge import Challenge
+from App.database import db
 
 from App.controllers import (
     upload_score_document,
@@ -42,11 +43,19 @@ def scoretaker_dashboard():
         if d.uploadedOn and d.uploadedOn.date() == today
     ])
 
+    # Pass seasons so the dashboard can render the season picker modal
+    seasons = Season.query.order_by(Season.year.desc()).all()
+    print("DEBUG seasons:", [(s.seasonID, s.year) for s in seasons])
+    current_year   = datetime.now().year
+    current_season = Season.query.filter_by(year=current_year).first()
+
     return render_template(
         'scoretaker/scoretaker.html',
         total_uploads=total_uploads,
         uploaded_today=uploaded_today,
-        user=current_user
+        user=current_user,
+        seasons=seasons,
+        current_season_id=current_season.seasonID if current_season else (seasons[0].seasonID if seasons else None),
     )
 
 
@@ -91,7 +100,6 @@ def upload_scores():
         if error_count:
             flash(f"{error_count} file(s) failed to upload.", "error")
 
-        # Redirect to archives so the user can immediately see the uploaded files
         return redirect(url_for('scoretaker_views.archives'))
 
     return render_template('scoretaker/uploadScores.html', user=current_user)
@@ -169,31 +177,54 @@ def delete_document(documentID):
     return redirect(url_for('scoretaker_views.archives'))
 
 
-@scoretaker_views.route("/scoretaker/template")
+# ── Score Template Download ───────────────────────────────────────────────────
+
+@scoretaker_views.route("/template")
 @jwt_required()
 def download_template():
-
+    """
+    Generate and download a season-filtered Excel score template.
+    Query param: ?season_id=<int>  (optional — defaults to current year's season)
+    """
     from App.models import PointsRules
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
+    # ── Resolve requested season ──────────────────────────────────────────────
+    season_id = request.args.get("season_id", type=int)
+    if season_id:
+        selected_season = db.session.get(Season, season_id)
+        if not selected_season:
+            flash("Season not found. Showing all events.", "error")
+            selected_season = None
+    else:
+        current_year = datetime.now().year
+        selected_season = Season.query.filter_by(year=current_year).first()
+
+    # ── Fetch data filtered by season ─────────────────────────────────────────
     institutions = Institution.query.order_by(Institution.insName.asc()).all()
-    events       = Event.query.order_by(Event.eventName.asc()).all()
-    challenges   = Challenge.query.order_by(Challenge.challengeName.asc()).all()
 
+    if selected_season:
+        events     = Event.query.filter_by(seasonID=selected_season.seasonID).order_by(Event.eventName.asc()).all()
+        challenges = Challenge.query.filter_by(seasonID=selected_season.seasonID).order_by(Challenge.challengeName.asc()).all()
+        season_label = str(selected_season.year)
+    else:
+        events     = Event.query.order_by(Event.eventName.asc()).all()
+        challenges = Challenge.query.order_by(Challenge.challengeName.asc()).all()
+        season_label = "All"
+
+    # ── Style constants ───────────────────────────────────────────────────────
     FONT_NAME      = "Arial"
-    C_CHALLENGE_BG = "0B3D91"  # Deep blue
-    C_EVENT_BG     = "1E5BB8"  # Medium blue
-    C_RULE_BG      = "E3F2FD"  # Very light blue (background for rules)
-    C_INST_HDR_BG  = "0A2A66"  # Dark navy blue
-
-    C_TOTAL_BG     = "1C1C1C"  # Keep neutral dark (optional: "0D47A1")
-    C_RANK_BG      = "424242"  # Keep gray or change to "1565C0"
-
-    C_INPUT_BG     = "EAF4FF"  # Light blue input cells
+    C_CHALLENGE_BG = "0B3D91"
+    C_EVENT_BG     = "1E5BB8"
+    C_RULE_BG      = "E3F2FD"
+    C_INST_HDR_BG  = "0A2A66"
+    C_TOTAL_BG     = "1C1C1C"
+    C_RANK_BG      = "424242"
+    C_INPUT_BG     = "EAF4FF"
     C_WHITE        = "FFFFFF"
-    C_LIGHT_BORDER = "90CAF9"  # Light blue border
-    C_GAP          = "E3F2FD"  # Match rule background
+    C_LIGHT_BORDER = "90CAF9"
+    C_GAP          = "E3F2FD"
 
     def fill(hex_color):
         return PatternFill("solid", start_color=hex_color, fgColor=hex_color)
@@ -218,8 +249,18 @@ def download_template():
     for i in range(2, n_inst + 2):
         ws.column_dimensions[get_column_letter(i)].width = 14
 
+    # ── Season label banner at the very top ───────────────────────────────────
     row = 1
+    ws.row_dimensions[row].height = 22
+    banner_cell = ws.cell(row=row, column=1, value=f"Season: {season_label}")
+    banner_cell.font      = Font(name=FONT_NAME, bold=True, size=11, color="C9A6FF")
+    banner_cell.fill      = fill("050E2B")
+    banner_cell.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    for c in range(2, n_inst + 2):
+        ws.cell(row=row, column=c).fill = fill("050E2B")
+    row += 1
 
+    # ── Helper writers ────────────────────────────────────────────────────────
     def write_inst_header_row():
         nonlocal row
         ws.row_dimensions[row].height = 28
@@ -291,13 +332,23 @@ def download_template():
         else:
             write_rule_row("(no rules configured)")
 
+    # ── Build sheet ───────────────────────────────────────────────────────────
     score_rows = []
     challenge_event_ids = set()
 
     for ch in challenges:
+        # Only include challenge events that belong to this season
+        if selected_season:
+            ch_events = [ev for ev in ch.events if ev.seasonID == selected_season.seasonID]
+        else:
+            ch_events = list(ch.events)
+
+        if not ch_events:
+            continue  # Skip challenges with no events in this season
+
         write_inst_header_row()
         write_challenge_row(ch.challengeName)
-        for ev in ch.events:
+        for ev in ch_events:
             challenge_event_ids.add(ev.eventID)
             write_event_row(ev.eventName)
             start = row
@@ -353,9 +404,11 @@ def download_template():
     wb.save(output)
     output.seek(0)
 
+    filename = f"score_template_{season_label}.xlsx"
+
     return send_file(
         output,
         as_attachment=True,
-        download_name="score_template.xlsx",
+        download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )

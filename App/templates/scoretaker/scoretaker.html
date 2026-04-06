@@ -89,7 +89,10 @@
       </span>
     </a>
 
-    <a class="dash-card score-action" href="{{ url_for('scoretaker_views.download_template') }}">
+    <!-- Download Template card — opens the season picker modal -->
+    <a class="dash-card score-action"
+        href="#"
+        onclick="openScoreSeasonModal(event)">
       <div class="dash-card-header">
         <div class="dash-card-icon icon-download">
           <i class="material-icons">download</i>
@@ -106,17 +109,103 @@
     </a>
 
   </div>
+</div>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     SEASON PICKER MODAL
+════════════════════════════════════════════════════════════════ -->
+<div id="season-modal-overlay" class="modal-overlay" onclick="closeScoreSeasonModal(event)">
+  <div class="scoretaker-season-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <div class="season-modal-header">
+      <div class="season-modal-icon">
+        <i class="material-icons">file_download</i>
+      </div>
+      <div>
+        <h2 id="modal-title">Download Score Template</h2>
+        <p>Choose a season to include in the Excel sheet.</p>
+      </div>
+      <button class="season-modal-close" onclick="closeScoreSeasonModal()" aria-label="Close">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+
+    <div class="season-modal-body">
+      <label class="season-select-label" for="season-select">Season</label>
+      <div class="season-select-wrapper">
+        <i class="material-icons season-select-icon">event</i>
+        <select id="season-select" class="season-select">
+          {% if seasons %}
+            {% for s in seasons %}
+              <option value="{{ s.seasonID }}"
+                      {% if current_season_id and s.seasonID == current_season_id %}selected{% endif %}>
+                Season {{ s.year }}
+              </option>
+            {% endfor %}
+          {% else %}
+            <option value="">No seasons available</option>
+          {% endif %}
+        </select>
+        <i class="material-icons season-select-chevron">expand_more</i>
+      </div>
+
+      <p class="season-hint">
+        Only events assigned to the selected season will appear in the template.
+      </p>
+    </div>
+
+    <div class="season-modal-footer">
+      <button class="btn-cancel" onclick="closeScoreSeasonModal()">Cancel</button>
+      <button class="btn-download-confirm" onclick="confirmDownload()">
+        <i class="material-icons" style="font-size:18px">download</i>
+        Download Template
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
-  // AUTO-DISMISS TOASTS
+  // ── Toast auto-dismiss ─────────────────────────────────────────
   document.querySelectorAll('.toast').forEach(toast => {
     setTimeout(() => {
       toast.style.transition = 'opacity 0.4s';
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 400);
     }, 4000);
+  });
+
+  // ── Season modal ───────────────────────────────────────────────
+  // No top-level const — avoids redeclaration clash with admin_event.js
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var elems = document.querySelectorAll('#season-select');
+    M.FormSelect.init(elems);
+  });
+
+  function openScoreSeasonModal(e) {
+    if (e) e.preventDefault();
+    document.getElementById('season-modal-overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeScoreSeasonModal(e) {
+    const ol = document.getElementById('season-modal-overlay');
+    if (e && e.target !== ol) return;
+    ol.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function confirmDownload() {
+    const sel = document.getElementById('season-select');
+    const seasonID = sel.value;
+    if (!seasonID) { alert('No seasons are available to download.'); return; }
+    const url = "{{ url_for('scoretaker_views.download_template') }}?season_id=" + encodeURIComponent(seasonID);
+    window.location.href = url;
+    closeScoreSeasonModal();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeScoreSeasonModal();
   });
 </script>
 {% endblock %}
