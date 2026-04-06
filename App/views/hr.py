@@ -22,6 +22,7 @@ from App.controllers.hr import (
     delete_all_reports,
     build_report_data,
 )
+from App.models import AutomatedResult
 
 hr_views = Blueprint('hr_views', __name__, template_folder='../templates')
 
@@ -47,6 +48,7 @@ def hr_required(f):
 @hr_required
 def hr_dashboard():
     season = str(_local_now().year)
+    open_errors = AutomatedResult.query.filter_by(confirmed=False).count()
     return render_template(
         "hr/hr_dashboard.html",
         current_season         = season,
@@ -55,6 +57,7 @@ def hr_dashboard():
         reports_count          = get_reports_count(current_user.userID),
         institutions_per_year  = get_institutions_per_year(),
         latest_report          = get_latest_report(current_user.userID),
+        open_errors            = open_errors,     # ← new
     )
     
 
@@ -236,24 +239,45 @@ def _generate_pdf(data, season):
     story.append(HRFlowable(width="100%", thickness=1, color=PURPLE_LIGHT, spaceAfter=10))
     errors = data.get("error_summary", [])
     if errors:
-        max_val = max((e.get("count",0) for e in errors), default=1)
-        rows = [[Paragraph(h, cell_bold) for h in ["Error Type","Count","Frequency"]]]
+        max_val = max((e.get("count", 0) for e in errors), default=1)
+        RED_LIGHT = colors.HexColor("#fee2e2")
+        GREEN_LIGHT = colors.HexColor("#dcfce7")
+
+        rows = [[Paragraph(h, cell_bold) for h in
+                ["Error Type", "Total", "Resolved", "Open", "Frequency"]]]
+
         for e in errors:
-            count = e.get("count", 0)
-            bar_w = max(0.3, count / max_val * 8)
-            bar = Table([[""]], colWidths=[bar_w*cm], rowHeights=[0.3*cm])
-            bar.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),PURPLE_MID)]))
+            total    = e.get("count", 0)
+            resolved = e.get("resolved", 0)
+            open_ct  = e.get("open", total)
+            bar_w    = max(0.3, total / max_val * 6)
+
+            bar = Table([[""]], colWidths=[bar_w * cm], rowHeights=[0.3 * cm])
+            bar.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PURPLE_MID)]))
+
+            open_style = ParagraphStyle(
+                "open", fontSize=8, fontName="Helvetica-Bold",
+                textColor=colors.HexColor("#dc2626") if open_ct > 0 else colors.HexColor("#16a34a")
+            )
+
             rows.append([
                 Paragraph(str(e.get("type") or "Unknown"), cell_style),
-                Paragraph(str(count), cell_bold),
+                Paragraph(str(total),    cell_bold),
+                Paragraph(str(resolved), ParagraphStyle("res", fontSize=8, fontName="Helvetica",
+                                                        textColor=colors.HexColor("#16a34a"))),
+                Paragraph(str(open_ct),  open_style),
                 bar,
             ])
-        t = Table(rows, colWidths=[6*cm,2.5*cm,8.5*cm], repeatRows=1)
+
+        t = Table(rows, colWidths=[5*cm, 1.8*cm, 2*cm, 1.8*cm, 6.4*cm], repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(-1,0),PURPLE),("TEXTCOLOR",(0,0),(-1,0),WHITE),
-            ("FONTSIZE",(0,0),(-1,-1),8),("ROWPADDING",(0,0),(-1,-1),7),
-            ("ROWBACKGROUNDS",(0,1),(-1,-1),[WHITE,GREY_LIGHT]),
-            ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#e5e7eb")),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+            ("BACKGROUND",    (0, 0), (-1, 0),  PURPLE),
+            ("TEXTCOLOR",     (0, 0), (-1, 0),  WHITE),
+            ("FONTSIZE",      (0, 0), (-1, -1), 8),
+            ("ROWPADDING",    (0, 0), (-1, -1), 7),
+            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [WHITE, GREY_LIGHT]),
+            ("GRID",          (0, 0), (-1, -1), 0.4, colors.HexColor("#e5e7eb")),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ]))
         story.append(t)
     else:
@@ -353,14 +377,11 @@ def hr_delete_all():
 @hr_views.route("/hr/stats")
 @hr_required
 def hr_stats():
-    inst = get_institutions_this_year()
-    part = get_participants_this_year()
-    rpts = get_reports_count(current_user.userID)
-    per_year = get_institutions_per_year()
-    
+    open_errors = AutomatedResult.query.filter_by(confirmed=False).count()
     return jsonify({
-        "institutions_this_year": inst,
-        "participants_this_year": part,
-        "reports_count":          rpts,
-        "institutions_per_year":  per_year,
+        "institutions_this_year": get_institutions_this_year(),
+        "participants_this_year": get_participants_this_year(),
+        "reports_count":          get_reports_count(current_user.userID),
+        "institutions_per_year":  get_institutions_per_year(),
+        "open_errors":            open_errors,    # ← new
     })

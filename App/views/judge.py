@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, url_for, jsonify, request, abort, 
 from flask_jwt_extended import jwt_required, current_user
 from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
-from App.models import ScoreDocument, PointsRules
+from App.models import ScoreDocument, PointsRules, AutomatedResult
 import pandas as pd
 import numpy as np
 
@@ -289,6 +289,35 @@ def identify_all_cell_errors(unconfirmed_doc):
         return []
 
 
+def persist_errors_for_document(document):
+    # Clear stale results for this document
+    AutomatedResult.query.filter_by(
+        participantID=str(document.documentID)
+    ).delete(synchronize_session=False)
+
+    errors = identify_all_cell_errors(document)
+
+    for err in errors:
+        record = AutomatedResult(
+            score=float(err.get('value') or 0.0),
+            participantID=str(document.documentID),
+            eventID=1,
+            pointsID=1,
+        )
+        record.numErrors        = 1
+        record.errorType        = err.get('error_type', 'Unknown')
+        record.errorDescription = err.get('message', '')
+        record.errorCorrection  = (
+            f"Clamped to max {err['max_points']}"
+            if err.get('max_points') is not None
+            and err.get('error_type') == 'Out of Range'
+            else ''
+        )
+        db.session.add(record)
+
+    db.session.commit()
+    return errors
+
 def get_system_calculated_results(document):
     try:
         parsed = parse_hierarchical_document(document.storedPath)
@@ -421,7 +450,7 @@ def review_score_document(documentID):
         if parsed is None:
             raise Exception("Could not parse document")
 
-        errors = identify_all_cell_errors(document)
+        errors = persist_errors_for_document(document)
 
         table_data = {
             'institutions':       parsed['institutions'],
@@ -718,6 +747,10 @@ def finalize_document(documentID):
             final_df.to_csv(final_path, index=False)
 
         document.confirmed = True
+        # Mark corresponding AutomatedResult rows as confirmed too
+        AutomatedResult.query.filter_by(
+            participantID=str(documentID)
+        ).update({'confirmed': True}, synchronize_session=False)
         db.session.commit()
 
         return jsonify({
