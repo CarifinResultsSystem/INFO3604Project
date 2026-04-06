@@ -13,6 +13,7 @@ class ScoreDocument(db.Model):
     originalFilename = db.Column(db.String(255), nullable=False)
     storedFilename = db.Column(db.String(255), nullable=False)
     storedPath = db.Column(db.String(512), nullable=False)
+    fileData = db.Column(db.LargeBinary, nullable=False)
 
     uploadedOn = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
         
@@ -30,6 +31,9 @@ class ScoreDocument(db.Model):
         backref=db.backref("score_documents", lazy=True, cascade="all, delete-orphan"),
         lazy=True,
     )
+    
+    def __init__(self, fileName, fileData):
+        self.originalFilename = fileName
 
     def get_json(self):
         return {
