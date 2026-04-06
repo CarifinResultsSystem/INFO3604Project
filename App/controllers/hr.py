@@ -1,5 +1,6 @@
 from datetime import datetime
 from sqlite3 import IntegrityError
+from sqlalchemy import func, case
 
 from App.database import db
 from App.models.hr import HRReport
@@ -176,17 +177,25 @@ def build_report_data(season=None):
         rows = (
             db.session.query(
                 AutomatedResult.errorType,
-                db.func.count(AutomatedResult.resultID).label('cnt')
+                func.count(AutomatedResult.resultID).label('total'),
+                func.sum(
+                    case((AutomatedResult.confirmed == True, 1), else_=0)
+                ).label('resolved'),
             )
-            .filter(
-                AutomatedResult.errorType.isnot(None),
-                db.extract('year', AutomatedResult.createdAt) == int(season)
-            )
+            .filter(AutomatedResult.errorType != None)
             .group_by(AutomatedResult.errorType)
-            .order_by(db.desc('cnt'))
+            .order_by(func.count(AutomatedResult.resultID).desc())
             .all()
         )
-        error_summary = [{"type": r.errorType, "count": r.cnt} for r in rows]
+        error_summary = [
+            {
+                "type":     row.errorType or "Unknown",
+                "count":    row.total,
+                "resolved": row.resolved,
+                "open":     row.total - row.resolved,
+            }
+            for row in rows
+        ]
     except Exception:
         pass
 
