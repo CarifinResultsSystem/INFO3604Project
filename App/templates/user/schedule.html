@@ -58,7 +58,14 @@
       </thead>
       <tbody id="scheduleBody">
         {% for e in events %}
-        {% set is_upcoming = e.eventDate >= today if e.eventDate else false %}
+        {% set event_dt = namespace(val=none) %}
+        {% if e.eventDate and e.time %}
+          {% set is_upcoming = (e.eventDate, e.time) > (now.date(), now.time()) %}
+        {% elif e.eventDate %}
+          {% set is_upcoming = e.eventDate > today %}
+        {% else %}
+          {% set is_upcoming = false %}
+        {% endif %}
         {% set status = 'upcoming' if is_upcoming else 'completed' %}
         <tr
           data-status="{{ status }}"
