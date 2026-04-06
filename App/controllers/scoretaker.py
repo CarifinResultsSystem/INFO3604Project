@@ -1,4 +1,3 @@
-import os
 from App.database import db
 from App.models import Scoretaker, ScoreDocument
 
@@ -8,13 +7,13 @@ def get_scoretaker(userID: int):
     return db.session.get(Scoretaker, userID)
 
 # Upload Score Document
-def upload_score_document(userID: int, file_storage, upload_folder: str):
+def upload_score_document(userID: int, file_storage):
     """
     Uploads a score document for a given userID
     """
     st = Scoretaker.get_or_create_for_user(userID)
 
-    doc = st.upload_score_document(file_storage=file_storage, upload_folder=upload_folder)
+    doc = st.upload_score_document(file_storage=file_storage)
 
     db.session.commit()
     return doc
@@ -47,12 +46,6 @@ def delete_score_document(userID: int, documentID: int):
 
     if doc.scoretakerID != userID:
         raise ValueError("Forbidden: you do not own this document")
-
-    try:
-        if doc.storedPath and os.path.exists(doc.storedPath):
-            os.remove(doc.storedPath)
-    except Exception:
-        pass
 
     db.session.delete(doc)
     db.session.commit()

@@ -29,11 +29,10 @@ class Scoretaker(db.Model):
             db.session.add(st)
         return st
 
-    def upload_score_document(self, file_storage, upload_folder: str) -> "ScoreDocument":
+    def upload_score_document(self, file_storage) -> "ScoreDocument":
+        """Read the uploaded file into memory and persist it as LargeBinary in the DB."""
         if file_storage is None or not getattr(file_storage, "filename", ""):
             raise ValueError("No file provided.")
-
-        os.makedirs(upload_folder, exist_ok=True)
 
         original_name = secure_filename(file_storage.filename)
         if original_name == "":
@@ -41,16 +40,14 @@ class Scoretaker(db.Model):
 
         ext = os.path.splitext(original_name)[1].lower()
         stored_name = f"{uuid.uuid4().hex}{ext}"
-        stored_path = os.path.join(upload_folder, stored_name)
 
-        # Save file to disk
-        file_storage.save(stored_path)
+        file_bytes = file_storage.read()
 
         # Create DB record
         doc = ScoreDocument(
             originalFilename=original_name,
             storedFilename=stored_name,
-            storedPath=stored_path,
+            fileData=file_bytes,
             uploadedOn=datetime.utcnow(),
             scoretakerID=self.userID,
         )

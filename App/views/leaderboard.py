@@ -5,6 +5,7 @@ from App.controllers import get_all_users_json
 from App.database import db
 from App.models import ScoreDocument, Season
 
+import io
 import os
 import re
 import pandas as pd
@@ -25,13 +26,18 @@ def _all_inst_empty(row, inst_cols):
     return True
 
 
-def _parse_document(file_path):
+def _parse_document(doc):
     """Return parsed dict with institutions, challenges, calculated_totals, calculated_rankings."""
-    ext = os.path.splitext(file_path)[1].lower()
+    if not doc.fileData:
+        return None
+
+    ext = os.path.splitext(doc.originalFilename)[1].lower()
+    buf = io.BytesIO(doc.fileData)
+
     if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(file_path)
+        df = pd.read_excel(buf)
     else:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(buf)
 
     if df.empty or 'Rule' not in df.columns:
         return None
@@ -234,10 +240,7 @@ def get_leaderboard_api():
     challenge_names: list[str] = []  # ordered, de-duped
 
     for doc in target_docs:
-        if not doc.storedPath or not os.path.exists(doc.storedPath):
-            continue
-
-        parsed = _parse_document(doc.storedPath)
+        parsed = _parse_document(doc)
         if parsed is None:
             continue
 
