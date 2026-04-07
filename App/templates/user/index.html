@@ -95,21 +95,7 @@
           <div class="dash-card-title">Top Three Standings</div>
         </div>
         <ul class="standings-list">
-          <li>
-            <span class="standing-rank gold">1</span>
-            <span class="standing-name">T. Pemberton</span>
-            <span class="standing-pts">482 pts</span>
-          </li>
-          <li>
-            <span class="standing-rank silver">2</span>
-            <span class="standing-name">M. Baptiste</span>
-            <span class="standing-pts">461 pts</span>
-          </li>
-          <li>
-            <span class="standing-rank bronze">3</span>
-            <span class="standing-name">C. Alleyne</span>
-            <span class="standing-pts">439 pts</span>
-          </li>
+          <li style="color:#9e9e9e;font-size:0.9rem;">Loading…</li>
         </ul>
         <a href="{{ url_for('leaderboard_views.get_leaderboard_page') }}" class="dash-card-btn btn-purple">
           <i class="material-icons" style="font-size:16px">leaderboard</i>
@@ -179,9 +165,7 @@
           <div class="now-event">{{ happening_now.eventName }}</div>
           <div class="now-meta">{{ happening_now.location }} &nbsp;·&nbsp; {{ happening_now.time.strftime('%I:%M %p') }}</div>
         {% else %}
-          <div class="now-event" style="color:#999; font-size:0.95rem; margin-top:8px;">
-            No events currently in progress.
-          </div>
+          <div class="card-empty-msg">No events currently in progress.</div>
         {% endif %}
 
         <a href="{{ url_for('schedule_views.get_schedule_page') }}" class="dash-card-btn btn-red">
@@ -212,9 +196,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <div style="color:#999; font-size:0.95rem; margin-top:8px; padding:8px 0;">
-            No upcoming events scheduled for today.
-          </div>
+          <div class="card-empty-msg">No upcoming events scheduled for today.</div>
         {% endif %}
 
         <a href="{{ url_for('schedule_views.get_schedule_page') }}" class="dash-card-btn btn-green">
@@ -284,6 +266,52 @@
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+
+  /* ── Top 3 Standings ── */
+  async function loadTopStandings() {
+    const list = document.querySelector('.standings-list');
+    if (!list) return;
+
+    try {
+      const res  = await fetch('/api/leaderboard');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (!data.leaderboard || data.leaderboard.length === 0) {
+        list.innerHTML = '<li style="color:#9e9e9e;font-size:0.9rem;">No standings available yet.</li>';
+        return;
+      }
+
+      // Sort by total_points descending, take top 3
+      const sorted = [...data.leaderboard]
+        .sort((a, b) => b.total_points - a.total_points)
+        .slice(0, 3);
+
+      const rankCls = ['gold', 'silver', 'bronze'];
+
+      list.innerHTML = sorted.map((entry, i) => `
+        <li>
+          <span class="standing-rank ${rankCls[i]}">${i + 1}</span>
+          <span class="standing-name">${escHtml(entry.institution)}</span>
+          <span class="standing-pts">${fmt(entry.total_points)} pts</span>
+        </li>
+      `).join('');
+
+    } catch (err) {
+      const list = document.querySelector('.standings-list');
+      if (list) list.innerHTML = '<li style="color:#9e9e9e;font-size:0.9rem;">Could not load standings.</li>';
+    }
+  }
+
+  function fmt(n) {
+    return Number(n).toLocaleString('en-TT', { maximumFractionDigits: 2 });
+  }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.addEventListener('DOMContentLoaded', loadTopStandings);
 
   /* AUTO-DISMISS TOASTS */
   document.querySelectorAll('.toast').forEach(toast => {

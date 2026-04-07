@@ -452,6 +452,101 @@ def admin_participant_delete(participant_id):
 def admin_awards():
     return render_template("admin/awards.html", user=current_user)
 
+@admin_views.route("/admin/api/awards")
+@jwt_required()
+def admin_awards_api():
+    from App.models import ScoreDocument, Season
+    from App.views.judge import parse_hierarchical_document
+
+    year = request.args.get("year", type=int)
+    seasons = Season.query.order_by(Season.year.desc()).all()
+    available_years = [s.year for s in seasons]
+
+    if not year and seasons:
+        year = seasons[0].year
+
+    # Get all confirmed documents — filter by season year via uploadedOn year
+    # (adjust if ScoreDocument has a direct seasonID FK)
+    confirmed_docs = ScoreDocument.query.filter_by(confirmed=True).all()
+    if year:
+        confirmed_docs = [d for d in confirmed_docs if d.uploadedOn and d.uploadedOn.year == year]
+
+    if not confirmed_docs:
+        return jsonify({
+            "year": year,
+            "available_years": available_years,
+            "overall": [],
+            "events": [],
+            "empty": True,
+        })
+
+    # Merge all confirmed documents — accumulate scores per institution per challenge/event
+    institution_totals = {}   # inst -> total points
+    event_scores = {}         # event_name -> {inst -> points}
+
+    for doc in confirmed_docs:
+        try:
+            parsed = parse_hierarchical_document(doc)
+            if not parsed:
+                continue
+
+            # Overall totals
+            for inst, pts in parsed["calculated_totals"].items():
+                institution_totals[inst] = institution_totals.get(inst, 0.0) + pts
+
+            # Per-challenge/event scores
+            for challenge in parsed["challenges"]:
+                for event in challenge["events"]:
+                    event_name = event["name"] or challenge["name"]
+                    if not event_name:
+                        continue
+                    if event_name not in event_scores:
+                        event_scores[event_name] = {}
+
+                    if event["rules"]:
+                        for rule in event["rules"]:
+                            for inst, v in rule["scores"].items():
+                                event_scores[event_name][inst] = \
+                                    event_scores[event_name].get(inst, 0.0) + v
+                    elif event.get("event_scores"):
+                        for inst, v in event["event_scores"].items():
+                            event_scores[event_name][inst] = \
+                                event_scores[event_name].get(inst, 0.0) + v
+        except Exception as e:
+            print(f"Awards: could not parse doc {doc.documentID}: {e}")
+            continue
+
+    # Rank overall
+    def rank_dict(scores_dict):
+        sorted_insts = sorted(scores_dict.items(), key=lambda x: x[1], reverse=True)
+        result, rank = [], 1
+        for i, (inst, pts) in enumerate(sorted_insts):
+            if i > 0 and pts == sorted_insts[i-1][1]:
+                result.append({"institution": inst, "points": round(pts, 2), "rank": result[-1]["rank"]})
+            else:
+                result.append({"institution": inst, "points": round(pts, 2), "rank": rank})
+            rank += 1
+        return result
+
+    overall_ranked = rank_dict(institution_totals)
+
+    events_out = []
+    for event_name, scores in event_scores.items():
+        if not scores:
+            continue
+        events_out.append({
+            "name": event_name,
+            "winners": rank_dict(scores),
+        })
+
+    return jsonify({
+        "year": year,
+        "available_years": available_years,
+        "overall": overall_ranked,
+        "events": events_out,
+        "empty": False,
+    })
+
 
 # ══════════════════════════════════════════════════════════════════
 #  INSTITUTIONS CHART API
