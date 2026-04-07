@@ -12,7 +12,7 @@ class ScoreDocument(db.Model):
 
     originalFilename = db.Column(db.String(255), nullable=False)
     storedFilename = db.Column(db.String(255), nullable=False)
-    storedPath = db.Column(db.String(512), nullable=False)
+    fileData = db.Column(db.LargeBinary, nullable=False)
 
     uploadedOn = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
         

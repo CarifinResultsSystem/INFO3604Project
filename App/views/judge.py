@@ -1,3 +1,4 @@
+import io
 import os
 import re
 from flask import Blueprint, render_template, url_for, jsonify, request, abort, send_file, current_app
@@ -9,6 +10,30 @@ import pandas as pd
 import numpy as np
 
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
+
+def _doc_to_dataframe(document, header=1):
+    """Return a DataFrame from a ScoreDocument's in-DB binary content."""
+    if not document.fileData:
+        raise ValueError(f"Document {document.documentID} has no file data.")
+
+    ext = os.path.splitext(document.originalFilename)[1].lower()
+    buf = io.BytesIO(document.fileData)
+
+    if ext in ('.xlsx', '.xls'):
+        return pd.read_excel(buf, header=header)
+    else:
+        return pd.read_csv(buf, header=header)
+
+def _dataframe_to_bytes(df, ext, index=False, header=False):
+    """Serialise a DataFrame back to bytes matching the original file extension."""
+    buf = io.BytesIO()
+    ext = ext.lower()
+    if ext in ('.xlsx', '.xlsm', '.xlsb', '.xls'):
+        df.to_excel(buf, index=index, header=header, engine='openpyxl')
+    else:
+        df.to_csv(buf, index=index, header=header)
+    buf.seek(0)
+    return buf.read()
 
 #Checks if cells under institutions are empty, used to identify Challenge and event header rows
 def _all_inst_empty(row, inst_cols):
@@ -66,14 +91,8 @@ def _get_event_max_lookup():
         print(f"Warning: could not load event max lookup: {e}")
     return lookup
 
-#Used to parse the document, 
-def parse_hierarchical_document(file_path):
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(file_path, header=1)
-    else:
-        df = pd.read_csv(file_path, header=1)
-
+def _parse_dataframe(df):
+    """Parse a pre-loaded DataFrame and return the hierarchical structure."""
     df = df.rename(columns={df.columns[0]: 'Rule'})
     df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 
@@ -181,20 +200,23 @@ def parse_hierarchical_document(file_path):
     }
 
 
-#Given the fact that the original final results document has multiple totals row, these are needed to remove it
+def parse_hierarchical_document(document):
+    """Parse a ScoreDocument object. Reads from fileData (LargeBinary)."""
+    df = _doc_to_dataframe(document, header=1)
+    return _parse_dataframe(df)
+
 def find_total_rows(doc_df):
     total_mask = doc_df['Rule'].astype(str).str.upper().str.contains('TOTAL POINTS')
-    total_indices = doc_df.index[total_mask].tolist()
-    return total_indices
+    return doc_df.index[total_mask].tolist()
+
 
 def clean_duplicate_total_rows(doc_df):
     total_indices = find_total_rows(doc_df)
-    
+
     if len(total_indices) <= 1:
         # No duplicates or only one TOTAL row
         return doc_df, total_indices[-1] if total_indices else None
-    
-    # Keep only the last TOTAL row
+
     last_total_idx = total_indices[-1]
     
     # Create a list of indices to drop (all total rows except the last)
@@ -202,27 +224,25 @@ def clean_duplicate_total_rows(doc_df):
     
     # Drop the duplicate total rows
     cleaned_df = doc_df.drop(index=indices_to_drop).reset_index(drop=True)
-    
-    # Find the new index of the kept TOTAL row
+
     new_total_mask = cleaned_df['Rule'].astype(str).str.upper().str.contains('TOTAL POINTS')
     new_total_indices = cleaned_df.index[new_total_mask].tolist()
     new_last_total_idx = new_total_indices[-1] if new_total_indices else None
-    
-    print(f"Removed {len(indices_to_drop)} duplicate TOTAL row(s). Keeping row {last_total_idx + 1} as the final TOTAL.")
-    
+
+    print(f"Removed {len(indices_to_drop)} duplicate TOTAL row(s). Keeping last as the final TOTAL.")
     return cleaned_df, new_last_total_idx
 
 
 def identify_cell_errors(unconfirmed_doc):
     try:
-        parsed = parse_hierarchical_document(unconfirmed_doc.storedPath)
+        parsed = parse_hierarchical_document(unconfirmed_doc)
         if parsed is None:
             return []
 
         error_cells = []
 
         for inst in parsed['institutions']:
-            reported = parsed['totals'].get(inst, 0.0)
+            reported   = parsed['totals'].get(inst, 0.0)
             calculated = parsed['calculated_totals'].get(inst, 0.0)
             if abs(calculated - reported) >= 0.01:
                 error_cells.append({
@@ -286,7 +306,7 @@ def identify_cell_errors(unconfirmed_doc):
 
 def identify_all_cell_errors(unconfirmed_doc):
     try:
-        parsed = parse_hierarchical_document(unconfirmed_doc.storedPath)
+        parsed = parse_hierarchical_document(unconfirmed_doc)
         if parsed is None:
             return []
 
@@ -347,7 +367,7 @@ def persist_errors_for_document(document):
 
 def get_system_calculated_results(document):
     try:
-        parsed = parse_hierarchical_document(document.storedPath)
+        parsed = parse_hierarchical_document(document)
         if parsed is None:
             return None, []
 
@@ -484,10 +504,10 @@ def review_score_document(documentID):
     }
 
     try:
-        if not os.path.exists(document.storedPath):
-            raise Exception(f"File not found at path: {document.storedPath}")
+        if not document.fileData:
+            raise Exception(f"Document {documentID} has no file data in the database.")
 
-        parsed = parse_hierarchical_document(document.storedPath)
+        parsed = parse_hierarchical_document(document)
         if parsed is None:
             raise Exception("Could not parse document")
 
@@ -507,6 +527,7 @@ def review_score_document(documentID):
     except Exception as e:
         print(f"Error loading document: {e}")
         import traceback; traceback.print_exc()
+        errors = []
         table_data = {
             'institutions': [],
             'challenges': [],
@@ -519,36 +540,31 @@ def review_score_document(documentID):
             'load_error': str(e),
         }
 
-    print(f"DEBUG errors: {errors}")
-    print(f"DEBUG lookup: {_get_points_rule_lookup()}")
-    for challenge in parsed['challenges']:
-        for event in challenge['events']:
-            print(f"DEBUG event: {event['name']}, rules: {[r['label'] for r in event['rules']]}")
-            for rule in event['rules']:
-                max_pts = _get_max_points_for_label(rule['label'], _get_points_rule_lookup())
-                print(f"  rule='{rule['label']}' max_pts={max_pts} scores={rule['scores']}")
-
     return render_template('judge/review_document.html', document=doc_data, table_data=table_data)
 
 #Modified from scoretaker
 @judge_views.route('/judge/document/<int:documentID>', methods=['GET'])
 @jwt_required()
 def download_document(documentID):
-    doc = ScoreDocument.query.filter_by(
-        documentID=documentID
-    ).first_or_404()
-    
-    filename = os.path.basename(doc.storedPath)
-    root = os.path.dirname(current_app.root_path)
-    file_path = os.path.join(root, 'uploads', filename)
-    
-    if not os.path.isfile(file_path):
-        abort(404, description=f"Document file not found: {doc.originalFilename}")
-    
+    #Serve the document directly from DB binary data
+    doc = ScoreDocument.query.filter_by(documentID=documentID).first_or_404()
+
+    if not doc.fileData:
+        abort(404, description=f"No file data found for document: {doc.originalFilename}")
+
+    ext = os.path.splitext(doc.originalFilename)[1].lower()
+    mime_map = {
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.xls':  'application/vnd.ms-excel',
+        '.csv':  'text/csv',
+    }
+    mimetype = mime_map.get(ext, 'application/octet-stream')
+
     return send_file(
-        file_path,
+        io.BytesIO(doc.fileData),
+        mimetype=mimetype,
         as_attachment=False,
-        download_name=doc.originalFilename
+        download_name=doc.originalFilename,
     )
     
     
@@ -575,16 +591,17 @@ def edit_score_document(documentID):
             return jsonify({"error": "Invalid request body. Expected JSON with a 'rows' key."}), 400
 
         try:
-            file_ext = os.path.splitext(document.storedPath)[1].lower()
+            file_ext = os.path.splitext(document.originalFilename)[1].lower()
             submitted_rows = data['rows']
 
+            # Read raw bytes from DB into a DataFrame (no header parsing)
+            raw_buf = io.BytesIO(document.fileData)
             if file_ext in ('.xlsx', '.xls', '.xlsm', '.xlsb'):
-                raw_df = pd.read_excel(document.storedPath, header=None)
+                raw_df = pd.read_excel(raw_buf, header=None)
             else:
-                raw_df = pd.read_csv(document.storedPath, header=None)
+                raw_df = pd.read_csv(raw_buf, header=None)
 
             raw_rows = raw_df.values.tolist()
-            preserved_prefix = [raw_rows[0]]
 
             header_label = str(raw_rows[1][0]).strip() if len(raw_rows) > 1 else 'Event / Institution'
             remaining_raw = raw_rows[1:]
@@ -606,24 +623,23 @@ def edit_score_document(documentID):
                         submitted_idx += 1
 
             n_cols = len(raw_rows[1]) if len(raw_rows) > 1 else len(submitted_rows[0])
-            # Pad/trim rows to consistent column count
-            final_rows = [
-                (row + [''] * n_cols)[:n_cols] for row in final_rows
-            ]
+            final_rows = [(row + [''] * n_cols)[:n_cols] for row in final_rows]
 
             updated_df = pd.DataFrame(final_rows)
 
-            if file_ext == '.csv':
-                updated_df.to_csv(document.storedPath, index=False, header=False)
-            elif file_ext == '.xls':
-                updated_df.to_excel(document.storedPath, index=False, header=False, engine='xlwt')
-            elif file_ext in ('.xlsm', '.xlsb'):
-                new_path = os.path.splitext(document.storedPath)[0] + '.xlsx'
-                updated_df.to_excel(new_path, index=False, header=False, engine='openpyxl')
-                document.storedPath = new_path
-                db.session.commit()
-            else:
-                updated_df.to_excel(document.storedPath, index=False, header=False, engine='openpyxl')
+            # Serialise back to bytes and persist in DB
+            out_ext = '.xlsx' if file_ext in ('.xlsm', '.xlsb', '.xls') else file_ext
+            new_bytes = _dataframe_to_bytes(updated_df, out_ext, index=False, header=False)
+
+            document.fileData = new_bytes
+            # Update stored filename extension if format was normalised
+            if out_ext != file_ext:
+                base = os.path.splitext(document.storedFilename)[0]
+                document.storedFilename = base + out_ext
+                base_orig = os.path.splitext(document.originalFilename)[0]
+                document.originalFilename = base_orig + out_ext
+
+            db.session.commit()
 
             return jsonify({"message": "Document saved successfully."}), 200
 
@@ -631,7 +647,7 @@ def edit_score_document(documentID):
             return jsonify({"error": f"Failed to save document: {str(e)}"}), 500
 
     try:
-        parsed = parse_hierarchical_document(document.storedPath)
+        parsed = parse_hierarchical_document(document)
         if parsed is None:
             raise Exception("Could not parse document")
 
@@ -735,22 +751,19 @@ def finalize_document(documentID):
                     rows.append({'Rule': event['name'], **{inst: '' for inst in institutions}})
 
                 for rule in event['rules']:
-                    if use_system_results:
-                        row = {'Rule': rule['label'], **rule['scores']}
-                    else:
-                        row = {'Rule': rule['label'], **rule['scores']}
+                    row = {'Rule': rule['label'], **rule['scores']}
                     rows.append(row)
 
                 rows.append({'Rule': '', **{inst: '' for inst in institutions}})
 
-        totals_row = {'Rule': 'TOTAL POINTS'}
+        totals_row   = {'Rule': 'TOTAL POINTS'}
         rankings_row = {'Rule': 'RANKING'}
         for inst in institutions:
             if use_system_results:
-                totals_row[inst] = parsed['calculated_totals'].get(inst, 0.0)
+                totals_row[inst]   = parsed['calculated_totals'].get(inst, 0.0)
                 rankings_row[inst] = parsed['calculated_rankings'].get(inst, '')
             else:
-                totals_row[inst] = parsed['totals'].get(inst, 0.0)
+                totals_row[inst]   = parsed['totals'].get(inst, 0.0)
                 rankings_row[inst] = parsed['rankings'].get(inst, '')
 
         rows.append(totals_row)
@@ -758,13 +771,10 @@ def finalize_document(documentID):
 
         final_df = pd.DataFrame(rows, columns=['Rule'] + institutions)
 
-        # Save the document as the final version
-        base, ext = os.path.splitext(document.storedPath)
-        final_path = f"{base}_final{ext}"
-        if ext.lower() in ('.xlsx', '.xls'):
-            final_df.to_excel(final_path, index=False)
-        else:
-            final_df.to_csv(final_path, index=False)
+        # Serialise final DataFrame back into the DB record
+        file_ext = os.path.splitext(document.originalFilename)[1].lower()
+        out_ext  = '.xlsx' if file_ext in ('.xls', '.xlsm', '.xlsb') else file_ext
+        document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=True)
 
         document.confirmed = True
         # Mark corresponding AutomatedResult rows as confirmed too
@@ -777,7 +787,7 @@ def finalize_document(documentID):
             "message": "Document successfully finalized",
             "document_id": documentID,
             "used_system_results": use_system_results,
-            "redirect_url": url_for('judge_views.review_scores'),
+            "redirect_url":        url_for('judge_views.review_scores'),
         }), 200
 
     except Exception as e:
