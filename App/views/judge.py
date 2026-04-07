@@ -47,49 +47,86 @@ def _all_inst_empty(row, inst_cols):
 def _normalise_label(label):
     return re.sub(r'\s+', ' ', label).strip().lower()
 
-#Returns a dict from the PointsRulesTable for use in identify_cell_errors
-def _get_points_rule_lookup():
-    lookup = {}
-    try:
-        for pr in PointsRules.query.all():
-            # Index by category for team rules, label for individual rules
-            key_raw = pr.category if pr.ruleType == 'team' and pr.category else pr.label
-            if not key_raw:
-                continue
-            key = re.sub(r'\s+', ' ', key_raw).strip().lower()
-            # Keep the highest points value per key
-            if key not in lookup or pr.points > lookup[key]:
-                lookup[key] = pr.points
-    except Exception as e:
-        print(f"Warning: could not load PointsRules from DB: {e}")
-    return lookup
 
-#helper function to get point rules range
-def _get_max_points_for_label(spreadsheet_label, points_lookup):
-    normalised = _normalise_label(spreadsheet_label)
-
-    if normalised in points_lookup:
-        return points_lookup[normalised]
-
-    matches = [(k, v) for k, v in points_lookup.items() if normalised in k]
-    if matches:
-        return max(v for _, v in matches)
-
-    return None
-
-#helper function to get max event points
-def _get_event_max_lookup():
-    lookup = {}
+def _get_event_rules_lookup():
+    event_lookup = {}   # event_key -> label_key -> entry
+    global_lookup = {}  # label_key -> entry  (team/category rules shared across events)
     try:
         events = Event.query.all()
         for ev in events:
-            team_max = max((pr.points for pr in (ev.points_rules or []) if pr.ruleType == 'team'), default=0)
-            win_max  = max((pr.points for pr in (ev.points_rules or []) if pr.ruleType == 'individual'), default=0)
-            key = re.sub(r'\s+', ' ', ev.eventName).strip().lower()
-            lookup[key] = max(team_max, win_max)
+            ev_key = re.sub(r'\s+', ' ', ev.eventName).strip().lower()
+            event_lookup[ev_key] = {}
+            for pr in (ev.points_rules or []):
+                if pr.ruleType == 'individual':
+                    # "Event Win Points" — placement values specific to this event
+                    label_key = 'event win points'
+                elif pr.ruleType == 'team' and pr.category:
+                    label_key = re.sub(r'\s+', ' ', pr.category).strip().lower()
+                else:
+                    label_key = re.sub(r'\s+', ' ', pr.label or '').strip().lower() if pr.label else None
+                if not label_key:
+                    continue
+
+                # Update event-level entry
+                ev_entry = event_lookup[ev_key].setdefault(label_key, {'values': set(), 'max': 0, 'is_exact': False})
+                ev_entry['values'].add(pr.points)
+                if pr.points > ev_entry['max']:
+                    ev_entry['max'] = pr.points
+
+                # Also update the global (cross-event) fallback for team/category rules
+                if pr.ruleType != 'individual':
+                    gl_entry = global_lookup.setdefault(label_key, {'values': set(), 'max': 0, 'is_exact': False})
+                    gl_entry['values'].add(pr.points)
+                    if pr.points > gl_entry['max']:
+                        gl_entry['max'] = pr.points
+
+        # Mark is_exact on all entries
+        for ev_key, rules in event_lookup.items():
+            for lk, entry in rules.items():
+                entry['is_exact'] = len(entry['values']) > 1
+        for lk, entry in global_lookup.items():
+            entry['is_exact'] = len(entry['values']) > 1
+
     except Exception as e:
-        print(f"Warning: could not load event max lookup: {e}")
-    return lookup
+        print(f"Warning: could not build event rules lookup: {e}")
+
+    return event_lookup, global_lookup
+
+
+def _get_rule_entry(rule_label, event_name, event_lookup, global_lookup):
+    """
+    Return the validation entry for a rule, scoped to the specific event.
+    Lookup order:
+      1. event_lookup[event_key][label_key]   — exact event + label match
+      2. global_lookup[label_key]              — cross-event team/category rule
+      3. None
+    """
+    label_key = _normalise_label(rule_label)
+    ev_key    = re.sub(r'\s+', ' ', event_name).strip().lower() if event_name else ''
+
+    # 1. Per-event match
+    ev_rules = event_lookup.get(ev_key, {})
+    if label_key in ev_rules:
+        return ev_rules[label_key]
+    # Partial label match within this event
+    partial = [(k, v) for k, v in ev_rules.items() if label_key in k or k in label_key]
+    if partial:
+        return max(partial, key=lambda kv: kv[1]['max'])[1]
+
+    # 2. Global fallback (team/category rules)
+    if label_key in global_lookup:
+        return global_lookup[label_key]
+    partial = [(k, v) for k, v in global_lookup.items() if label_key in k or k in label_key]
+    if partial:
+        return max(partial, key=lambda kv: kv[1]['max'])[1]
+
+    return None
+
+
+# Thin wrapper kept for any callers that only need the ceiling value
+def _get_max_points_for_label(rule_label, event_name, event_lookup, global_lookup):
+    entry = _get_rule_entry(rule_label, event_name, event_lookup, global_lookup)
+    return entry['max'] if entry else None
 
 def _parse_dataframe(df):
     """Parse a pre-loaded DataFrame and return the hierarchical structure."""
@@ -254,21 +291,22 @@ def identify_cell_errors(unconfirmed_doc):
                     'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
                 })
 
-        points_lookup = _get_points_rule_lookup()
-        global_max = max(points_lookup.values()) if points_lookup else None
-        event_max_lookup = _get_event_max_lookup()
+        event_lookup, global_lookup = _get_event_rules_lookup()
+        all_maxes = [e['max'] for rules in event_lookup.values() for e in rules.values()]
+        global_max = max(all_maxes) if all_maxes else None
 
         for challenge in parsed['challenges']:
             for event in challenge['events']:
-                event_key = re.sub(r'\s+', ' ', event['name']).strip().lower()
-                event_max = event_max_lookup.get(event_key)
-
                 for rule in event['rules']:
-                    max_pts = _get_max_points_for_label(rule['label'], points_lookup)
-                    if max_pts is None:
-                        max_pts = event_max   # fall back to event total as ceiling
-                    if max_pts is None:
-                        max_pts = global_max  # last resort
+                    entry = _get_rule_entry(rule['label'], event['name'], event_lookup, global_lookup)
+                    if entry is not None:
+                        max_pts  = entry['max']
+                        is_exact = entry['is_exact']
+                        valid_pts = entry['values']
+                    else:
+                        max_pts   = global_max
+                        is_exact  = False
+                        valid_pts = None
 
                     for inst in parsed['institutions']:
                         v = rule['scores'].get(inst)
@@ -281,20 +319,36 @@ def identify_cell_errors(unconfirmed_doc):
                                 'event':       event['name'],
                                 'rule':        rule['label'],
                                 'value':       v,
-                                'max_points':  event_max,
+                                'max_points':  max_pts,
                                 'error_type':  'Out of Range',
                                 'message':     f"Score {v} for '{rule['label']}' is below the minimum of 0",
                             })
-                        elif max_pts is not None and v > max_pts:
+                        elif is_exact and valid_pts is not None and v not in valid_pts and v != 0:
+                            # Placement-style rule: score must be one of the configured values.
+                            valid_str = '/'.join(
+                                str(int(p) if p == int(p) else p)
+                                for p in sorted(valid_pts, reverse=True)
+                            )
                             error_cells.append({
                                 'institution': inst,
                                 'challenge':   challenge['name'],
                                 'event':       event['name'],
                                 'rule':        rule['label'],
                                 'value':       v,
-                                'max_points':  event_max,
+                                'max_points':  max_pts,
+                                'error_type':  'Invalid Score',
+                                'message':     f"Score {v} for '{rule['label']}' under '{event['name']}' is not a valid placement value (expected one of {valid_str})",
+                            })
+                        elif not is_exact and max_pts is not None and v > max_pts:
+                            error_cells.append({
+                                'institution': inst,
+                                'challenge':   challenge['name'],
+                                'event':       event['name'],
+                                'rule':        rule['label'],
+                                'value':       v,
+                                'max_points':  max_pts,
                                 'error_type':  'Out of Range',
-                                'message':     f"Score {v} exceeds the maximum of {event_max} for '{rule['label']}' under '{event['name']}'",
+                                'message':     f"Score {v} exceeds the maximum of {max_pts} for '{rule['label']}' under '{event['name']}'",
                             })
 
         return error_cells
@@ -371,22 +425,23 @@ def get_system_calculated_results(document):
         if parsed is None:
             return None, []
 
-        points_lookup    = _get_points_rule_lookup()
-        event_max_lookup = _get_event_max_lookup()
-        global_max       = max(points_lookup.values()) if points_lookup else None
-        institutions     = parsed['institutions']
+        event_lookup, global_lookup = _get_event_rules_lookup()
+        all_maxes = [e['max'] for rules in event_lookup.values() for e in rules.values()]
+        global_max = max(all_maxes) if all_maxes else None
+        institutions = parsed['institutions']
 
         for challenge in parsed['challenges']:
             for event in challenge['events']:
-                event_key = re.sub(r'\s+', ' ', event['name']).strip().lower()
-                event_max = event_max_lookup.get(event_key)
-
                 for rule in event['rules']:
-                    max_pts = _get_max_points_for_label(rule['label'], points_lookup)
-                    if max_pts is None:
-                        max_pts = event_max
-                    if max_pts is None:
-                        max_pts = global_max
+                    entry = _get_rule_entry(rule['label'], event['name'], event_lookup, global_lookup)
+                    if entry is not None:
+                        max_pts   = entry['max']
+                        is_exact  = entry['is_exact']
+                        valid_pts = entry['values']
+                    else:
+                        max_pts   = global_max
+                        is_exact  = False
+                        valid_pts = None
 
                     rule['original_scores'] = dict(rule['scores'])
                     rule['max_points']       = max_pts
@@ -394,7 +449,11 @@ def get_system_calculated_results(document):
                         v = rule['scores'].get(inst, 0.0)
                         if v < 0:
                             v = 0.0
-                        if max_pts is not None and v > max_pts:
+                        if is_exact and valid_pts is not None and v not in valid_pts and v != 0:
+                            # Clamp to the nearest valid placement value (round down)
+                            lower = [p for p in valid_pts if p <= v]
+                            v = max(lower) if lower else 0.0
+                        elif not is_exact and max_pts is not None and v > max_pts:
                             v = max_pts
                         rule['scores'][inst] = v
 
