@@ -700,7 +700,11 @@ def edit_score_document(documentID):
 
             db.session.commit()
 
-            return jsonify({"message": "Document saved successfully."}), 200
+            return jsonify({
+                                "message": "Document saved successfully.",
+                                "document_id": documentID,
+                                "redirect_url": url_for('judge_views.review_score_document', documentID=document.documentID)
+                            }), 200
 
         except Exception as e:
             return jsonify({"error": f"Failed to save document: {str(e)}"}), 500

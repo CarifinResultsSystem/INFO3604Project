@@ -268,18 +268,22 @@ function saveChanges() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: collectRows() })
     })
-    .then(r => {
-        if (r.ok) {
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok) {
             document.querySelectorAll('.editable input').forEach(input => {
                 input.dataset.original = input.value;
                 input.closest('td').classList.remove('cell-changed');
             });
             hasUnsavedChanges = false;
             document.getElementById('unsavedBadge').classList.remove('visible');
-            showToast('Changes saved successfully.', 'success');
+            showToast(data.message || 'Changes saved successfully.', 'success');
+            
+            if (data.redirect_url) {
+                setTimeout(() => { window.location.href = data.redirect_url; }, 1500);
+            }
         } else {
-            r.json().then(d => showToast(d.error || 'Failed to save changes.', 'error'))
-                    .catch(() => showToast('Failed to save changes.', 'error'));
+            showToast(data.error || 'Failed to save changes.', 'error');
         }
     })
     .catch(() => showToast('Network error. Could not save.', 'error'));
