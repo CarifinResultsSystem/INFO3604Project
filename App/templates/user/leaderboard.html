@@ -27,9 +27,15 @@
     <div class="lb-season-select">
       <i class="material-icons">calendar_today</i>
       <span>Season:</span>
-      <select id="seasonSelect" onchange="onSeasonChange(this.value)" disabled>
-        <option>—</option>
-      </select>
+      <div class="season-stepper" id="seasonStepper">
+        <button class="season-arrow" id="seasonPrev" onclick="stepSeason(-1)" aria-label="Previous season">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <span class="season-label" id="seasonLabel">—</span>
+        <button class="season-arrow" id="seasonNext" onclick="stepSeason(1)" aria-label="Next season">
+          <i class="material-icons">chevron_right</i>
+        </button>
+      </div>
     </div>
 
     <div class="lb-view-toggle">
@@ -128,28 +134,36 @@ async function fetchAndRender(year) {
 }
 
 /* ─────────────────────────────────────────────
-   SEASON SELECTOR
-   Rebuilds options only when the years list changes
-   so the user's selection isn't clobbered mid-pick.
+   SEASON STEPPER
 ───────────────────────────────────────────── */
+let _availableYears = [];
+
 function buildSeasonSelect(years, activeYear) {
-  const sel = document.getElementById('seasonSelect');
+  _availableYears = years;
 
-  const existing = Array.from(sel.options).map(o => parseInt(o.value, 10)).filter(Boolean);
-  const sameList = years.length === existing.length && years.every((y, i) => y === existing[i]);
+  const label    = document.getElementById('seasonLabel');
+  const prevBtn  = document.getElementById('seasonPrev');
+  const nextBtn  = document.getElementById('seasonNext');
+  const stepper  = document.getElementById('seasonStepper');
 
-  if (!sameList) {
-    sel.innerHTML = '';
-    years.forEach(y => {
-      const opt = document.createElement('option');
-      opt.value       = y;
-      opt.textContent = y;
-      sel.appendChild(opt);
-    });
-  }
+  label.textContent = activeYear;
 
-  sel.value    = activeYear;   // highlight the correct year
-  sel.disabled = years.length <= 1; // no point enabling if only one option
+  // Only enable arrows when there are multiple seasons
+  const multi = years.length > 1;
+  stepper.style.pointerEvents = multi ? '' : 'none';
+
+  const idx = years.indexOf(activeYear);
+  prevBtn.disabled = !multi || idx <= 0;
+  nextBtn.disabled = !multi || idx >= years.length - 1;
+}
+
+function stepSeason(direction) {
+  const label = document.getElementById('seasonLabel');
+  const current = parseInt(label.textContent, 10);
+  const idx = _availableYears.indexOf(current);
+  const nextIdx = idx + direction;
+  if (nextIdx < 0 || nextIdx >= _availableYears.length) return;
+  fetchAndRender(_availableYears[nextIdx]);
 }
 
 function onSeasonChange(year) {

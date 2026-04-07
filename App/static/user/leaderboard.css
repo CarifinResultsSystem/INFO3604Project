@@ -324,6 +324,31 @@
     white-space: nowrap;
   }
 
+  .season-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .season-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .season-arrow:hover:not(:disabled) { background: rgba(0,0,0,0.08); }
+  .season-arrow:disabled { opacity: 0.25; cursor: default; }
+  .season-label {
+    min-width: 48px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
   /* Bar colours by rank */
   .bar-fill.rank-1 { background: linear-gradient(90deg, #7b1fa2, #ab47bc); }
   .bar-fill.rank-2 { background: linear-gradient(90deg, #5c1489, #8e24aa); }

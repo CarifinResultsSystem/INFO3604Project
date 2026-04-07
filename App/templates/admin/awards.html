@@ -13,86 +13,238 @@
 
   <div class="dash-heading">
     <h1>Awards</h1>
-    <span class="dash-subtitle">Top Institutions & Event Winners</span>
+    <span class="dash-subtitle">Top Institutions &amp; Event Winners</span>
   </div>
 
-  <!-- ================= OVERALL PODIUM ================= -->
-  <div class="awards-overall">
-
-    <div class="admin-panel awards-panel">
-      <div class="admin-panel-head center">
-        <h2>Overall Institution Winners</h2>
-      </div>
-
-      <div class="awards-podium">
-
-        <div class="podium-place second">
-          <div class="podium-medal silver">2</div>
-          <div class="podium-name">Institution #2</div>
-        </div>
-
-        <div class="podium-place first">
-          <div class="podium-medal gold">1</div>
-          <div class="podium-name">Institution #1</div>
-        </div>
-
-        <div class="podium-place third">
-          <div class="podium-medal bronze">3</div>
-          <div class="podium-name">Institution #3</div>
-        </div>
-
+  <!-- SEASON STEPPER -->
+  <div class="awards-season-bar">
+    <div class="lb-season-select">
+      <i class="material-icons">calendar_today</i>
+      <span>Season:</span>
+      <div class="season-stepper" id="seasonStepper">
+        <button class="season-arrow" id="seasonPrev" onclick="stepSeason(-1)" aria-label="Previous season">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <span class="season-label" id="seasonLabel">—</span>
+        <button class="season-arrow" id="seasonNext" onclick="stepSeason(1)" aria-label="Next season">
+          <i class="material-icons">chevron_right</i>
+        </button>
       </div>
     </div>
-
   </div>
 
+  <!-- LOADING -->
+  <div id="awards-loading" style="padding:3rem;text-align:center;color:#9e9e9e;">
+    <i class="material-icons" style="font-size:2.2rem;animation:spin 1s linear infinite;display:block;margin-bottom:8px;">autorenew</i>
+    Loading awards…
+  </div>
 
-  <!-- ================= EVENT WINNERS ================= -->
+  <!-- EMPTY -->
+  <div id="awards-empty" style="display:none;padding:2rem;text-align:center;color:#9e9e9e;">
+    <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;">hourglass_empty</i>
+    No confirmed results available for this season yet.
+  </div>
 
-  <div class="awards-grid">
+  <!-- CONTENT -->
+  <div id="awards-content" style="display:none;">
 
-    <div class="admin-panel awards-panel">
-      <div class="admin-panel-head center"><h2>Event #1</h2></div>
-
-      <ol class="awards-list">
-        <li class="gold">Institution #1</li>
-        <li class="silver">Institution #2</li>
-        <li class="bronze">Institution #3</li>
-      </ol>
+    <!-- OVERALL PODIUM -->
+    <div class="awards-overall">
+      <div class="admin-panel awards-panel">
+        <div class="admin-panel-head center">
+          <h2>Overall Institution Winners</h2>
+        </div>
+        <div class="awards-podium" id="overallPodium"></div>
+        <ol class="awards-list" id="overallList"></ol>
+      </div>
     </div>
 
-    <div class="admin-panel awards-panel">
-      <div class="admin-panel-head center"><h2>Event #2</h2></div>
-
-      <ol class="awards-list">
-        <li class="gold">Institution #1</li>
-        <li class="silver">Institution #2</li>
-        <li class="bronze">Institution #3</li>
-      </ol>
-    </div>
-
-    <div class="admin-panel awards-panel">
-      <div class="admin-panel-head center"><h2>Event #3</h2></div>
-
-      <ol class="awards-list">
-        <li class="gold">Institution #1</li>
-        <li class="silver">Institution #2</li>
-        <li class="bronze">Institution #3</li>
-      </ol>
-    </div>
-
-    <div class="admin-panel awards-panel">
-      <div class="admin-panel-head center"><h2>Event #4</h2></div>
-
-      <ol class="awards-list">
-        <li class="gold">Institution #1</li>
-        <li class="silver">Institution #2</li>
-        <li class="bronze">Institution #3</li>
-      </ol>
-    </div>
+    <!-- EVENT WINNERS -->
+    <p class="section-label" style="margin-top:28px;">Event Winners</p>
+    <div class="awards-grid" id="eventsGrid"></div>
 
   </div>
 
 </div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .awards-season-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .lb-season-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+  .season-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .season-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .season-arrow:hover:not(:disabled) { background: rgba(0,0,0,0.08); }
+  .season-arrow:disabled { opacity: 0.25; cursor: default; }
+  .season-label {
+    min-width: 48px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+</style>
+
+<script>
+let _availableYears = [];
+let _currentYear    = null;
+
+document.addEventListener('DOMContentLoaded', () => fetchAwards(null));
+
+async function fetchAwards(year) {
+  document.getElementById('awards-loading').style.display = '';
+  document.getElementById('awards-empty').style.display   = 'none';
+  document.getElementById('awards-empty').innerHTML = `
+    <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;">hourglass_empty</i>
+    No confirmed results available for this season yet.`;
+  document.getElementById('awards-content').style.display = 'none';
+
+  const url = year ? `/admin/api/awards?year=${year}` : '/admin/api/awards';
+  let data;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    document.getElementById('awards-loading').style.display = 'none';
+    document.getElementById('awards-empty').style.display = '';
+    document.getElementById('awards-empty').innerHTML = `
+      <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;color:#e53935;">wifi_off</i>
+      <p style="color:#e53935;font-weight:500;">Could not load awards data.</p>
+      <p style="color:#9e9e9e;font-size:13px;margin-top:4px;">${escHtml(err.message)}</p>`;
+    return;
+  }
+
+  document.getElementById('awards-loading').style.display = 'none';
+  _availableYears = data.available_years || [];
+  _currentYear    = data.year;
+  updateStepper();
+
+  if (data.empty || !data.overall?.length) {
+    const emptyEl = document.getElementById('awards-empty');
+    emptyEl.style.display = '';
+    emptyEl.innerHTML = `
+      <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;">hourglass_empty</i>
+      <p style="font-weight:500;">No confirmed results for the ${_currentYear || 'selected'} season.</p>
+      <p style="font-size:13px;margin-top:4px;">Results will appear here once a judge confirms a score document.</p>`;
+    return;
+  }
+
+  buildPodium(data.overall);
+  buildOverallList(data.overall);
+  buildEventCards(data.events);
+  document.getElementById('awards-content').style.display = '';
+}
+
+/* ── Season stepper ── */
+function updateStepper() {
+  const label   = document.getElementById('seasonLabel');
+  const prevBtn = document.getElementById('seasonPrev');
+  const nextBtn = document.getElementById('seasonNext');
+  const multi   = _availableYears.length > 1;
+  const idx     = _availableYears.indexOf(_currentYear);
+
+  label.textContent  = _currentYear || '—';
+  prevBtn.disabled   = !multi || idx >= _availableYears.length - 1;
+  nextBtn.disabled   = !multi || idx <= 0;
+
+  document.getElementById('seasonStepper').style.pointerEvents = multi ? '' : 'none';
+}
+
+function stepSeason(direction) {
+  const idx = _availableYears.indexOf(_currentYear);
+  // years are desc: prev = higher index, next = lower index
+  const nextIdx = idx + direction;
+  if (nextIdx < 0 || nextIdx >= _availableYears.length) return;
+  fetchAwards(_availableYears[nextIdx]);
+}
+
+/* ── Podium (top 3) ── */
+function buildPodium(overall) {
+  const podium = document.getElementById('overallPodium');
+  podium.innerHTML = '';
+  const top3 = overall.slice(0, 3);
+  const order = [1, 0, 2]; // silver, gold, bronze display order
+
+  order.forEach(i => {
+    if (!top3[i]) return;
+    const entry = top3[i];
+    const cls   = ['first','second','third'][i];
+    const medal = ['gold','silver','bronze'][i];
+    const num   = entry.rank;
+    const div   = document.createElement('div');
+    div.className = `podium-place ${cls}`;
+    div.innerHTML = `
+      <div class="podium-medal ${medal}">${num}</div>
+      <div class="podium-name">${escHtml(entry.institution)}</div>
+      <div class="podium-pts">${fmt(entry.points)} pts</div>`;
+    podium.appendChild(div);
+  });
+}
+
+/* ── Full ranked list below podium ── */
+function buildOverallList(overall) {
+  const list = document.getElementById('overallList');
+  list.innerHTML = '';
+  overall.forEach(entry => {
+    const li = document.createElement('li');
+    const medalCls = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+    if (medalCls) li.className = medalCls;
+    li.innerHTML = `<span class="rank-num">${entry.rank}.</span> ${escHtml(entry.institution)} <span class="pts-tag">${fmt(entry.points)} pts</span>`;
+    list.appendChild(li);
+  });
+}
+
+/* ── Event winner cards ── */
+function buildEventCards(events) {
+  const grid = document.getElementById('eventsGrid');
+  grid.innerHTML = '';
+
+  if (!events.length) {
+    grid.innerHTML = '<p style="color:#9e9e9e;grid-column:1/-1;text-align:center;">No event data available.</p>';
+    return;
+  }
+
+  events.forEach(ev => {
+    const panel = document.createElement('div');
+    panel.className = 'admin-panel awards-panel';
+    const winners = ev.winners.slice(0, 3);
+    const medalCls = ['gold','silver','bronze'];
+
+    const items = winners.map((w, i) =>
+      `<li class="${medalCls[i] || ''}">${escHtml(w.institution)} <span class="pts-tag">${fmt(w.points)} pts</span></li>`
+    ).join('');
+
+    panel.innerHTML = `
+      <div class="admin-panel-head center"><h2>${escHtml(ev.name)}</h2></div>
+      <ol class="awards-list">${items}</ol>`;
+    grid.appendChild(panel);
+  });
+}
+
+function fmt(n)    { return Number(n).toLocaleString('en-TT', { maximumFractionDigits: 2 }); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
 
 {% endblock %}
