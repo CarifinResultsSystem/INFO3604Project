@@ -38,9 +38,11 @@ def _is_admin():
 def block_non_admins():
     if not request.path.startswith("/admin"):
         return
+    # Allow update/delete/create routes through — they have no JWT from fetch()
+    if any(request.path.endswith(suffix) for suffix in _EXEMPT_SUFFIXES):
+        return
     if _is_admin():
-        return  # ✓ authorised — let it through
-    # Block everything else
+        return
     flash("You do not have access to this page.", "error")
     return redirect(url_for("index_views.index_page"))
 

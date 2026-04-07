@@ -178,13 +178,18 @@
             <td class="inst-loc-cell">{{ inst.insLocation }}</td>
             <td>
               <a href="#"
-                 style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
-                 onclick="openInstEdit(event,{{ inst.institutionID }},{{ inst.insName|tojson }},{{ inst.insLocation|tojson }});return false;">
+                style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                data-action="edit-inst"
+                data-id="{{ inst.institutionID }}"
+                data-name="{{ inst.insName or '' }}"
+                data-loc="{{ inst.insLocation or '' }}">
                 <i class="material-icons" style="font-size:15px;">edit</i>Edit
               </a>
               <a href="#"
-                 style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
-                 onclick="deleteInstitution(event,{{ inst.institutionID }},{{ inst.insName|tojson }});return false;">
+                style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                data-action="delete-inst"
+                data-id="{{ inst.institutionID }}"
+                data-name="{{ inst.insName or '' }}">
                 <i class="material-icons" style="font-size:15px;">delete</i>Delete
               </a>
             </td>
@@ -229,13 +234,23 @@
             <td>{{ inst_name }}</td>
             <td>
               <a href="#"
-                 style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
-                 onclick="openPartEdit(event,{{ p.participantID|tojson }},{{ p.firstName|tojson }},{{ p.lastName|tojson }},{{ p.gender|tojson }},{{ p.dateOfBirth|string|tojson }},{{ p.location|tojson }},{{ p.institutionID|tojson }});return false;">
+                style="margin-right:14px;color:#4f46e5;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                data-action="edit-part"
+                data-id="{{ p.participantID }}"
+                data-first="{{ p.firstName or '' }}"
+                data-last="{{ p.lastName or '' }}"
+                data-gender="{{ p.gender or '' }}"
+                data-dob="{{ (p.dateOfBirth|string)[:10] if p.dateOfBirth else '' }}"
+                data-loc="{{ p.location or '' }}"
+                data-inst="{{ p.institutionID or '' }}">
                 <i class="material-icons" style="font-size:15px;">edit</i>Edit
               </a>
               <a href="#"
-                 style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
-                 onclick="deleteParticipant(event,{{ p.participantID|tojson }},{{ p.firstName|tojson }},{{ p.lastName|tojson }});return false;">
+                style="color:#e53935;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"
+                data-action="delete-part"
+                data-id="{{ p.participantID }}"
+                data-first="{{ p.firstName or '' }}"
+                data-last="{{ p.lastName or '' }}">
                 <i class="material-icons" style="font-size:15px;">delete</i>Delete
               </a>
             </td>
@@ -342,6 +357,12 @@
 </div>{# end dash-root #}
 
 <script>
+
+  /* ── state ── */
+  let _instId  = null;
+  let _instRow = null;
+  let _partId  = null;
+
   /* ── season filter ── */
   function filterEventsBySeason(seasonId) {
     const labels      = document.querySelectorAll('#eventsCheckboxGrid .event-checkbox');
@@ -387,20 +408,53 @@
     if (e.key === 'Escape') { hideModal('instEditModal'); hideModal('partEditModal'); }
   });
 
-  /* ── institution edit ── */
-  let _instId      = null;
-  let _instRow     = null;
-
-  function openInstEdit(e, id, name, loc) {
+  /* ── delegated action clicks ── */
+  document.addEventListener('click', function (e) {
+    const link = e.target.closest('a[data-action]');
+    if (!link) return;
     e.preventDefault();
-    _instId  = id;
-    _instRow = e.currentTarget.closest('tr');
-    document.getElementById('instEditName').value = name;
-    document.getElementById('instEditLoc').value  = loc;
-    showModal('instEditModal');
-  }
-  function closeInstEdit() { hideModal('instEditModal'); }
 
+    const action = link.dataset.action;
+
+    if (action === 'edit-inst') {
+      const row = link.closest('tr');
+      _instId  = link.dataset.id;
+      _instRow = row;
+      document.getElementById('instEditName').value = link.dataset.name;
+      document.getElementById('instEditLoc').value  = link.dataset.loc;
+      showModal('instEditModal');
+
+    } else if (action === 'delete-inst') {
+      const { id, name } = link.dataset;
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      const f = document.createElement('form');
+      f.method = 'POST';
+      f.action = `/admin/institutions/${id}/delete`;
+      document.body.appendChild(f);
+      f.submit();
+
+    } else if (action === 'edit-part') {
+      _partId = link.dataset.id;
+      document.getElementById('partEditFirst').value  = link.dataset.first;
+      document.getElementById('partEditLast').value   = link.dataset.last;
+      document.getElementById('partEditGender').value = link.dataset.gender;
+      document.getElementById('partEditDob').value    = link.dataset.dob;
+      document.getElementById('partEditLoc').value    = link.dataset.loc;
+      document.getElementById('partEditInst').value   = String(link.dataset.inst);
+      showModal('partEditModal');
+
+    } else if (action === 'delete-part') {
+      const { id, first, last } = link.dataset;
+      if (!confirm(`Delete "${first} ${last}"? This cannot be undone.`)) return;
+      const f = document.createElement('form');
+      f.method = 'POST';
+      f.action = `/admin/participants/${id}/delete`;
+      document.body.appendChild(f);
+      f.submit();
+    }
+  });
+
+  /* ── institution save ── */
   document.getElementById('instEditForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const btn = document.getElementById('instSaveBtn');
@@ -426,33 +480,7 @@
     }
   });
 
-  /* ── institution delete ── */
-  function deleteInstitution(e, id, name) {
-    e.preventDefault();
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    const f = document.createElement('form');
-    f.method = 'POST';
-    f.action = `/admin/institutions/${id}/delete`;
-    document.body.appendChild(f);
-    f.submit();
-  }
-
-  /* ── participant edit ── */
-  let _partId = null;
-
-  function openPartEdit(e, id, first, last, gender, dob, loc, instID) {
-    e.preventDefault();
-    _partId = id;
-    document.getElementById('partEditFirst').value  = first;
-    document.getElementById('partEditLast').value   = last;
-    document.getElementById('partEditGender').value = gender;
-    document.getElementById('partEditDob').value    = dob;
-    document.getElementById('partEditLoc').value    = loc;
-    document.getElementById('partEditInst').value   = String(instID);
-    showModal('partEditModal');
-  }
-  function closePartEdit() { hideModal('partEditModal'); }
-
+  /* ── participant save ── */
   document.getElementById('partEditForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const btn = document.getElementById('partSaveBtn');
@@ -473,16 +501,9 @@
     }
   });
 
-  /* ── participant delete ── */
-  function deleteParticipant(e, id, first, last) {
-    e.preventDefault();
-    if (!confirm(`Delete "${first} ${last}"? This cannot be undone.`)) return;
-    const f = document.createElement('form');
-    f.method = 'POST';
-    f.action = `/admin/participants/${id}/delete`;
-    document.body.appendChild(f);
-    f.submit();
-  }
+  /* ── close helpers ── */
+  function closeInstEdit() { hideModal('instEditModal'); }
+  function closePartEdit() { hideModal('partEditModal'); }
 
   /* ── toast auto-dismiss ── */
   document.querySelectorAll('.toast').forEach(t => {

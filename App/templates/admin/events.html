@@ -5,7 +5,7 @@
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon/events.png') }}">
 {% endblock %}
 
-{% block content %}a
+{% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='user/index.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin_events.css') }}">
@@ -82,7 +82,7 @@
   </div>
 
   <!-- ══════════════════════════════════
-       CREATE EVENT FORM (2-step)
+       CREATE EVENT FORM
   ══════════════════════════════════ -->
   <p class="section-label">Add New Event</p>
   <div class="admin-panel">

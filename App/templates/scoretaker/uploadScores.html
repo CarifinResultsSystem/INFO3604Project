@@ -26,20 +26,8 @@
 
       <!-- Accepted format badges -->
       <div class="format-badges">
-        <span class="format-badge xml">
-          <i class="material-icons" style="font-size:13px">code</i> XML
-        </span>
         <span class="format-badge xlsx">
           <i class="material-icons" style="font-size:13px">table_chart</i> XLSX
-        </span>
-        <span class="format-badge xls">
-          <i class="material-icons" style="font-size:13px">table_chart</i> XLS
-        </span>
-        <span class="format-badge xlsm">
-          <i class="material-icons" style="font-size:13px">table_chart</i> XLSM
-        </span>
-        <span class="format-badge xlsb">
-          <i class="material-icons" style="font-size:13px">table_chart</i> XLSB
         </span>
         <span class="format-badge csv">
           <i class="material-icons" style="font-size:13px">grid_on</i> CSV
@@ -59,7 +47,7 @@
             type="file"
             name="files"
             id="fileInput"
-            accept=".xml,.xlsx,.xls,.xlsm,.xlsb,.xlam,.xltx,.xltm,.csv,.ods"
+            accept=".xlsx,.csv"
             multiple
             hidden
           >
@@ -140,7 +128,7 @@ function syncInputFiles() {
 function getExtIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
   if (ext === 'xml')  return { cls: 'xml-icon',  icon: 'code' };
-  if (['xlsx','xls','xlsm','xlsb','xlam','xltx','xltm','ods'].includes(ext))
+  if (['xlsx'].includes(ext))
                       return { cls: 'xlsx-icon', icon: 'table_chart' };
   if (ext === 'csv')  return { cls: 'csv-icon',  icon: 'grid_on' };
   return { cls: 'other-icon', icon: 'insert_drive_file' };
