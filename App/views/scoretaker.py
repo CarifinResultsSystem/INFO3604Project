@@ -69,9 +69,6 @@ def upload_scores():
             flash("No files selected.", "error")
             return redirect(url_for('scoretaker_views.upload_scores'))
 
-        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
-        os.makedirs(upload_folder, exist_ok=True)
-
         success_count = 0
         error_count   = 0
 
@@ -85,7 +82,6 @@ def upload_scores():
                 upload_score_document(
                     userID=current_user.userID,
                     file_storage=file,
-                    upload_folder=upload_folder
                 )
                 success_count += 1
 
@@ -151,13 +147,24 @@ def view_document(documentID):
         scoretakerID=current_user.userID
     ).first_or_404()
 
-    if not os.path.exists(doc.storedPath):
+    if not doc.fileData:
         abort(404)
 
+    ext = os.path.splitext(doc.originalFilename)[1].lower()
+    mime_map = {
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.xls':  'application/vnd.ms-excel',
+        '.csv':  'text/csv',
+        '.xml':  'application/xml',
+        '.ods':  'application/vnd.oasis.opendocument.spreadsheet',
+    }
+    mimetype = mime_map.get(ext, 'application/octet-stream')
+
     return send_file(
-        doc.storedPath,
+        BytesIO(doc.fileData),
+        mimetype=mimetype,
         as_attachment=False,
-        download_name=doc.originalFilename
+        download_name=doc.originalFilename,
     )
 
 
