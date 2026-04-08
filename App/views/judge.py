@@ -20,20 +20,7 @@ def _doc_to_dataframe(document, header=1):
     buf = io.BytesIO(document.fileData)
 
     if ext in ('.xlsx', '.xls'):
-        from openpyxl import load_workbook
-        wb = load_workbook(buf, data_only=True, read_only=True)
-        ws = wb.active
-        rows_raw = list(ws.iter_rows(values_only=True))
-        if not rows_raw:
-            return pd.DataFrame()
-        # header param: 0 = first row is header, 1 = second row is header (default)
-        header_idx = header if header < len(rows_raw) else 0
-        col_names = [
-            str(c) if c is not None else f'Unnamed_{i}'
-            for i, c in enumerate(rows_raw[header_idx])
-        ]
-        data_rows = rows_raw[header_idx + 1:]
-        return pd.DataFrame(data_rows, columns=col_names)
+        return pd.read_excel(buf, header=header)
     else:
         return pd.read_csv(buf, header=header)
 
@@ -52,11 +39,11 @@ def _dataframe_to_bytes(df, ext, index=False, header=False):
 def _all_inst_empty(row, inst_cols):
     for col in inst_cols:
         val = row[col]
-        if pd.notna(val) and str(val).strip() != '':
-            return False
-    return True
+        if pd.notna(val) and str(val).strip() != '' and not str(val).strip().startswith('='):
+            return True
+    return False
 
-#Ensures there is no unnecessary whitespace
+#Ensures there is no unneccesary whitespace
 def _normalise_label(label):
     return re.sub(r'\s+', ' ', label).strip().lower()
 
@@ -146,23 +133,19 @@ def _parse_dataframe(df):
     df = df.rename(columns={df.columns[0]: 'Rule'})
     df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 
-    institutions = [c for c in df.columns if c != 'Rule' and str(c).strip() != '']
+    institutions = [c for c in df.columns if c != 'Rule']
 
     challenges = []
     totals = {}
     rankings = {}
     current_challenge = None
     current_event = None
-    # Becomes True right after an all-caps challenge header or an 'Event Win Points'
-    # row — signals that the NEXT data row is an event subtotal (skip its values).
-    just_saw_challenge_header = False
 
     for _, row in df.iterrows():
         rule_val = row['Rule']
         rule_str = str(rule_val).strip() if pd.notna(rule_val) else ''
 
         if rule_str == '':
-            just_saw_challenge_header = False
             current_event = None
             continue
 
@@ -171,9 +154,10 @@ def _parse_dataframe(df):
         if 'TOTAL POINTS' in rule_upper:
             for inst in institutions:
                 v = row[inst]
-                try:
-                    totals[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
-                except (ValueError, TypeError):
+                v_str = str(v).strip() if pd.notna(v) else ''
+                if pd.notna(v) and v_str != '' and not v_str.startswith('='):
+                    totals[inst] = float(v)
+                else:
                     totals[inst] = 0.0
             continue
 
@@ -184,54 +168,44 @@ def _parse_dataframe(df):
             continue
 
         if _all_inst_empty(row, institutions):
-            if rule_str == rule_str.upper():
-                # All-caps = top-level challenge section (e.g. URBAN CHALLENGE)
+            if current_challenge is None or rule_str == rule_str.upper():
                 current_challenge = {'name': rule_str, 'events': []}
                 challenges.append(current_challenge)
                 current_event = None
-                just_saw_challenge_header = True
             else:
-                # Mixed-case empty row = explicit event label (rare)
                 current_event = {'name': rule_str, 'rules': []}
                 if current_challenge is not None:
                     current_challenge['events'].append(current_event)
-                just_saw_challenge_header = False
         else:
-            # Row has numeric data
             scores = {}
             for inst in institutions:
                 v = row[inst]
-                try:
-                    scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
-                except (ValueError, TypeError):
-                    scores[inst] = 0.0
+                v_str = str(v).strip() if pd.notna(v) else ''
+                scores[inst] = float(v) if pd.notna(v) and v_str != '' and not v_str.startswith('=') else 0.0
 
-            if just_saw_challenge_header:
-                # This is an event subtotal row (e.g. "Chancellor Challenge = 76").
-                # Its value already equals the sum of its sub-rows — skip the scores.
+            # Event-level total row — open a new event but don't add to summation
+            if current_event is None and current_challenge is not None:
                 current_event = {'name': rule_str, 'rules': [], 'event_scores': scores, '_direct': True}
-                if current_challenge is not None:
-                    current_challenge['events'].append(current_event)
-                just_saw_challenge_header = False
+                current_challenge['events'].append(current_event)
             else:
                 rule_entry = {'label': rule_str, 'scores': scores}
                 if current_event is not None:
                     current_event['rules'].append(rule_entry)
                 elif current_challenge is not None:
-                    direct_event = {'name': '', 'rules': [rule_entry], '_direct': True}
-                    current_challenge['events'].append(direct_event)
-                    current_event = direct_event
+                    if not current_challenge['events'] or current_challenge['events'][-1].get('_direct'):
+                        if not current_challenge['events'] or not current_challenge['events'][-1].get('_direct'):
+                            direct_event = {'name': '', 'rules': [], '_direct': True}
+                            current_challenge['events'].append(direct_event)
+                            current_event = direct_event
+                        current_event['rules'].append(rule_entry)
+                    else:
+                        current_event['rules'].append(rule_entry)
                 else:
                     if not challenges:
                         challenges.append({'name': '', 'events': []})
                         current_challenge = challenges[-1]
                     orphan_event = {'name': '', 'rules': [rule_entry], '_direct': True}
                     current_challenge['events'].append(orphan_event)
-
-                # After 'Event Win Points' the next data row starts the next event
-                if rule_str == 'Event Win Points':
-                    just_saw_challenge_header = True
-                    current_event = None
 
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
@@ -309,18 +283,21 @@ def identify_cell_errors(unconfirmed_doc):
 
         error_cells = []
 
-        for inst in parsed['institutions']:
-            reported   = parsed['totals'].get(inst, 0.0)
-            calculated = parsed['calculated_totals'].get(inst, 0.0)
-            if abs(calculated - reported) >= 0.01:
-                error_cells.append({
-                    'institution': inst,
-                    'calculated_value': calculated,
-                    'reported_value': reported,
-                    'difference': round(calculated - reported, 2),
-                    'error_type': 'Total Mismatch',
-                    'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
-                })
+        if all(v == 0.0 for v in parsed['totals'].values()):
+            pass
+        else:
+            for inst in parsed['institutions']:
+                reported = parsed['totals'].get(inst, 0.0)
+                calculated = parsed['calculated_totals'].get(inst, 0.0)
+                if abs(calculated - reported) >= 0.01:
+                    error_cells.append({
+                        'institution': inst,
+                        'calculated_value': calculated,
+                        'reported_value': reported,
+                        'difference': round(calculated - reported, 2),
+                        'error_type': 'Total Mismatch',
+                        'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
+                    })
 
         event_lookup, global_lookup = _get_event_rules_lookup()
         all_maxes = [e['max'] for rules in event_lookup.values() for e in rules.values()]
