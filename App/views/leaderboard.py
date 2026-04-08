@@ -23,76 +23,70 @@ def _all_inst_empty(row, inst_cols):
 
 
 def _parse_document(doc):
-    """
-    Parse a ScoreDocument for leaderboard use.
-
-    Supports both:
-    - template-style files with header row at index 1
-    - finalized files written with header row at index 0
-    """
     if not doc.fileData:
         return None
 
     ext = os.path.splitext(doc.originalFilename)[1].lower()
     buf = io.BytesIO(doc.fileData)
 
-    candidates = []
-
     try:
+        # Read raw sheet with no assumed header
         if ext in ('.xlsx', '.xls'):
-            candidates.append(pd.read_excel(buf, header=1))
-            buf.seek(0)
-            candidates.append(pd.read_excel(buf, header=0))
+            raw_df = pd.read_excel(buf, header=None)
         else:
-            candidates.append(pd.read_csv(buf, header=1))
-            buf.seek(0)
-            candidates.append(pd.read_csv(buf, header=0))
+            raw_df = pd.read_csv(buf, header=None)
     except Exception as e:
         print(f"PARSE ERROR reading doc {doc.documentID}: {e}")
         return None
 
-        df = None
-    best_score = -1
-
-    for candidate in candidates:
-        if candidate is None or candidate.empty:
-            continue
-
-        candidate = candidate.rename(columns={candidate.columns[0]: 'Rule'})
-        candidate = candidate[
-            candidate['Rule'].astype(str).str.strip() != 'Event / Institution'
-        ].reset_index(drop=True)
-
-        inst_cols = [
-        c for c in df.columns
-        if c != 'Rule' and not str(c).startswith('Unnamed:')
-        ]
-        
-        if not inst_cols:
-            continue
-
-        non_empty_cols = [
-            c for c in inst_cols
-            if not candidate[[c]].dropna(how='all').empty
-        ]
-
-        # Prefer real institution headers over pandas-generated "Unnamed:*"
-        real_named_cols = [
-            c for c in non_empty_cols
-            if not str(c).startswith('Unnamed:')
-        ]
-
-        score = len(real_named_cols) * 10 + len(non_empty_cols)
-
-        if score > best_score:
-            best_score = score
-            df = candidate
-
-    if df is None or df.empty:
-        print(f"PARSE ERROR: no usable dataframe for doc {doc.documentID} ({doc.originalFilename})")
+    if raw_df is None or raw_df.empty:
+        print(f"PARSE ERROR: empty raw dataframe for doc {doc.documentID}")
         return None
 
-    institutions = [c for c in df.columns if c != 'Rule']
+    # Find the actual header row
+    # Accept either:
+    # - Event / Institution   (template files)
+    # - Rule                  (finalized files)
+    header_row_idx = None
+    for i in range(len(raw_df)):
+        first_cell = raw_df.iat[i, 0]
+        first_text = str(first_cell).strip() if pd.notna(first_cell) else ""
+        if first_text in ("Event / Institution", "Rule"):
+            header_row_idx = i
+            break
+
+    if header_row_idx is None:
+        print(f"PARSE ERROR: could not find header row for doc {doc.documentID}")
+        return None
+
+    # Build dataframe using the detected header row
+    header_values = raw_df.iloc[header_row_idx].tolist()
+    df = raw_df.iloc[header_row_idx + 1:].copy()
+    df.columns = header_values
+    df = df.reset_index(drop=True)
+
+    # Normalize first column name to Rule
+    df = df.rename(columns={df.columns[0]: "Rule"})
+
+    # Drop repeated header rows if they appear later in the file
+    df = df[df["Rule"].astype(str).str.strip() != "Event / Institution"].reset_index(drop=True)
+
+    # Remove completely empty columns
+    df = df.dropna(axis=1, how="all")
+
+    institutions = [
+        c for c in df.columns
+        if c != "Rule"
+        and pd.notna(c)
+        and str(c).strip() != ""
+        and not str(c).startswith("Unnamed:")
+    ]
+
+    if not institutions:
+        print(f"PARSE ERROR: no valid institution columns for doc {doc.documentID}")
+        print("COLUMNS FOUND:", list(df.columns))
+        return None
+
     challenges = []
     totals = {}
     rankings = {}
@@ -100,74 +94,74 @@ def _parse_document(doc):
     current_event = None
 
     for _, row in df.iterrows():
-        rule_val = row['Rule']
-        rule_str = str(rule_val).strip() if pd.notna(rule_val) else ''
+        rule_val = row["Rule"]
+        rule_str = str(rule_val).strip() if pd.notna(rule_val) else ""
 
-        if rule_str == '':
+        if rule_str == "":
             current_event = None
             continue
 
         rule_upper = rule_str.upper()
 
-        if 'TOTAL POINTS' in rule_upper:
+        if "TOTAL POINTS" in rule_upper:
             for inst in institutions:
                 v = row[inst]
-                totals[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                totals[inst] = float(v) if pd.notna(v) and str(v).strip() != "" else 0.0
             continue
 
-        if rule_upper.startswith('RANKING'):
+        if rule_upper.startswith("RANKING"):
             for inst in institutions:
                 v = row[inst]
-                rankings[inst] = v if pd.notna(v) and str(v).strip() != '' else ''
+                rankings[inst] = v if pd.notna(v) and str(v).strip() != "" else ""
             continue
 
         if _all_inst_empty(row, institutions):
             if current_challenge is None or rule_str == rule_str.upper():
-                current_challenge = {'name': rule_str, 'events': []}
+                current_challenge = {"name": rule_str, "events": []}
                 challenges.append(current_challenge)
                 current_event = None
             else:
-                current_event = {'name': rule_str, 'rules': []}
+                current_event = {"name": rule_str, "rules": []}
                 if current_challenge is not None:
-                    current_challenge['events'].append(current_event)
+                    current_challenge["events"].append(current_event)
         else:
             scores = {}
             for inst in institutions:
                 v = row[inst]
-                scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                scores[inst] = float(v) if pd.notna(v) and str(v).strip() != "" else 0.0
 
             if current_event is None and current_challenge is not None:
                 current_event = {
-                    'name': rule_str,
-                    'rules': [],
-                    'event_scores': scores,
-                    '_direct': True
+                    "name": rule_str,
+                    "rules": [],
+                    "event_scores": scores,
+                    "_direct": True
                 }
-                current_challenge['events'].append(current_event)
+                current_challenge["events"].append(current_event)
             else:
-                rule_entry = {'label': rule_str, 'scores': scores}
+                rule_entry = {"label": rule_str, "scores": scores}
                 if current_event is not None:
-                    current_event['rules'].append(rule_entry)
+                    current_event["rules"].append(rule_entry)
                 elif current_challenge is not None:
-                    if not current_challenge['events'] or current_challenge['events'][-1].get('_direct'):
-                        direct_event = {'name': '', 'rules': [], '_direct': True}
-                        current_challenge['events'].append(direct_event)
+                    if not current_challenge["events"] or current_challenge["events"][-1].get("_direct"):
+                        direct_event = {"name": "", "rules": [], "_direct": True}
+                        current_challenge["events"].append(direct_event)
                         current_event = direct_event
-                    current_event['rules'].append(rule_entry)
+                    current_event["rules"].append(rule_entry)
 
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
-        for event in challenge['events']:
-            if event.get('rules'):
-                for rule in event['rules']:
+        for event in challenge["events"]:
+            if event.get("rules"):
+                for rule in event["rules"]:
                     for inst in institutions:
-                        v = rule['scores'].get(inst, 0.0)
+                        v = rule["scores"].get(inst, 0.0)
                         if isinstance(v, float) and np.isnan(v):
                             v = 0.0
                         calculated_totals[inst] += v
-            elif event.get('event_scores'):
+            elif event.get("event_scores"):
                 for inst in institutions:
-                    v = event['event_scores'].get(inst, 0.0)
+                    v = event["event_scores"].get(inst, 0.0)
                     if isinstance(v, float) and np.isnan(v):
                         v = 0.0
                     calculated_totals[inst] += v
@@ -184,17 +178,16 @@ def _parse_document(doc):
             calculated_rankings[inst] = rank
         rank += 1
 
-    print(f"PARSED OK doc {doc.documentID}: {len(institutions)} institutions, {len(challenges)} challenges")
+    print(f"PARSED OK doc {doc.documentID}: {institutions}")
 
     return {
-        'institutions': institutions,
-        'challenges': challenges,
-        'totals': totals,
-        'rankings': rankings,
-        'calculated_totals': calculated_totals,
-        'calculated_rankings': calculated_rankings,
+        "institutions": institutions,
+        "challenges": challenges,
+        "totals": totals,
+        "rankings": rankings,
+        "calculated_totals": calculated_totals,
+        "calculated_rankings": calculated_rankings,
     }
-
 
 def _doc_season_year(doc):
     if not getattr(doc, 'seasonID', None):
@@ -219,7 +212,6 @@ def get_leaderboard_page():
 
 @leaderboard_views.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard_api():
-    # All seasons should appear in the selector, even if empty
     all_seasons = Season.query.order_by(Season.year.desc()).all()
     available_years = [s.year for s in all_seasons]
 
@@ -258,7 +250,6 @@ def get_leaderboard_api():
     else:
         target_year = available_years[0]
 
-    # Keep the selected year even when it has no confirmed docs
     if target_year not in docs_by_year:
         return jsonify({
             "season_year": target_year,
@@ -268,54 +259,59 @@ def get_leaderboard_api():
             "message": f"No confirmed results found for season {target_year}."
         })
 
+    # Use only the latest confirmed document for the selected season
     target_docs = docs_by_year[target_year]
+    latest_doc = max(target_docs, key=lambda d: d.uploadedOn or 0)
+
+    parsed = _parse_document(latest_doc)
+
+    print(
+        "USING LATEST DOC:",
+        "docID=", latest_doc.documentID,
+        "filename=", latest_doc.originalFilename,
+        "seasonID=", getattr(latest_doc, "seasonID", None),
+        "resolved_year=", _doc_season_year(latest_doc),
+        "parsed=", parsed is not None
+    )
+
+    if parsed is None:
+        return jsonify({
+            "season_year": target_year,
+            "available_years": available_years,
+            "challenges": [],
+            "leaderboard": [],
+            "message": "Latest confirmed document could not be parsed."
+        })
 
     agg = {}
     challenge_names = []
 
-    for doc in target_docs:
-        parsed = _parse_document(doc)
-
-        print(
-            "PARSE CHECK:",
-            "docID=", doc.documentID,
-            "filename=", doc.originalFilename,
-            "seasonID=", getattr(doc, "seasonID", None),
-            "resolved_year=", _doc_season_year(doc),
-            "parsed=", parsed is not None
-        )
-
-        if parsed is None:
+    for challenge in parsed.get("challenges", []):
+        c_name = (challenge.get("name") or "").strip()
+        if not c_name:
             continue
 
-        for challenge in parsed.get("challenges", []):
-            c_name = (challenge.get("name") or "").strip()
-            if not c_name:
-                continue
+        if c_name not in challenge_names:
+            challenge_names.append(c_name)
 
-            if c_name not in challenge_names:
-                challenge_names.append(c_name)
+        for inst in parsed.get("institutions", []):
+            agg.setdefault(inst, {})
+            challenge_pts = 0.0
 
-            for inst in parsed.get("institutions", []):
-                agg.setdefault(inst, {})
-                challenge_pts = 0.0
-
-                for event in challenge.get("events", []):
-                    if event.get("rules"):
-                        for rule in event["rules"]:
-                            v = rule.get("scores", {}).get(inst, 0.0)
-                            if isinstance(v, float) and np.isnan(v):
-                                v = 0.0
-                            challenge_pts += v
-                    elif event.get("event_scores"):
-                        v = event["event_scores"].get(inst, 0.0)
+            for event in challenge.get("events", []):
+                if event.get("rules"):
+                    for rule in event["rules"]:
+                        v = rule.get("scores", {}).get(inst, 0.0)
                         if isinstance(v, float) and np.isnan(v):
                             v = 0.0
                         challenge_pts += v
+                elif event.get("event_scores"):
+                    v = event["event_scores"].get(inst, 0.0)
+                    if isinstance(v, float) and np.isnan(v):
+                        v = 0.0
+                    challenge_pts += v
 
-                agg[inst][c_name] = round(
-                    agg[inst].get(c_name, 0.0) + challenge_pts, 2
-                )
+            agg[inst][c_name] = round(challenge_pts, 2)
 
     if not agg:
         return jsonify({
@@ -323,7 +319,7 @@ def get_leaderboard_api():
             "available_years": available_years,
             "challenges": [],
             "leaderboard": [],
-            "message": "Documents found but could not be parsed."
+            "message": "Latest confirmed document parsed, but no leaderboard values were produced."
         })
 
     totals = {
