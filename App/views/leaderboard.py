@@ -15,71 +15,87 @@ leaderboard_views = Blueprint('leaderboard_views', __name__, template_folder='..
 
 
 # ---------------------------------------------------------------------------
-# Inline parse helper (mirrors judge_views so leaderboard has no circular dep)
+# Helpers
 # ---------------------------------------------------------------------------
 
 def _all_inst_empty(row, inst_cols):
     for col in inst_cols:
         val = row[col]
-        if pd.notna(val) and str(val).strip() != '' and not str(val).strip().startswith('='):
-            return True
-    return False
+        if pd.notna(val) and str(val).strip() != '':
+            return False
+    return True
+
+
+def _load_df_data_only(file_data, original_filename):
+    """
+    Load a spreadsheet as a DataFrame using openpyxl data_only=True.
+
+    This is critical: the spreadsheet uses Excel formulas for subtotals and
+    grand totals. Without data_only=True, pandas reads those cells as raw
+    formula strings like '=B5+B6+...' instead of the computed numeric value,
+    which corrupts both parsing and the totals comparison.
+
+    Returns a DataFrame whose first row (index 0) corresponds to spreadsheet
+    row 2 (0-based row 1 is used as column headers).
+    """
+    ext = os.path.splitext(original_filename)[1].lower()
+    buf = io.BytesIO(file_data)
+
+    if ext in ('.xlsx', '.xls'):
+        from openpyxl import load_workbook
+        wb = load_workbook(buf, data_only=True, read_only=True)
+        ws = wb.active
+        rows_raw = list(ws.iter_rows(values_only=True))
+        if len(rows_raw) < 2:
+            return None, []
+        # Row index 1 is the column-header row ("Event / Institution", inst names...)
+        col_names = [
+            str(c) if c is not None else f'Unnamed_{i}'
+            for i, c in enumerate(rows_raw[1])
+        ]
+        df = pd.DataFrame(rows_raw[2:], columns=col_names)
+        return df, rows_raw
+    else:
+        df = pd.read_csv(buf, header=1)
+        return df, None
 
 
 def _parse_document(doc):
-    """Return parsed dict with institutions, challenges, calculated_totals, calculated_rankings."""
+    """
+    Parse a ScoreDocument and return:
+      institutions, challenges, totals, calculated_totals, calculated_rankings
+    """
     if not doc.fileData:
         return None
 
-    ext = os.path.splitext(doc.originalFilename)[1].lower()
-    buf = io.BytesIO(doc.fileData)
+    df, rows_raw = _load_df_data_only(doc.fileData, doc.originalFilename)
+    if df is None:
+        return None
 
-    if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(buf, header=1)
-    else:
-        df = pd.read_csv(buf, header=1)
-
+    # Rename first column to 'Rule' and drop repeated header rows
     df = df.rename(columns={df.columns[0]: 'Rule'})
     df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 
     if df.empty or 'Rule' not in df.columns:
         return None
 
-    institutions = [c for c in df.columns if c != 'Rule']
-
-    # Pre-compute which rows are event subtotal headers (have data but are followed by sub-rules). We identify them by checking if the NEXT
-    # non-empty row also has data — meaning this row is a subtotal, not a leaf rule.
-    def _has_data(row):
-        for col in institutions:
-            v = row[col]
-            if pd.notna(v) and str(v).strip() != '':
-                return True
-        return False
-
-    rows_list = list(df.iterrows())
-    subtotal_indices = set()
-    for i, (_, row) in enumerate(rows_list):
-        if not _has_data(row):
-            continue
-        # Look ahead: if next non-empty row also has data, this is a subtotal header
-        for j in range(i + 1, len(rows_list)):
-            _, next_row = rows_list[j]
-            next_rule = str(next_row['Rule']).strip() if pd.notna(next_row['Rule']) else ''
-            if next_rule == '':
-                continue
-            if _has_data(next_row):
-                subtotal_indices.add(i)
-            break  # only check the immediate next non-empty row
+    institutions = [c for c in df.columns if c != 'Rule' and str(c).strip() != '']
 
     challenges = []
     totals = {}
     current_challenge = None
     current_event = None
+    # True immediately after an all-caps challenge section header OR after an
+    # 'Event Win Points' row — signals that the NEXT data row is an event
+    # subtotal header (its scores are the sum of its sub-rows, so we skip them).
+    just_saw_challenge_header = False
 
-    for i, (_, row) in enumerate(rows_list):
+    for _, row in df.iterrows():
         rule_val = row['Rule']
         rule_str = str(rule_val).strip() if pd.notna(rule_val) else ''
         if rule_str == '':
+            just_saw_challenge_header = False
+            current_event = None
             continue
 
         rule_upper = rule_str.upper()
@@ -87,50 +103,61 @@ def _parse_document(doc):
         if 'TOTAL POINTS' in rule_upper:
             for inst in institutions:
                 v = row[inst]
-                v_str = str(v).strip() if pd.notna(v) else ''
-                if pd.notna(v) and v_str != '' and not v_str.startswith('='):
-                    totals[inst] = float(v)
-                else:
+                try:
+                    totals[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                except (ValueError, TypeError):
                     totals[inst] = 0.0
             continue
 
         if rule_upper.startswith('RANKING'):
             continue
 
-        # Treat subtotal header rows as event headers (skip their data)
-        if i in subtotal_indices:
-            current_event = {'name': rule_str, 'rules': []}
-            if current_challenge is not None:
-                current_challenge['events'].append(current_event)
-            continue
-
         if _all_inst_empty(row, institutions):
-            if current_challenge is None or rule_str == rule_str.upper():
+            if rule_str == rule_str.upper():
+                # All-caps = top-level challenge section header (e.g. URBAN CHALLENGE)
                 current_challenge = {'name': rule_str, 'events': []}
                 challenges.append(current_challenge)
                 current_event = None
+                just_saw_challenge_header = True
             else:
+                # Mixed-case empty row = explicit event name label
                 current_event = {'name': rule_str, 'rules': []}
                 if current_challenge is not None:
                     current_challenge['events'].append(current_event)
+                just_saw_challenge_header = False
         else:
+            # Row has numeric data
             scores = {}
             for inst in institutions:
                 v = row[inst]
-                v_str = str(v).strip() if pd.notna(v) else ''
-                scores[inst] = float(v) if pd.notna(v) and v_str != '' and not v_str.startswith('=') else 0.0
+                try:
+                    scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                except (ValueError, TypeError):
+                    scores[inst] = 0.0
 
-            rule_entry = {'label': rule_str, 'scores': scores}
-            if current_event is not None:
-                current_event['rules'].append(rule_entry)
-            elif current_challenge is not None:
-                if not current_challenge['events'] or not current_challenge['events'][-1].get('_direct'):
+            if just_saw_challenge_header:
+                # This is an event subtotal row (e.g. "Chancellor Challenge = 76").
+                # Its value is the sum of its sub-rows — don't add it to scores.
+                current_event = {'name': rule_str, 'rules': []}
+                if current_challenge is not None:
+                    current_challenge['events'].append(current_event)
+                just_saw_challenge_header = False
+            else:
+                rule_entry = {'label': rule_str, 'scores': scores}
+                if current_event is not None:
+                    current_event['rules'].append(rule_entry)
+                elif current_challenge is not None:
                     direct_event = {'name': '', 'rules': [], '_direct': True}
                     current_challenge['events'].append(direct_event)
                     current_event = direct_event
-                current_event['rules'].append(rule_entry)
+                    current_event['rules'].append(rule_entry)
 
-    # Calculate totals from scores
+                # After 'Event Win Points' the next data row starts the next event
+                if rule_str == 'Event Win Points':
+                    just_saw_challenge_header = True
+                    current_event = None
+
+    # Sum leaf rule scores to get calculated totals
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
         for event in challenge['events']:
@@ -165,27 +192,35 @@ def _parse_document(doc):
 def _doc_season_year(doc):
     """
     Resolve which season year a confirmed ScoreDocument belongs to.
-    Prefers a direct seasonID FK on the document (if it exists),
-    falls back to the year of uploadedOn.
+ 
+    Priority order:
+      1. Explicit seasonID FK on the document.
+      2. Year written in cell A1 of the spreadsheet (e.g. "Season: 2025").
+      3. Year of uploadedOn  ← LAST, because a 2025 spreadsheet may be
+         uploaded in 2026.
     """
-    # Try explicit seasonID FK first
+    # 1. Explicit FK
     if hasattr(doc, 'seasonID') and doc.seasonID:
         season = db.session.get(Season, doc.seasonID)
         if season:
             return season.year
-
-    # Try to read the year from the spreadsheet's first cell ("Season: 2025")
+ 
+    # 2. Read year from the spreadsheet's first cell (e.g. "Season: 2025")
     if doc.fileData:
         try:
             ext = os.path.splitext(doc.originalFilename)[1].lower()
             buf = io.BytesIO(doc.fileData)
             if ext in ('.xlsx', '.xls'):
-                # header=None so Row 0 is read as data, not skipped
-                df_raw = pd.read_excel(buf, header=None, nrows=1)
+                from openpyxl import load_workbook
+                wb = load_workbook(buf, data_only=True, read_only=True)
+                ws = wb.active
+                first_row = next(ws.iter_rows(max_row=1, values_only=True), None)
+                cell_a1 = str(first_row[0]).strip() if first_row and first_row[0] is not None else ''
             else:
                 df_raw = pd.read_csv(buf, header=None, nrows=1)
-            cell = str(df_raw.iloc[0, 0]).strip()  # e.g. "Season: 2025"
-            m = re.search(r'\b(20\d{2})\b', cell)
+                cell_a1 = str(df_raw.iloc[0, 0]).strip()
+
+            m = re.search(r'\b(20\d{2})\b', cell_a1)
             if m:
                 year = int(m.group(1))
                 season = Season.query.filter_by(year=year).first()
@@ -193,11 +228,13 @@ def _doc_season_year(doc):
         except Exception:
             pass
 
-    # Last resort: upload year
+    # 3. Upload-year fallback
     if doc.uploadedOn:
         upload_year = doc.uploadedOn.year
         season = Season.query.filter_by(year=upload_year).first()
-        return season.year if season else upload_year
+        if season:
+            return season.year
+        return upload_year
 
     return None
 
@@ -286,15 +323,12 @@ def get_leaderboard_api():
     if requested_year and requested_year in docs_by_year:
         target_year = requested_year
     else:
-        target_year = available_years[0]  # most recent season with confirmed docs
+        target_year = available_years[0]
 
     target_docs = docs_by_year[target_year]
 
-    # -- Aggregate scores across all confirmed docs for the target year
-    # institution -> challenge -> points
     agg: dict[str, dict[str, float]] = {}
-
-    challenge_names: list[str] = []  # ordered, de-duped
+    challenge_names: list[str] = []
 
     for doc in target_docs:
         parsed = _parse_document(doc)
@@ -331,7 +365,6 @@ def get_leaderboard_api():
             "message": "Documents found but could not be parsed."
         })
 
-    # -- Build totals and rank
     totals = {inst: round(sum(pts.values()), 2) for inst, pts in agg.items()}
     sorted_insts = sorted(totals.keys(), key=lambda i: totals[i], reverse=True)
 
