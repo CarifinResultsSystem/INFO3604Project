@@ -46,37 +46,12 @@ def _parse_document(doc):
         return None
 
     institutions = [c for c in df.columns if c != 'Rule']
-
-    # Pre-compute which rows are event subtotal headers (have data but are followed by sub-rules). We identify them by checking if the NEXT
-    # non-empty row also has data — meaning this row is a subtotal, not a leaf rule.
-    def _has_data(row):
-        for col in institutions:
-            v = row[col]
-            if pd.notna(v) and str(v).strip() != '':
-                return True
-        return False
-
-    rows_list = list(df.iterrows())
-    subtotal_indices = set()
-    for i, (_, row) in enumerate(rows_list):
-        if not _has_data(row):
-            continue
-        # Look ahead: if next non-empty row also has data, this is a subtotal header
-        for j in range(i + 1, len(rows_list)):
-            _, next_row = rows_list[j]
-            next_rule = str(next_row['Rule']).strip() if pd.notna(next_row['Rule']) else ''
-            if next_rule == '':
-                continue
-            if _has_data(next_row):
-                subtotal_indices.add(i)
-            break  # only check the immediate next non-empty row
-
     challenges = []
     totals = {}
     current_challenge = None
     current_event = None
 
-    for i, (_, row) in enumerate(rows_list):
+    for _, row in df.iterrows():
         rule_val = row['Rule']
         rule_str = str(rule_val).strip() if pd.notna(rule_val) else ''
         if rule_str == '':
@@ -91,13 +66,6 @@ def _parse_document(doc):
             continue
 
         if rule_upper.startswith('RANKING'):
-            continue
-
-        # Treat subtotal header rows as event headers (skip their data)
-        if i in subtotal_indices:
-            current_event = {'name': rule_str, 'rules': []}
-            if current_challenge is not None:
-                current_challenge['events'].append(current_event)
             continue
 
         if _all_inst_empty(row, institutions):
