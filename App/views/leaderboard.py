@@ -35,12 +35,9 @@ def _parse_document(doc):
     buf = io.BytesIO(doc.fileData)
 
     if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(buf, header=1)
+        df = pd.read_excel(buf)
     else:
-        df = pd.read_csv(buf, header=1)
-
-    df = df.rename(columns={df.columns[0]: 'Rule'})
-    df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
+        df = pd.read_csv(buf)
 
     if df.empty or 'Rule' not in df.columns:
         return None
