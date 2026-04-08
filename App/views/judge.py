@@ -837,12 +837,12 @@ def finalize_document(documentID):
         # Serialise final DataFrame back into the DB record
         file_ext = os.path.splitext(document.originalFilename)[1].lower()
         out_ext  = '.xlsx' if file_ext in ('.xls', '.xlsm', '.xlsb') else file_ext
-        document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=True)
+        document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=False)
 
         document.confirmed = True
         # Mark corresponding AutomatedResult rows as confirmed too
         AutomatedResult.query.filter_by(
-            participantID=str(documentID)
+            participantID=None
         ).update({'confirmed': True}, synchronize_session=False)
         db.session.commit()
 
