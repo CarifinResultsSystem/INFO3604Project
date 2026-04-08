@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, url_for, jsonify, request, abort, 
 from flask_jwt_extended import jwt_required, current_user
 from App.database import db
 from App.controllers import get_score_document, get_all_score_documents, get_unconfirmed_documents, get_unconfirmed_documents_count
-from App.models import ScoreDocument, PointsRules, AutomatedResult, Event
+from App.models import ScoreDocument, PointsRules, AutomatedResult, Event, Institution
 import pandas as pd
 import numpy as np
 
@@ -28,10 +28,19 @@ def _doc_to_dataframe(document, header=1):
             return pd.DataFrame()
         # header param: 0 = first row is header, 1 = second row is header (default)
         header_idx = header if header < len(rows_raw) else 0
-        col_names = [
-            str(c) if c is not None else f'Unnamed_{i}'
-            for i, c in enumerate(rows_raw[header_idx])
-        ]
+        col_names = []
+        for i, c in enumerate(rows_raw[header_idx]):
+            if c is not None:
+                s = str(c).strip()
+                if s.isdigit():
+                    inst = db.session.get(Institution, int(s))
+                    col_names.append(inst.insName if inst else s)
+                elif s.startswith('Unnamed'):
+                    col_names.append(f'Institution {s.split("_")[1]}')
+                else:
+                    col_names.append(s)
+            else:
+                col_names.append(f'Institution {i}')
         data_rows = rows_raw[header_idx + 1:]
         return pd.DataFrame(data_rows, columns=col_names)
     else:
@@ -143,6 +152,16 @@ def _get_max_points_for_label(rule_label, event_name, event_lookup, global_looku
 
 def _parse_dataframe(df):
     """Parse a pre-loaded DataFrame and return the hierarchical structure."""
+    df = df.dropna(how='all')
+    df = df.reset_index(drop=True)
+    
+    if len(df.columns) > 0:
+        institution_cols = df.columns[1:]
+        mask = ~((df[df.columns[0]].isna() | (df[df.columns[0]].astype(str).str.strip() == '')) & 
+                (df[institution_cols].isna().all(axis=1)))
+        df = df[mask]
+        df = df.reset_index(drop=True)
+    
     df = df.rename(columns={df.columns[0]: 'Rule'})
     df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 

@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, current_user as jwt_current_user
 
 from App.controllers import get_all_users_json
 from App.database import db
-from App.models import ScoreDocument, Season
+from App.models import ScoreDocument, Season, Institution
 
 import io
 import os
@@ -49,10 +49,19 @@ def _load_df_data_only(file_data, original_filename):
         if len(rows_raw) < 2:
             return None, []
         # Row index 1 is the column-header row ("Event / Institution", inst names...)
-        col_names = [
-            str(c) if c is not None else f'Unnamed_{i}'
-            for i, c in enumerate(rows_raw[1])
-        ]
+        col_names = []
+        for i, c in enumerate(rows_raw[1]):
+            if c is not None:
+                s = str(c).strip()
+                if s.isdigit():
+                    inst = db.session.get(Institution, int(s))
+                    col_names.append(inst.insName if inst else s)
+                elif s.startswith('Unnamed'):
+                    col_names.append(f'Institution {s.split("_")[1]}')
+                else:
+                    col_names.append(s)
+            else:
+                col_names.append(f'Institution {i}')
         df = pd.DataFrame(rows_raw[2:], columns=col_names)
         return df, rows_raw
     else:
@@ -377,9 +386,10 @@ def get_leaderboard_api():
             assigned_rank = rank
         rank += 1
 
+        inst_name = f"Institution {inst.split('_')[1]}" if inst.startswith('Unnamed') else inst
         leaderboard.append({
             "rank": assigned_rank,
-            "institution": inst,
+            "institution": inst_name,
             "total_points": totals[inst],
             "challenge_points": agg[inst],
         })
