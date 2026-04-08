@@ -458,7 +458,7 @@ def persist_errors_for_document(document):
     for err in errors:
         record = AutomatedResult(
             score=float(err.get('value') or 0.0),
-            participantID=None,
+            participantID=str(document.documentID),
             eventID=1,
             pointsID=1,
         )
