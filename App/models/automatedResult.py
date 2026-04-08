@@ -21,7 +21,7 @@ class AutomatedResult(db.Model):
     participantID = db.Column(
         db.String(50),
         db.ForeignKey("participants.participantID"),
-        nullable=False
+        nullable=True
     )
 
     eventID = db.Column(
