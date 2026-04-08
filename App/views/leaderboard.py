@@ -48,24 +48,50 @@ def _load_df_data_only(file_data, original_filename):
         rows_raw = list(ws.iter_rows(values_only=True))
         if len(rows_raw) < 2:
             return None, []
-        # Row index 1 is the column-header row ("Event / Institution", inst names...)
+
+        header_idx = next(
+            (i for i, row in enumerate(rows_raw)
+             if row and row[0] is not None and str(row[0]).strip() == 'Event / Institution'),
+            None
+        )
+        if header_idx is None or header_idx + 1 >= len(rows_raw):
+            return None, []
+
         col_names = []
-        for i, c in enumerate(rows_raw[1]):
-            if c is not None:
+        for i, c in enumerate(rows_raw[header_idx]):
+            if c is not None and str(c).strip() != '':
                 s = str(c).strip()
                 if s.isdigit():
                     inst = db.session.get(Institution, int(s))
                     col_names.append(inst.insName if inst else s)
-                elif s.startswith('Unnamed'):
-                    col_names.append(f'Institution {s.split("_")[1]}')
                 else:
                     col_names.append(s)
             else:
                 col_names.append(f'Institution {i}')
-        df = pd.DataFrame(rows_raw[2:], columns=col_names)
+
+        df = pd.DataFrame(rows_raw[header_idx + 1:], columns=col_names)
         return df, rows_raw
     else:
-        df = pd.read_csv(buf, header=1)
+        buf.seek(0)
+        raw_df = pd.read_csv(buf, header=None, dtype=str)
+        header_idx = next(
+            (i for i, row in enumerate(raw_df.itertuples(index=False, name=None))
+             if row and str(row[0]).strip() == 'Event / Institution'),
+            None
+        )
+        if header_idx is None:
+            header_idx = 1 if len(raw_df) > 1 else 0
+
+        header_row = raw_df.iloc[header_idx].fillna('')
+        col_names = []
+        for i, c in enumerate(header_row):
+            if c is not None and str(c).strip() != '':
+                col_names.append(str(c).strip())
+            else:
+                col_names.append(f'Institution {i}')
+
+        data_rows = raw_df.iloc[header_idx + 1:].reset_index(drop=True)
+        df = pd.DataFrame(data_rows.values, columns=col_names)
         return df, None
 
 

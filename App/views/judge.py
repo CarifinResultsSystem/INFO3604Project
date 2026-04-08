@@ -26,24 +26,31 @@ def _doc_to_dataframe(document, header=1):
         rows_raw = list(ws.iter_rows(values_only=True))
         if not rows_raw:
             return pd.DataFrame()
-        # header param: 0 = first row is header, 1 = second row is header (default)
-        header_idx = header if header < len(rows_raw) else 0
+
+        header_idx = next(
+            (i for i, row in enumerate(rows_raw)
+             if row and row[0] is not None and str(row[0]).strip() == 'Event / Institution'),
+            None
+        )
+        if header_idx is None:
+            header_idx = header if header < len(rows_raw) else 0
+
         col_names = []
         for i, c in enumerate(rows_raw[header_idx]):
-            if c is not None:
+            if c is not None and str(c).strip() != '':
                 s = str(c).strip()
                 if s.isdigit():
                     inst = db.session.get(Institution, int(s))
                     col_names.append(inst.insName if inst else s)
-                elif s.startswith('Unnamed'):
-                    col_names.append(f'Institution {s.split("_")[1]}')
                 else:
                     col_names.append(s)
             else:
                 col_names.append(f'Institution {i}')
+
         data_rows = rows_raw[header_idx + 1:]
         return pd.DataFrame(data_rows, columns=col_names)
     else:
+        buf.seek(0)
         return pd.read_csv(buf, header=header)
 
 def _dataframe_to_bytes(df, ext, index=False, header=False):
