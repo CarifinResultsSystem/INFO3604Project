@@ -1,13 +1,9 @@
 from flask import Blueprint, render_template, jsonify, request
-from flask_jwt_extended import jwt_required, current_user as jwt_current_user
-
-from App.controllers import get_all_users_json
 from App.database import db
 from App.models import ScoreDocument, Season
 
 import io
 import os
-import re
 import pandas as pd
 import numpy as np
 
@@ -15,7 +11,7 @@ leaderboard_views = Blueprint('leaderboard_views', __name__, template_folder='..
 
 
 # ---------------------------------------------------------------------------
-# Inline parse helper (mirrors judge_views so leaderboard has no circular dep)
+# Helpers
 # ---------------------------------------------------------------------------
 
 def _all_inst_empty(row, inst_cols):
@@ -28,8 +24,11 @@ def _all_inst_empty(row, inst_cols):
 
 def _parse_document(doc):
     """
-    Parse a ScoreDocument in the same way judge views do,
-    so leaderboard and judge agree on the spreadsheet structure.
+    Parse a ScoreDocument for leaderboard use.
+
+    Supports both:
+    - template-style files with header row at index 1
+    - finalized files written with header row at index 0
     """
     if not doc.fileData:
         return None
@@ -37,28 +36,60 @@ def _parse_document(doc):
     ext = os.path.splitext(doc.originalFilename)[1].lower()
     buf = io.BytesIO(doc.fileData)
 
+    candidates = []
+
     try:
-        # Match judge behavior first
         if ext in ('.xlsx', '.xls'):
-            df = pd.read_excel(buf, header=1)
+            candidates.append(pd.read_excel(buf, header=1))
+            buf.seek(0)
+            candidates.append(pd.read_excel(buf, header=0))
         else:
-            df = pd.read_csv(buf, header=1)
+            candidates.append(pd.read_csv(buf, header=1))
+            buf.seek(0)
+            candidates.append(pd.read_csv(buf, header=0))
     except Exception as e:
         print(f"PARSE ERROR reading doc {doc.documentID}: {e}")
         return None
 
+        df = None
+    best_score = -1
+
+    for candidate in candidates:
+        if candidate is None or candidate.empty:
+            continue
+
+        candidate = candidate.rename(columns={candidate.columns[0]: 'Rule'})
+        candidate = candidate[
+            candidate['Rule'].astype(str).str.strip() != 'Event / Institution'
+        ].reset_index(drop=True)
+
+        inst_cols = [
+        c for c in df.columns
+        if c != 'Rule' and not str(c).startswith('Unnamed:')
+        ]
+        
+        if not inst_cols:
+            continue
+
+        non_empty_cols = [
+            c for c in inst_cols
+            if not candidate[[c]].dropna(how='all').empty
+        ]
+
+        # Prefer real institution headers over pandas-generated "Unnamed:*"
+        real_named_cols = [
+            c for c in non_empty_cols
+            if not str(c).startswith('Unnamed:')
+        ]
+
+        score = len(real_named_cols) * 10 + len(non_empty_cols)
+
+        if score > best_score:
+            best_score = score
+            df = candidate
+
     if df is None or df.empty:
-        print(f"PARSE ERROR: empty dataframe for doc {doc.documentID}")
-        return None
-
-    # Match judge parser: rename first column to Rule
-    df = df.rename(columns={df.columns[0]: 'Rule'})
-
-    # Remove repeated institution header row if present
-    df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
-
-    if 'Rule' not in df.columns:
-        print(f"PARSE ERROR: no Rule column for doc {doc.documentID}")
+        print(f"PARSE ERROR: no usable dataframe for doc {doc.documentID} ({doc.originalFilename})")
         return None
 
     institutions = [c for c in df.columns if c != 'Rule']
@@ -105,7 +136,6 @@ def _parse_document(doc):
                 v = row[inst]
                 scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
 
-            # If scores appear on an event row directly, preserve them
             if current_event is None and current_challenge is not None:
                 current_event = {
                     'name': rule_str,
@@ -120,19 +150,10 @@ def _parse_document(doc):
                     current_event['rules'].append(rule_entry)
                 elif current_challenge is not None:
                     if not current_challenge['events'] or current_challenge['events'][-1].get('_direct'):
-                        if not current_challenge['events'] or not current_challenge['events'][-1].get('_direct'):
-                            direct_event = {'name': '', 'rules': [], '_direct': True}
-                            current_challenge['events'].append(direct_event)
-                            current_event = direct_event
-                        current_event['rules'].append(rule_entry)
-                    else:
-                        current_event['rules'].append(rule_entry)
-                else:
-                    if not challenges:
-                        challenges.append({'name': '', 'events': []})
-                        current_challenge = challenges[-1]
-                    orphan_event = {'name': '', 'rules': [rule_entry], '_direct': True}
-                    current_challenge['events'].append(orphan_event)
+                        direct_event = {'name': '', 'rules': [], '_direct': True}
+                        current_challenge['events'].append(direct_event)
+                        current_event = direct_event
+                    current_event['rules'].append(rule_entry)
 
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
@@ -163,10 +184,7 @@ def _parse_document(doc):
             calculated_rankings[inst] = rank
         rank += 1
 
-    print(
-        f"PARSED OK doc {doc.documentID}: "
-        f"{len(institutions)} institutions, {len(challenges)} challenges"
-    )
+    print(f"PARSED OK doc {doc.documentID}: {len(institutions)} institutions, {len(challenges)} challenges")
 
     return {
         'institutions': institutions,
@@ -176,7 +194,8 @@ def _parse_document(doc):
         'calculated_totals': calculated_totals,
         'calculated_rankings': calculated_rankings,
     }
-    
+
+
 def _doc_season_year(doc):
     if not getattr(doc, 'seasonID', None):
         return None
@@ -195,29 +214,28 @@ def get_leaderboard_page():
 
 
 # ---------------------------------------------------------------------------
-# API — leaderboard data from confirmed documents
+# API route
 # ---------------------------------------------------------------------------
+
 @leaderboard_views.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard_api():
-    """
-    Returns aggregated leaderboard data from confirmed ScoreDocuments.
-    """
+    # All seasons should appear in the selector, even if empty
+    all_seasons = Season.query.order_by(Season.year.desc()).all()
+    available_years = [s.year for s in all_seasons]
 
-    # Gather confirmed documents only
-    confirmed_docs = db.session.scalars(
-        db.select(ScoreDocument).filter_by(confirmed=True)
-    ).all()
-
-    if not confirmed_docs:
+    if not available_years:
         return jsonify({
             "season_year": None,
             "available_years": [],
             "challenges": [],
             "leaderboard": [],
-            "message": "No confirmed results yet."
+            "message": "No seasons have been created yet."
         })
 
-    # Group confirmed docs by season year
+    confirmed_docs = db.session.scalars(
+        db.select(ScoreDocument).filter_by(confirmed=True)
+    ).all()
+
     docs_by_year = {}
     for doc in confirmed_docs:
         year = _doc_season_year(doc)
@@ -225,51 +243,33 @@ def get_leaderboard_api():
             continue
         docs_by_year.setdefault(year, []).append(doc)
 
-    if not docs_by_year:
-        return jsonify({
-            "season_year": None,
-            "available_years": [],
-            "challenges": [],
-            "leaderboard": [],
-            "message": "No confirmed results could be matched to a season."
-        })
-
-    available_years = sorted(docs_by_year.keys(), reverse=True)
-
-    print("CONFIRMED DOCS:")
-    for d in confirmed_docs:
-        season = db.session.get(Season, d.seasonID) if getattr(d, "seasonID", None) else None
-        print(
-            "docID=", d.documentID,
-            "filename=", d.originalFilename,
-            "confirmed=", d.confirmed,
-            "seasonID=", getattr(d, "seasonID", None),
-            "season_year=", season.year if season else None,
-        )
-
-    # Pick requested year if valid
     requested_year = request.args.get("year", type=int)
 
     if requested_year is not None:
-        if requested_year not in docs_by_year:
+        if requested_year not in available_years:
             return jsonify({
                 "season_year": requested_year,
                 "available_years": available_years,
                 "challenges": [],
                 "leaderboard": [],
-                "message": f"No confirmed results found for season {requested_year}."
+                "message": f"Season {requested_year} does not exist."
             })
         target_year = requested_year
     else:
         target_year = available_years[0]
 
-    # FIX: define target_docs
+    # Keep the selected year even when it has no confirmed docs
+    if target_year not in docs_by_year:
+        return jsonify({
+            "season_year": target_year,
+            "available_years": available_years,
+            "challenges": [],
+            "leaderboard": [],
+            "message": f"No confirmed results found for season {target_year}."
+        })
+
     target_docs = docs_by_year[target_year]
 
-    print("TARGET YEAR:", target_year)
-    print("TARGET DOC COUNT:", len(target_docs))
-
-    # Aggregate institution -> challenge -> points
     agg = {}
     challenge_names = []
 
@@ -301,8 +301,14 @@ def get_leaderboard_api():
                 challenge_pts = 0.0
 
                 for event in challenge.get("events", []):
-                    for rule in event.get("rules", []):
-                        v = rule.get("scores", {}).get(inst, 0.0)
+                    if event.get("rules"):
+                        for rule in event["rules"]:
+                            v = rule.get("scores", {}).get(inst, 0.0)
+                            if isinstance(v, float) and np.isnan(v):
+                                v = 0.0
+                            challenge_pts += v
+                    elif event.get("event_scores"):
+                        v = event["event_scores"].get(inst, 0.0)
                         if isinstance(v, float) and np.isnan(v):
                             v = 0.0
                         challenge_pts += v
@@ -320,7 +326,6 @@ def get_leaderboard_api():
             "message": "Documents found but could not be parsed."
         })
 
-    # Build totals
     totals = {
         inst: round(sum(challenge_points.values()), 2)
         for inst, challenge_points in agg.items()
@@ -346,7 +351,6 @@ def get_leaderboard_api():
 
         next_rank += 1
 
-    # Optional event/challenge filter
     event_filter = (request.args.get("event") or "").strip().lower()
     if event_filter and event_filter != "overall":
         filtered = []
