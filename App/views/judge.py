@@ -39,9 +39,9 @@ def _dataframe_to_bytes(df, ext, index=False, header=False):
 def _all_inst_empty(row, inst_cols):
     for col in inst_cols:
         val = row[col]
-        if pd.notna(val) and str(val).strip() != '':
-            return False
-    return True
+        if pd.notna(val) and str(val).strip() != '' and not str(val).strip().startswith('='):
+            return True
+    return False
 
 #Ensures there is no unneccesary whitespace
 def _normalise_label(label):
@@ -154,7 +154,11 @@ def _parse_dataframe(df):
         if 'TOTAL POINTS' in rule_upper:
             for inst in institutions:
                 v = row[inst]
-                totals[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                v_str = str(v).strip() if pd.notna(v) else ''
+                if pd.notna(v) and v_str != '' and not v_str.startswith('='):
+                    totals[inst] = float(v)
+                else:
+                    totals[inst] = 0.0
             continue
 
         if rule_upper.startswith('RANKING'):
@@ -176,7 +180,8 @@ def _parse_dataframe(df):
             scores = {}
             for inst in institutions:
                 v = row[inst]
-                scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                v_str = str(v).strip() if pd.notna(v) else ''
+                scores[inst] = float(v) if pd.notna(v) and v_str != '' and not v_str.startswith('=') else 0.0
 
             # Event-level total row — open a new event but don't add to summation
             if current_event is None and current_challenge is not None:
@@ -278,18 +283,21 @@ def identify_cell_errors(unconfirmed_doc):
 
         error_cells = []
 
-        for inst in parsed['institutions']:
-            reported   = parsed['totals'].get(inst, 0.0)
-            calculated = parsed['calculated_totals'].get(inst, 0.0)
-            if abs(calculated - reported) >= 0.01:
-                error_cells.append({
-                    'institution': inst,
-                    'calculated_value': calculated,
-                    'reported_value': reported,
-                    'difference': round(calculated - reported, 2),
-                    'error_type': 'Total Mismatch',
-                    'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
-                })
+        if all(v == 0.0 for v in parsed['totals'].values()):
+            pass
+        else:
+            for inst in parsed['institutions']:
+                reported = parsed['totals'].get(inst, 0.0)
+                calculated = parsed['calculated_totals'].get(inst, 0.0)
+                if abs(calculated - reported) >= 0.01:
+                    error_cells.append({
+                        'institution': inst,
+                        'calculated_value': calculated,
+                        'reported_value': reported,
+                        'difference': round(calculated - reported, 2),
+                        'error_type': 'Total Mismatch',
+                        'message': f"Total mismatch: Calculated {calculated} vs Reported {reported}",
+                    })
 
         event_lookup, global_lookup = _get_event_rules_lookup()
         all_maxes = [e['max'] for rules in event_lookup.values() for e in rules.values()]

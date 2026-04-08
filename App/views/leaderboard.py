@@ -21,9 +21,9 @@ leaderboard_views = Blueprint('leaderboard_views', __name__, template_folder='..
 def _all_inst_empty(row, inst_cols):
     for col in inst_cols:
         val = row[col]
-        if pd.notna(val) and str(val).strip() != '':
-            return False
-    return True
+        if pd.notna(val) and str(val).strip() != '' and not str(val).strip().startswith('='):
+            return True
+    return False
 
 
 def _parse_document(doc):
@@ -87,7 +87,11 @@ def _parse_document(doc):
         if 'TOTAL POINTS' in rule_upper:
             for inst in institutions:
                 v = row[inst]
-                totals[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                v_str = str(v).strip() if pd.notna(v) else ''
+                if pd.notna(v) and v_str != '' and not v_str.startswith('='):
+                    totals[inst] = float(v)
+                else:
+                    totals[inst] = 0.0
             continue
 
         if rule_upper.startswith('RANKING'):
@@ -113,7 +117,8 @@ def _parse_document(doc):
             scores = {}
             for inst in institutions:
                 v = row[inst]
-                scores[inst] = float(v) if pd.notna(v) and str(v).strip() != '' else 0.0
+                v_str = str(v).strip() if pd.notna(v) else ''
+                scores[inst] = float(v) if pd.notna(v) and v_str != '' and not v_str.startswith('=') else 0.0
 
             rule_entry = {'label': rule_str, 'scores': scores}
             if current_event is not None:
@@ -163,19 +168,36 @@ def _doc_season_year(doc):
     Prefers a direct seasonID FK on the document (if it exists),
     falls back to the year of uploadedOn.
     """
-    # If the model has a seasonID column, use it
+    # Try explicit seasonID FK first
     if hasattr(doc, 'seasonID') and doc.seasonID:
         season = db.session.get(Season, doc.seasonID)
         if season:
             return season.year
 
-    # Fall back to upload year
+    # Try to read the year from the spreadsheet's first cell ("Season: 2025")
+    if doc.fileData:
+        try:
+            ext = os.path.splitext(doc.originalFilename)[1].lower()
+            buf = io.BytesIO(doc.fileData)
+            if ext in ('.xlsx', '.xls'):
+                # header=None so Row 0 is read as data, not skipped
+                df_raw = pd.read_excel(buf, header=None, nrows=1)
+            else:
+                df_raw = pd.read_csv(buf, header=None, nrows=1)
+            cell = str(df_raw.iloc[0, 0]).strip()  # e.g. "Season: 2025"
+            m = re.search(r'\b(20\d{2})\b', cell)
+            if m:
+                year = int(m.group(1))
+                season = Season.query.filter_by(year=year).first()
+                return season.year if season else year
+        except Exception:
+            pass
+
+    # Last resort: upload year
     if doc.uploadedOn:
         upload_year = doc.uploadedOn.year
         season = Season.query.filter_by(year=upload_year).first()
-        if season:
-            return season.year
-        return upload_year  # return bare year even without a Season row
+        return season.year if season else upload_year
 
     return None
 
