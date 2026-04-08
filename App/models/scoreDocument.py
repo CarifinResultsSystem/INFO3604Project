@@ -1,26 +1,27 @@
-import os
-import uuid
 from datetime import datetime
-from werkzeug.utils import secure_filename  # type: ignore
-
-from App.database import db 
+from App.database import db
 
 class ScoreDocument(db.Model):
     __tablename__ = "score_documents"
 
     documentID = db.Column(db.Integer, primary_key=True)
-
     originalFilename = db.Column(db.String(255), nullable=False)
     storedFilename = db.Column(db.String(255), nullable=False)
     fileData = db.Column(db.LargeBinary, nullable=False)
 
     uploadedOn = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-        
     confirmed = db.Column(db.Boolean, default=False)
 
     scoretakerID = db.Column(
         db.Integer,
         db.ForeignKey("scoretakers.userID"),
+        nullable=False,
+        index=True,
+    )
+
+    seasonID = db.Column(
+        db.Integer,
+        db.ForeignKey("seasons.seasonID"),
         nullable=False,
         index=True,
     )
@@ -31,6 +32,12 @@ class ScoreDocument(db.Model):
         lazy=True,
     )
 
+    season = db.relationship(
+        "Season",
+        backref=db.backref("score_documents", lazy=True),
+        lazy=True,
+    )
+
     def get_json(self):
         return {
             "documentID": self.documentID,
@@ -38,4 +45,6 @@ class ScoreDocument(db.Model):
             "storedFilename": self.storedFilename,
             "uploadedOn": self.uploadedOn.isoformat() if self.uploadedOn else None,
             "scoretakerID": self.scoretakerID,
+            "seasonID": self.seasonID,
+            "seasonYear": self.season.year if self.season else None,
         }

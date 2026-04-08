@@ -36,6 +36,19 @@
 
       <form method="POST" enctype="multipart/form-data" id="uploadForm">
 
+        <!-- Season selector -->
+        <div class="season-picker">
+          <label for="season_id">Season</label>
+          <select name="season_id" id="season_id" required>
+            {% for season in seasons %}
+              <option value="{{ season.seasonID }}"
+                {% if current_season_id == season.seasonID %}selected{% endif %}>
+                {{ season.year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
         <!-- Drop zone -->
         <div class="drop-zone" id="dropZone">
           <div class="drop-zone-icon">
@@ -171,7 +184,16 @@ uploadForm.addEventListener("submit", function(e) {
     return;
   }
 
+  const seasonId = document.getElementById("season_id").value;
+
+  if (!seasonId) {
+    alert("Please select a season!");
+    return;
+  }
+  
   const formData = new FormData();
+  formData.append("season_id", seasonId);
+
   for (const file of selectedFiles) {
     formData.append("files", file);
   }

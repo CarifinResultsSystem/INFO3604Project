@@ -1,5 +1,5 @@
 from App.database import db
-from App.models import Scoretaker, ScoreDocument
+from App.models import Scoretaker, ScoreDocument, Season
 
 
 # Get Scoretaker Profile
@@ -7,13 +7,17 @@ def get_scoretaker(userID: int):
     return db.session.get(Scoretaker, userID)
 
 # Upload Score Document
-def upload_score_document(userID: int, file_storage):
-    """
-    Uploads a score document for a given userID
-    """
+def upload_score_document(userID: int, file_storage, seasonID: int):
     st = Scoretaker.get_or_create_for_user(userID)
 
-    doc = st.upload_score_document(file_storage=file_storage)
+    season = db.session.get(Season, int(seasonID))
+    if not season:
+        raise ValueError("Invalid season selected")
+
+    doc = st.upload_score_document(
+        file_storage=file_storage,
+        seasonID=season.seasonID,
+    )
 
     db.session.commit()
     return doc

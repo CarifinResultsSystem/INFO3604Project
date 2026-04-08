@@ -123,26 +123,11 @@ def _parse_document(doc):
 
 
 def _doc_season_year(doc):
-    """
-    Resolve which season year a confirmed ScoreDocument belongs to.
-    Prefers a direct seasonID FK on the document (if it exists),
-    falls back to the year of uploadedOn.
-    """
-    # If the model has a seasonID column, use it
-    if hasattr(doc, 'seasonID') and doc.seasonID:
-        season = db.session.get(Season, doc.seasonID)
-        if season:
-            return season.year
+    if not getattr(doc, 'seasonID', None):
+        return None
 
-    # Fall back to upload year
-    if doc.uploadedOn:
-        upload_year = doc.uploadedOn.year
-        season = Season.query.filter_by(year=upload_year).first()
-        if season:
-            return season.year
-        return upload_year  # return bare year even without a Season row
-
-    return None
+    season = db.session.get(Season, doc.seasonID)
+    return season.year if season else None
 
 
 # ---------------------------------------------------------------------------

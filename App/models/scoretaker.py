@@ -29,10 +29,13 @@ class Scoretaker(db.Model):
             db.session.add(st)
         return st
 
-    def upload_score_document(self, file_storage) -> "ScoreDocument":
+    def upload_score_document(self, file_storage, seasonID: int) -> "ScoreDocument":
         """Read the uploaded file into memory and persist it as LargeBinary in the DB."""
         if file_storage is None or not getattr(file_storage, "filename", ""):
             raise ValueError("No file provided.")
+
+        if not seasonID:
+            raise ValueError("Season is required.")
 
         original_name = secure_filename(file_storage.filename)
         if original_name == "":
@@ -43,13 +46,13 @@ class Scoretaker(db.Model):
 
         file_bytes = file_storage.read()
 
-        # Create DB record
         doc = ScoreDocument(
             originalFilename=original_name,
             storedFilename=stored_name,
             fileData=file_bytes,
             uploadedOn=datetime.utcnow(),
             scoretakerID=self.userID,
+            seasonID=int(seasonID),
         )
 
         db.session.add(doc)
