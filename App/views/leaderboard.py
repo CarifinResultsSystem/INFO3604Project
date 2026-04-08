@@ -35,9 +35,9 @@ def _parse_document(doc):
     buf = io.BytesIO(doc.fileData)
 
     if ext in ('.xlsx', '.xls'):
-        df = pd.read_excel(buf)
+        df = pd.read_excel(buf, header=1)
     else:
-        df = pd.read_csv(buf)
+        df = pd.read_csv(buf, header=1)
 
     if df.empty or 'Rule' not in df.columns:
         return None
