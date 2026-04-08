@@ -287,31 +287,33 @@ def get_leaderboard_api():
     challenge_names = []
 
     for challenge in parsed.get("challenges", []):
-        c_name = (challenge.get("name") or "").strip()
-        if not c_name:
-            continue
+        for event in challenge.get("events", []):
+            e_name = (event.get("name") or "").strip()
+            if not e_name:
+                continue
 
-        if c_name not in challenge_names:
-            challenge_names.append(c_name)
+            if e_name not in challenge_names:
+                challenge_names.append(e_name)
 
-        for inst in parsed.get("institutions", []):
-            agg.setdefault(inst, {})
-            challenge_pts = 0.0
+            for inst in parsed.get("institutions", []):
+                agg.setdefault(inst, {})
+                event_pts = 0.0
 
-            for event in challenge.get("events", []):
                 if event.get("rules"):
                     for rule in event["rules"]:
                         v = rule.get("scores", {}).get(inst, 0.0)
                         if isinstance(v, float) and np.isnan(v):
                             v = 0.0
-                        challenge_pts += v
+                        event_pts += v
                 elif event.get("event_scores"):
                     v = event["event_scores"].get(inst, 0.0)
                     if isinstance(v, float) and np.isnan(v):
                         v = 0.0
-                    challenge_pts += v
+                    event_pts += v
 
-            agg[inst][c_name] = round(challenge_pts, 2)
+                agg[inst][e_name] = round(
+                    agg[inst].get(e_name, 0.0) + event_pts, 2
+                )
 
     if not agg:
         return jsonify({

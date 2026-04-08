@@ -821,7 +821,6 @@ def view_system_results(documentID):
 
     return render_template('judge/system_results.html', document=doc_data, table_data=table_data)
 
-
 @judge_views.route('/judge/finalize/<int:documentID>', methods=['POST'])
 @jwt_required()
 def finalize_document(documentID):
@@ -837,58 +836,70 @@ def finalize_document(documentID):
         if parsed is None:
             return jsonify({"error": "Could not parse document"}), 500
 
-        # Reconstruct a flat DataFrame in the original format for export
         institutions = parsed['institutions']
-        rows = []
 
+        # Read the original raw file to preserve the title row (e.g. "Season: 2026")
+        ext = os.path.splitext(document.originalFilename)[1].lower()
+        buf = io.BytesIO(document.fileData)
+        if ext in ('.xlsx', '.xls'):
+            raw_df = pd.read_excel(buf, header=None)
+        else:
+            raw_df = pd.read_csv(buf, header=None)
+
+        # Find the header row index ("Event / Institution" or "Rule")
+        header_row_idx = None
+        for i in range(len(raw_df)):
+            first_text = str(raw_df.iat[i, 0]).strip() if pd.notna(raw_df.iat[i, 0]) else ""
+            if first_text in ("Event / Institution", "Rule"):
+                header_row_idx = i
+                break
+
+        # Keep everything above the header row (e.g. the "Season: YYYY" title row)
+        preamble_rows = raw_df.iloc[:header_row_idx].values.tolist() if header_row_idx else []
+
+        # Build the data rows with correct Rule labels
+        rows = []
         for challenge in parsed['challenges']:
-            # Challenge header row
-            rows.append({'Rule': challenge['name'], **{inst: '' for inst in institutions}})
+            rows.append([challenge['name']] + ['' for _ in institutions])
 
             for event in challenge['events']:
                 if event['name']:
-                    rows.append({'Rule': event['name'], **{inst: '' for inst in institutions}})
+                    rows.append([event['name']] + ['' for _ in institutions])
 
                 for rule in event['rules']:
-                    row = {'Rule': rule['label'], **rule['scores']}
+                    row = [rule['label']]
+                    for inst in institutions:
+                        row.append(rule['scores'].get(inst, 0.0))
                     rows.append(row)
 
-                rows.append({'Rule': '', **{inst: '' for inst in institutions}})
+                rows.append(['' for _ in range(len(institutions) + 1)])
 
-        totals_row   = {'Rule': 'TOTAL POINTS'}
-        rankings_row = {'Rule': 'RANKING'}
+        # Totals and rankings rows
+        totals_row = ['TOTAL POINTS']
+        rankings_row = ['RANKING']
         for inst in institutions:
             if use_system_results:
-                totals_row[inst]   = parsed['calculated_totals'].get(inst, 0.0)
-                rankings_row[inst] = parsed['calculated_rankings'].get(inst, '')
+                totals_row.append(parsed['calculated_totals'].get(inst, 0.0))
+                rankings_row.append(parsed['calculated_rankings'].get(inst, ''))
             else:
-                totals_row[inst]   = parsed['totals'].get(inst, 0.0)
-                rankings_row[inst] = parsed['rankings'].get(inst, '')
-
+                totals_row.append(parsed['totals'].get(inst, 0.0))
+                rankings_row.append(parsed['rankings'].get(inst, ''))
         rows.append(totals_row)
         rows.append(rankings_row)
 
-        # Use 'Event / Institution' as the first column header so the parser
-        # can find the header row correctly when this document is read back.
-        final_df = pd.DataFrame(rows, columns=['Event / Institution'] + institutions)
+        # Header row
+        header_row = ['Event / Institution'] + institutions
 
-        # Serialise final DataFrame back into the DB record, preserving the
-        # original two-row preamble: title row + header row.
-        file_ext = os.path.splitext(document.originalFilename)[1].lower()
-        out_ext  = '.xlsx' if file_ext in ('.xls', '.xlsm', '.xlsb') else file_ext
+        # Assemble: preamble + header + data
+        all_rows = preamble_rows + [header_row] + rows
 
-        # Build a season year title row to prepend (mirrors the original template)
-        season_year = _doc_season_year(document)
-        title_row = pd.DataFrame(
-            [[f'Season: {season_year}'] + [None] * len(institutions)],
-            columns=['Event / Institution'] + institutions
-        )
-        final_df_with_title = pd.concat([title_row, final_df], ignore_index=True)
+        final_df = pd.DataFrame(all_rows)
 
-        document.fileData = _dataframe_to_bytes(final_df_with_title, out_ext, index=False, header=True)
-        
+        # Serialise to bytes with no header/index (everything is already in the rows)
+        out_ext = '.xlsx' if ext in ('.xls', '.xlsm', '.xlsb') else ext
+        document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=False)
+
         document.confirmed = True
-        # Mark corresponding AutomatedResult rows as confirmed too
         AutomatedResult.query.filter_by(
             documentID=int(documentID)
         ).update({'confirmed': True}, synchronize_session=False)
