@@ -393,7 +393,7 @@ def identify_all_cell_errors(unconfirmed_doc):
 def persist_errors_for_document(document):
     # Clear stale results for this document
     AutomatedResult.query.filter_by(
-        participantID=str(document.documentID)
+        documentID=document.documentID
     ).delete(synchronize_session=False)
 
     errors = identify_all_cell_errors(document)
@@ -401,9 +401,10 @@ def persist_errors_for_document(document):
     for err in errors:
         record = AutomatedResult(
             score=float(err.get('value') or 0.0),
-            participantID=str(document.documentID),
+            participantID=None,
             eventID=1,
             pointsID=1,
+            documentID=document.documentID,
         )
         record.numErrors        = 1
         record.errorType        = err.get('error_type', 'Unknown')
@@ -842,7 +843,7 @@ def finalize_document(documentID):
         document.confirmed = True
         # Mark corresponding AutomatedResult rows as confirmed too
         AutomatedResult.query.filter_by(
-            participantID=str(documentID)
+            documentID=int(documentID)
         ).update({'confirmed': True}, synchronize_session=False)
         db.session.commit()
 

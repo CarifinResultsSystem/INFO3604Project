@@ -21,7 +21,7 @@ class AutomatedResult(db.Model):
     participantID = db.Column(
         db.String(50),
         db.ForeignKey("participants.participantID"),
-        nullable=False
+        nullable=True
     )
 
     eventID = db.Column(
@@ -36,6 +36,12 @@ class AutomatedResult(db.Model):
         nullable=False
     )
 
+    documentID = db.Column(
+        db.Integer,
+        db.ForeignKey("score_documents.documentID"),
+        nullable=True
+    )
+
     participant = db.relationship(
         "Participant",
         backref=db.backref("automated_results", lazy=True, cascade="all, delete-orphan"),
@@ -48,11 +54,18 @@ class AutomatedResult(db.Model):
         lazy=True
     )
 
-    def __init__(self, score, participantID, eventID, pointsID):
+    document = db.relationship(
+        "ScoreDocument",
+        backref=db.backref("automated_results", lazy=True),
+        lazy=True
+    )
+
+    def __init__(self, score, participantID=None, eventID=None, pointsID=None, documentID=None):
         self.score = score
         self.participantID = participantID
         self.eventID = eventID
         self.pointsID = pointsID
+        self.documentID = documentID
 
     def get_json(self):
         return {
