@@ -114,6 +114,11 @@ async function fetchAndRender(year) {
   buildSeasonSelect(data.available_years, data.season_year);
 
   if (!data.leaderboard || data.leaderboard.length === 0) {
+    const empty = document.getElementById('lb-empty');
+    empty.innerHTML = `
+      <i class="material-icons" style="font-size:2rem;display:block;margin-bottom:8px;">hourglass_empty</i>
+      ${escHtml(data.message || 'No confirmed results available for this season yet.')}
+    `;
     showState('empty');
     return;
   }

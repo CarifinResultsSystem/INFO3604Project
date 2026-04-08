@@ -858,7 +858,7 @@ def finalize_document(documentID):
             "message": "Document successfully finalized",
             "document_id": documentID,
             "used_system_results": use_system_results,
-            "redirect_url":        url_for('judge_views.review_scores'),
+            "redirect_url": url_for('judge_views.archives'),
         }), 200
 
     except Exception as e:

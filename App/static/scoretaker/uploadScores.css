@@ -350,3 +350,32 @@
     justify-content: center;
   }
 }
+
+.season-picker {
+  margin: 18px 0 20px 0;
+}
+
+.season-picker label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.season-picker select {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  padding: 12px 14px;
+  border: 1px solid #cfd4ff;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 15px;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+}
