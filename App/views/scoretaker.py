@@ -64,13 +64,18 @@ def scoretaker_dashboard():
 def upload_scores():
     if request.method == 'POST':
         files = request.files.getlist('files')
+        season_id = request.form.get('season_id', type=int)
+
+        if not season_id:
+            flash("Please select a season.", "error")
+            return redirect(url_for('scoretaker_views.upload_scores'))
 
         if not files or files[0].filename == '':
             flash("No files selected.", "error")
             return redirect(url_for('scoretaker_views.upload_scores'))
 
         success_count = 0
-        error_count   = 0
+        error_count = 0
 
         for file in files:
             try:
@@ -82,10 +87,12 @@ def upload_scores():
                 upload_score_document(
                     userID=current_user.userID,
                     file_storage=file,
+                    seasonID=season_id,
                 )
                 success_count += 1
 
             except Exception as e:
+                print(f"UPLOAD ERROR for '{file.filename}': {e}")
                 flash(f"Error uploading '{file.filename}': {e}", "error")
                 error_count += 1
 
@@ -96,8 +103,16 @@ def upload_scores():
 
         return redirect(url_for('scoretaker_views.archives'))
 
-    return render_template('scoretaker/uploadScores.html', user=current_user)
+    seasons = Season.query.order_by(Season.year.desc()).all()
+    current_year = datetime.now().year
+    current_season = Season.query.filter_by(year=current_year).first()
 
+    return render_template(
+        'scoretaker/uploadScores.html',
+        user=current_user,
+        seasons=seasons,
+        current_season_id=current_season.seasonID if current_season else (seasons[0].seasonID if seasons else None),
+    )
 
 # ── Archives ──────────────────────────────────────────────────────────────────
 

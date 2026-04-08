@@ -303,10 +303,10 @@ function performFinalization(useSystemResults) {
     })
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(data => {
-        showToast(data.message || 'Successfully uploaded as final results!', 'success');
+        showToast(data.message || 'Successfully uploaded as final results! Redirecting…', 'success');
         setTimeout(() => {
-            window.location.href = "{{ url_for('judge_views.review_scores') }}";
-        }, 2000);
+            window.location.href = data.redirect_url || "{{ url_for('judge_views.archives') }}";
+        }, 1200);
     })
     .catch(() => showToast('Failed to upload as final results.', 'error'));
 }

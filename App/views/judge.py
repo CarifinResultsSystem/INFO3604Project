@@ -9,7 +9,35 @@ from App.models import ScoreDocument, PointsRules, AutomatedResult, Event
 import pandas as pd
 import numpy as np
 
+# from App.views.leaderboard import _doc_season_year
+
 judge_views = Blueprint('judge_views', __name__, template_folder='../templates')
+
+@judge_views.route('/judge/document/<int:documentID>/delete', methods=['POST'])
+@jwt_required()
+def delete_document(documentID):
+    doc = db.session.get(ScoreDocument, documentID)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+
+    try:
+        AutomatedResult.query.filter_by(
+            documentID=documentID
+        ).delete(synchronize_session=False)
+
+        db.session.delete(doc)
+        db.session.commit()
+        return jsonify({"message": "Document deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+def _doc_season_year(doc):
+    from App.models import Season
+    if not getattr(doc, 'seasonID', None):
+        return 'Unknown'
+    season = db.session.get(Season, doc.seasonID)
+    return season.year if season else 'Unknown'
 
 def _doc_to_dataframe(document, header=1):
     """Return a DataFrame from a ScoreDocument's in-DB binary content."""
@@ -840,13 +868,25 @@ def finalize_document(documentID):
         rows.append(totals_row)
         rows.append(rankings_row)
 
-        final_df = pd.DataFrame(rows, columns=['Rule'] + institutions)
+        # Use 'Event / Institution' as the first column header so the parser
+        # can find the header row correctly when this document is read back.
+        final_df = pd.DataFrame(rows, columns=['Event / Institution'] + institutions)
 
-        # Serialise final DataFrame back into the DB record
+        # Serialise final DataFrame back into the DB record, preserving the
+        # original two-row preamble: title row + header row.
         file_ext = os.path.splitext(document.originalFilename)[1].lower()
         out_ext  = '.xlsx' if file_ext in ('.xls', '.xlsm', '.xlsb') else file_ext
-        document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=True)
 
+        # Build a season year title row to prepend (mirrors the original template)
+        season_year = _doc_season_year(document)
+        title_row = pd.DataFrame(
+            [[f'Season: {season_year}'] + [None] * len(institutions)],
+            columns=['Event / Institution'] + institutions
+        )
+        final_df_with_title = pd.concat([title_row, final_df], ignore_index=True)
+
+        document.fileData = _dataframe_to_bytes(final_df_with_title, out_ext, index=False, header=True)
+        
         document.confirmed = True
         # Mark corresponding AutomatedResult rows as confirmed too
         AutomatedResult.query.filter_by(
@@ -858,7 +898,7 @@ def finalize_document(documentID):
             "message": "Document successfully finalized",
             "document_id": documentID,
             "used_system_results": use_system_results,
-            "redirect_url":        url_for('judge_views.review_scores'),
+            "redirect_url": url_for('judge_views.archives'),
         }), 200
 
     except Exception as e:
