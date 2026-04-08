@@ -202,6 +202,13 @@ def _parse_dataframe(df):
                     orphan_event = {'name': '', 'rules': [rule_entry], '_direct': True}
                     current_challenge['events'].append(orphan_event)
 
+    # Ensure all institutions have entries in totals and rankings dicts (even if not found in document)
+    for inst in institutions:
+        if inst not in totals:
+            totals[inst] = 0.0
+        if inst not in rankings:
+            rankings[inst] = ''
+
     calculated_totals = {inst: 0.0 for inst in institutions}
     for challenge in challenges:
         for event in challenge['events']:
