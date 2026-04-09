@@ -161,7 +161,7 @@ def _parse_dataframe(df):
     df = df.rename(columns={df.columns[0]: 'Rule'})
     df = df[df['Rule'].astype(str).str.strip() != 'Event / Institution'].reset_index(drop=True)
 
-    institutions = [c for c in df.columns if c != 'Rule']
+    institutions = [c for c in df.columns if c != 'Rule' and not str(c).startswith('Unnamed:')]
 
     challenges = []
     totals = {}

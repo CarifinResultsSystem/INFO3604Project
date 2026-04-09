@@ -159,17 +159,84 @@ def build_report_data(season=None):
 
     awards = []
     try:
-        from App.models import Award
-        award_rows = Award.query.filter_by(season=season).order_by(Award.place).all()
-        for a in award_rows:
-            awards.append({
-                "event_name":  a.event_name if hasattr(a, 'event_name') else None,
-                "institution": a.institution_name if hasattr(a, 'institution_name') else None,
-                "participant": a.participant_name if hasattr(a, 'participant_name') else None,
-                "place":       a.place if hasattr(a, 'place') else None,
-                "score":       a.score if hasattr(a, 'score') else None,
-            })
-    except Exception:
+        from App.models import ScoreDocument, Season
+        from App.views.judge import parse_hierarchical_document
+
+        # Find season by year for filtering documents
+        season_obj = None
+        try:
+            season_obj = db.session.query(Season).filter_by(year=int(season)).first()
+        except (ValueError, TypeError):
+            pass
+
+        # Get all confirmed documents
+        confirmed_docs = db.session.query(ScoreDocument).filter_by(confirmed=True).all()
+        if season_obj and season_obj.seasonID:
+            confirmed_docs = [d for d in confirmed_docs if d.seasonID == season_obj.seasonID]
+
+        if confirmed_docs:
+            # Merge all confirmed documents — accumulate scores per institution per challenge/event
+            institution_totals = {}   # inst -> total points
+            event_scores = {}         # event_name -> {inst -> points}
+
+            for doc in confirmed_docs:
+                try:
+                    parsed = parse_hierarchical_document(doc)
+                    if not parsed:
+                        continue
+
+                    # Overall totals
+                    for inst, pts in parsed["calculated_totals"].items():
+                        institution_totals[inst] = institution_totals.get(inst, 0.0) + pts
+
+                    # Per-challenge/event scores
+                    for challenge in parsed["challenges"]:
+                        for event in challenge["events"]:
+                            event_name = event["name"] or challenge["name"]
+                            if not event_name:
+                                continue
+                            if event_name not in event_scores:
+                                event_scores[event_name] = {}
+
+                            if event["rules"]:
+                                for rule in event["rules"]:
+                                    for inst, v in rule["scores"].items():
+                                        event_scores[event_name][inst] = \
+                                            event_scores[event_name].get(inst, 0.0) + v
+                            elif event.get("event_scores"):
+                                for inst, v in event["event_scores"].items():
+                                    event_scores[event_name][inst] = \
+                                        event_scores[event_name].get(inst, 0.0) + v
+                except Exception as e:
+                    print(f"[HR] Error parsing document {doc.documentID}: {e}")
+                    continue
+
+            # Build overall winners list
+            sorted_insts = sorted(institution_totals.items(), key=lambda x: x[1], reverse=True)
+            for i, (inst, pts) in enumerate(sorted_insts, 1):
+                awards.append({
+                    "event_name":  "Overall",
+                    "institution": inst,
+                    "participant": None,
+                    "place":       i,
+                    "score":       round(pts, 2),
+                })
+
+            # Add event/challenge winners
+            for event_name, scores in event_scores.items():
+                if not scores:
+                    continue
+                sorted_event = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+                for i, (inst, pts) in enumerate(sorted_event, 1):
+                    awards.append({
+                        "event_name":  event_name,
+                        "institution": inst,
+                        "participant": None,
+                        "place":       i,
+                        "score":       round(pts, 2),
+                    })
+    except Exception as e:
+        print(f"[HR] build_report_data awards error: {e}")
         pass
 
     error_summary = []
