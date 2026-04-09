@@ -900,9 +900,6 @@ def finalize_document(documentID):
         document.fileData = _dataframe_to_bytes(final_df, out_ext, index=False, header=False)
 
         document.confirmed = True
-        AutomatedResult.query.filter_by(
-            documentID=int(documentID)
-        ).update({'confirmed': True}, synchronize_session=False)
         db.session.commit()
 
         return jsonify({
